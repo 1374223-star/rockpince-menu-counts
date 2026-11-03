@@ -274,7 +274,11 @@
       var style = document.createElement('style');
       style.id = 'rr-category-count-style';
       style.type = 'text/css';
-      style.textContent = '.rr-category-count { display: inline !important; margin-left: .35em !important; white-space: nowrap; opacity: 1 !important; font-size: 1em !important; font-weight: 700 !important; }';
+      style.textContent = '.rr-category-count { display: inline !important; margin-left: .35em !important; white-space: nowrap; opacity: 1 !important; font-size: 1em !important; font-weight: 700 !important; }' +
+        /* owner 2026-11-03: every category name in FULL CAPITALS (display only; stored names unchanged) */
+        ' ul.category-menu a, .sf-menu a, .ragna-rock-dropdown a, .mm-listitem a, ul.list-unstyled.category a,' +
+        ' .subcategory__card-body, .subcategory__card-body a, .category-list-body h1.page-head-title,' +
+        ' .breadcrumb-item, .breadcrumb-item a { text-transform: uppercase !important; }';
       var head = document.getElementsByTagName('head')[0];
       if (head) { head.appendChild(style); }
     }
