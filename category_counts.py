@@ -137,9 +137,9 @@ def compute(categories, names, relations, visible_ids, aliases=None):
             else:
                 pretty = False  # e.g. a folder just created through the API has no SEO address yet
             cid = parent_of.get(cid, "")
-        if pretty:
-            return "/" + "/".join(reversed(parts))
-        return "/index.php?route=product/category&path=" + "_".join(reversed(ids))
+        # A folder without an SEO address cannot be opened on this shop (no route fallback exists),
+        # so it gets no url and the menu leaves it out until it has one (see missing_urls.py).
+        return "/" + "/".join(reversed(parts)) if pretty else ""
 
     by_id = {c["id"]: c for c in categories}
     out = {}
