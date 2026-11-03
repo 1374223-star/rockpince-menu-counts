@@ -192,10 +192,49 @@
       }
     }
   }
+  /* Phone menu (mmenu): the small number next to ">" counts every subfolder, hidden ones too,
+     so it is set to the folders really shown (and ">" is hidden when none is left);
+     the DROPDOWNS "first" folders move to the top in bold, like on the desktop. */
+  function fixMobileMenu() {
+    var nav = document.getElementById('js-mobile-nav');
+    if (!nav) { return; }
+    var items = nav.querySelectorAll('li.mm-listitem[data-mm-child]'), i, j;
+    for (i = 0; i < items.length; i += 1) {
+      var panel = document.getElementById(items[i].getAttribute('data-mm-child'));
+      var counter = items[i].querySelector('.mm-counter');
+      var button = items[i].querySelector('.mm-btn--next');
+      if (!panel || !counter) { continue; }
+      var children = panel.querySelectorAll('.mm-listview > li'), shown = 0;
+      for (j = 0; j < children.length; j += 1) {
+        if (children[j].style.display !== 'none') { shown += 1; }
+      }
+      if (counter.textContent !== String(shown)) { counter.textContent = String(shown); }
+      if (button) { button.style.display = shown ? '' : 'none'; }
+      /* on a category page the theme leaves the submenu title empty: use the folder's name */
+      var title = panel.querySelector('.mm-navbar__title span') || panel.querySelector('.mm-navbar__title');
+      var own = items[i].querySelector('a.mm-listitem__text');
+      if (title && own && !title.textContent.replace(/\s+/g, '')) { title.textContent = own.textContent.replace(/\s+/g, ' ').trim(); }
+    }
+    var root, k, link, li;
+    for (root in DROPDOWNS) {
+      if (!Object.prototype.hasOwnProperty.call(DROPDOWNS, root)) { continue; }
+      for (k = DROPDOWNS[root].first.length - 1; k >= 0; k -= 1) {
+        link = nav.querySelector('a.mm-listitem__text[href$="-' + DROPDOWNS[root].first[k] + '"]');
+        li = link ? link.closest('li') : null;
+        if (!li || !li.parentNode) { continue; }
+        link.style.fontWeight = '800';
+        if (li.parentNode.firstElementChild !== li) { li.parentNode.insertBefore(li, li.parentNode.firstElementChild); }
+      }
+    }
+  }
   function scheduleUpdate() {
     if (scheduled) { return; }
     scheduled = true;
-    window.setTimeout(function () { scheduled = false; update(); try { liveTotal(); } catch (e) { /* ignore */ } }, 80);
+    window.setTimeout(function () {
+      scheduled = false; update();
+      try { liveTotal(); } catch (e) { /* ignore */ }
+      try { fixMobileMenu(); } catch (e) { /* ignore */ }
+    }, 80);
   }
   /* Self-updating 3-column dropdowns (DISZTÁRGY, KIEGÉSZÍTŐK), built from the live category
      tree in the counts file: only switched-on folders, Hungarian A-Z, current names and links.
@@ -353,11 +392,18 @@
         ' .breadcrumb-item, .breadcrumb-item a { text-transform: uppercase !important; }' +
         /* the theme fixes the dropdown box at 350px: let the self-built dropdowns grow with their content */
         ' li#cat_14130 .subtree-dropdown-inner, li#cat_14025 .subtree-dropdown-inner { height: auto !important; min-height: 350px; }' +
-        ' li#cat_14130 .subtree-dropdown, li#cat_14025 .subtree-dropdown { max-height: calc(100vh - 140px); overflow-y: auto; }';
+        ' li#cat_14130 .subtree-dropdown, li#cat_14025 .subtree-dropdown { max-height: calc(100vh - 140px); overflow-y: auto; }' +
+        /* phone menu: long names wrap instead of ending in "..." that hid the count */
+        ' #js-mobile-nav .mm-listitem__text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }' +
+        /* phone category page: two tiles per row, picture fills the tile (was a 190px picture on the left) */
+        ' @media (max-width: 575.98px) { .subcategory-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }' +
+        ' .subcategory__card-image { width: 100% !important; height: auto !important; }' +
+        ' .subcategory__card-body, .subcategory__card-body a { font-size: 11px !important; line-height: 1.3 !important; } }';
       var head = document.getElementsByTagName('head')[0];
       if (head) { head.appendChild(style); }
     }
     update();
+    try { fixMobileMenu(); } catch (e) { /* the theme menu stays as it is */ }
     var Observer = window.MutationObserver || window.WebKitMutationObserver;
     if (Observer && document.body) {
       var observer = new Observer(function (mutations) {
