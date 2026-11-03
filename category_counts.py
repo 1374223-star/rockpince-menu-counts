@@ -150,8 +150,7 @@ def fetch(environment):
         for d in descriptions
         if rid(d.get("language")) == lang
     }
-    # only active categories are shown in the menu
-    categories = [c for c in categories if str(c.get("status", "1")) == "1"]
+    # inactive categories are kept too: the menu can still link to them
     products = get_all(s, f"{base}/products", "products")
     visible = {p["id"] for p in products if str(p.get("status")) == "1"}
     relations = [

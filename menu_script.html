@@ -125,11 +125,16 @@
     }
     return valid.length === 1 ? valid[0] : null;
   }
-  function decorate(element, id) {
+  /* exactId: the link URL itself ends in this category's ID, so a menu label that
+     differs from the category name (renamed category) still gets its number. */
+  function decorate(element, id, exactId) {
     if (!id || !Object.prototype.hasOwnProperty.call(data, id)) { return; }
     if (typeof data[id][1] !== 'number') { return; }
     if (element.getAttribute('data-rr-count-applied') === '1') { return; }
-    if (normalize(bare(element.textContent)) !== normalize(data[id][0])) { return; }
+    if (exactId) {
+      if (!normalize(bare(element.textContent))) { return; }
+      if (element.getElementsByTagName('img').length) { return; }
+    } else if (normalize(bare(element.textContent)) !== normalize(data[id][0])) { return; }
     var count = document.createElement('span');
     count.className = 'rr-category-count';
     count.textContent = ' [' + data[id][1] + ']';
@@ -154,7 +159,7 @@
         } else if (!Object.prototype.hasOwnProperty.call(hrefIds, urlKey)) {
           hrefIds[urlKey] = resolved;
         }
-        decorate(link, resolved);
+        decorate(link, resolved, resolved === categoryId(link));
       } else { unresolved.push(link); }
     }
     for (i = 0; i < unresolved.length; i += 1) {
