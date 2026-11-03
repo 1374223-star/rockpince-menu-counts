@@ -272,11 +272,25 @@
         blocks.push(block);
         total += block.length;
       }
-      /* fill 3 columns, never splitting a block unless it is bigger than a column */
-      var columns = [[], [], []], c = 0, target = Math.ceil(total / 3);
+      /* 3 balanced columns: try every split of the (ordered, never broken) blocks and keep the
+         one whose tallest column is shortest; titles count a bit more (they have extra space) */
+      var weights = [], w, x, y, best = null, cut1 = 0, cut2 = 0;
       for (b = 0; b < blocks.length; b += 1) {
-        if (c < 2 && columns[c].length > 0 && columns[c].length + blocks[b].length > target) { c += 1; }
-        for (j = 0; j < blocks[b].length; j += 1) { columns[c].push(blocks[b][j]); }
+        w = 0;
+        for (j = 0; j < blocks[b].length; j += 1) { w += blocks[b][j].title ? 1.4 : 1; }
+        weights.push(w);
+      }
+      function span(from, to) { var s = 0, q; for (q = from; q < to; q += 1) { s += weights[q]; } return s; }
+      for (x = 0; x <= blocks.length; x += 1) {
+        for (y = x; y <= blocks.length; y += 1) {
+          w = Math.max(span(0, x), span(x, y), span(y, blocks.length));
+          if (best === null || w < best) { best = w; cut1 = x; cut2 = y; }
+        }
+      }
+      var columns = [[], [], []];
+      for (b = 0; b < blocks.length; b += 1) {
+        var into = b < cut1 ? 0 : (b < cut2 ? 1 : 2);
+        for (j = 0; j < blocks[b].length; j += 1) { columns[into].push(blocks[b][j]); }
       }
       row = document.createElement('div');
       row.className = 'row custom-dropdown-menu';
@@ -336,7 +350,10 @@
         /* owner 2026-11-03: every category name in FULL CAPITALS (display only; stored names unchanged) */
         ' ul.category-menu a, .sf-menu a, .ragna-rock-dropdown a, .mm-listitem a, ul.list-unstyled.category a,' +
         ' .subcategory__card-body, .subcategory__card-body a, .category-list-body h1.page-head-title,' +
-        ' .breadcrumb-item, .breadcrumb-item a { text-transform: uppercase !important; }';
+        ' .breadcrumb-item, .breadcrumb-item a { text-transform: uppercase !important; }' +
+        /* the theme fixes the dropdown box at 350px: let the self-built dropdowns grow with their content */
+        ' li#cat_14130 .subtree-dropdown-inner, li#cat_14025 .subtree-dropdown-inner { height: auto !important; min-height: 350px; }' +
+        ' li#cat_14130 .subtree-dropdown, li#cat_14025 .subtree-dropdown { max-height: calc(100vh - 140px); overflow-y: auto; }';
       var head = document.getElementsByTagName('head')[0];
       if (head) { head.appendChild(style); }
     }
