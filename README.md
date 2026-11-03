@@ -1,0 +1,19 @@
+# Rockpince menu counts
+
+Public numbers behind the `[1315]`-style product counts in the rockpince.hu menu.
+
+- `category_counts.json`: `{"generated": "...", "counts": {categoryInnerId: [name, productCount, parentInnerId]}}`.
+  A category's count = distinct visible products in it and in all of its subcategories.
+- `category_counts.py`: read-only Shoprenter API counter (GET requests only).
+- `.github/workflows/update-counts.yml`: runs every 3 hours and commits the JSON only when a number changed.
+  It refuses to publish if the API returns suspiciously few categories/products.
+- `menu_script.html`: the storefront script to paste into Shoprenter once. It loads
+  `https://raw.githubusercontent.com/1374223-star/rockpince-menu-counts/main/category_counts.json`.
+
+Secrets needed (Settings → Secrets and variables → Actions): `SHOPRENTER_USERNAME`, `SHOPRENTER_PASSWORD`
+(the same Shoprenter API login used by the product scripts).
+
+Manual refresh: Actions → "Update category counts" → Run workflow.
+
+Source of truth for the code: private repo `1374223-star/rockoff-upload`,
+`src/webshop_changer/storefront/`.

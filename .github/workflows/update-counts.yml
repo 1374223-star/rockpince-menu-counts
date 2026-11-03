@@ -1,0 +1,61 @@
+name: Update category counts
+
+on:
+  schedule:
+    - cron: "17 */3 * * *" # every 3 hours
+  workflow_dispatch: # "Run workflow" button for a manual refresh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-counts
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Count products per category (read-only Shoprenter API)
+        env:
+          SHOPRENTER_USERNAME: ${{ secrets.SHOPRENTER_USERNAME }}
+          SHOPRENTER_PASSWORD: ${{ secrets.SHOPRENTER_PASSWORD }}
+          COUNTS_OUT_DIR: out
+        run: |
+          pip install --quiet requests
+          python category_counts.py
+
+      - name: Sanity check, then publish only if numbers changed
+        run: |
+          python - <<'EOF'
+          import json, pathlib, shutil, sys
+          new = json.loads(pathlib.Path("out/category_counts.json").read_text(encoding="utf-8"))
+          old_path = pathlib.Path("category_counts.json")
+          old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.exists() else {"counts": {}}
+          n = new["counts"]
+          roots = sum(v[1] for v in n.values() if not v[2])
+          old_roots = sum(v[1] for v in old["counts"].values() if not v[2])
+          if len(n) < 300 or roots < 1000:
+              sys.exit(f"Refusing to publish: only {len(n)} categories / {roots} products (API problem?)")
+          if old_roots and roots < old_roots * 0.5:
+              sys.exit(f"Refusing to publish: products dropped from {old_roots} to {roots} (API problem?)")
+          if n == old["counts"]:
+              print("No change in counts.")
+          else:
+              shutil.copy("out/category_counts.json", old_path)
+              print(f"Counts changed: {len(n)} categories, {roots} products in root categories.")
+          EOF
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add category_counts.json
+          git diff --cached --quiet || git commit -m "Update category counts" && git push
