@@ -8,7 +8,7 @@ Public numbers behind the `[1315]`-style product counts in the rockpince.hu menu
 - `.github/workflows/update-counts.yml`: runs every 3 hours and commits the JSON only when a number changed.
   It refuses to publish if the API returns suspiciously few categories/products.
 - `menu_script.html`: the storefront script to paste into Shoprenter once. It loads
-  `https://raw.githubusercontent.com/1374223-star/rockpince-menu-counts/main/category_counts.json`.
+  `https://1374223-star.github.io/rockpince-menu-counts/category_counts.json (GitHub Pages)`.
 
 Secrets needed (Settings → Secrets and variables → Actions): `SHOPRENTER_USERNAME`, `SHOPRENTER_PASSWORD`
 (the same Shoprenter API login used by the product scripts).
