@@ -133,6 +133,13 @@
     if (!id || !Object.prototype.hasOwnProperty.call(data, id)) { return; }
     if (typeof data[id][1] !== 'number') { return; }
     if (element.getAttribute('data-rr-count-applied') === '1') { return; }
+    /* owner 2026-11-03: categories with 0 products are never shown (menus, dropdowns, tiles, sidebar) */
+    if (data[id][1] === 0 && String(element.tagName).toUpperCase() === 'A') {
+      var holder = element.closest ? element.closest('li, .subcategory__card, .card') : null;
+      (holder || element).style.setProperty('display', 'none', 'important');
+      element.setAttribute('data-rr-count-applied', '1');
+      return;
+    }
     if (exactId) {
       if (!normalize(bare(element.textContent))) { return; }
       if (element.getElementsByTagName('img').length) { return; }
