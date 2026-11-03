@@ -259,7 +259,12 @@
         entries.push({ id: items[i], level: 0 });
         if (cfg.first.indexOf(items[i]) >= 0) {
           sub = childrenOf(items[i]);
-          sub.sort(function (x, y) { return (data[x][4] - data[y][4]) || (huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1); });
+          /* A-Z inside the block; "Egyéb ..." (other) always last */
+          sub.sort(function (x, y) {
+            var ox = /^egy[eé]b/i.test(data[x][0]) ? 1 : 0, oy = /^egy[eé]b/i.test(data[y][0]) ? 1 : 0;
+            if (ox !== oy) { return ox - oy; }
+            return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
+          });
           for (k = 0; k < sub.length; k += 1) { entries.push({ id: sub[k], level: 1 }); }
         }
       }

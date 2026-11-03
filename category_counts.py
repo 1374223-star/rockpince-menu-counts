@@ -127,14 +127,19 @@ def compute(categories, names, relations, visible_ids, aliases=None):
         return result
 
     def url(cid):
-        parts, seen = [], set()
+        parts, ids, seen = [], [], set()
+        pretty = True
         while cid in inner_of and cid not in seen:
             seen.add(cid)
-            if not aliases.get(cid):
-                return ""
-            parts.append(aliases[cid])
+            ids.append(inner_of[cid])
+            if aliases.get(cid):
+                parts.append(aliases[cid])
+            else:
+                pretty = False  # e.g. a folder just created through the API has no SEO address yet
             cid = parent_of.get(cid, "")
-        return "/" + "/".join(reversed(parts))
+        if pretty:
+            return "/" + "/".join(reversed(parts))
+        return "/index.php?route=product/category&path=" + "_".join(reversed(ids))
 
     by_id = {c["id"]: c for c in categories}
     out = {}
