@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   var COUNTS_URL = 'https://1374223-star.github.io/rockpince-menu-counts/category_counts.json';
-  function run(counts) {
+  function run(counts, totalProducts) {
   var data = counts;
   var countSuffix = /\s+\[\d+\]$/;
   var lastPathId = /-(\d+)$/;
@@ -195,7 +195,7 @@
   function scheduleUpdate() {
     if (scheduled) { return; }
     scheduled = true;
-    window.setTimeout(function () { scheduled = false; update(); }, 80);
+    window.setTimeout(function () { scheduled = false; update(); try { liveTotal(); } catch (e) { /* ignore */ } }, 80);
   }
   /* Self-updating 3-column dropdowns (DISZTÁRGY, KIEGÉSZÍTŐK), built from the live category
      tree in the counts file: only switched-on folders, Hungarian A-Z, current names and links.
@@ -253,22 +253,31 @@
         if (fx >= 0 || fy >= 0) { return (fx < 0 ? 999 : fx) - (fy < 0 ? 999 : fy); }
         return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
       });
-      /* the bold "first" folders also list their own subfolders (in their sort order) right under them */
-      var entries = [], sub, k;
-      for (i = 0; i < items.length; i += 1) {
-        entries.push({ id: items[i], level: 0 });
-        if (cfg.first.indexOf(items[i]) >= 0) {
-          sub = childrenOf(items[i]);
-          /* A-Z inside the block; "Egyéb ..." (other) always last */
-          sub.sort(function (x, y) {
-            var ox = /^egy[eé]b/i.test(data[x][0]) ? 1 : 0, oy = /^egy[eé]b/i.test(data[y][0]) ? 1 : 0;
-            if (ox !== oy) { return ox - oy; }
-            return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
-          });
-          for (k = 0; k < sub.length; k += 1) { entries.push({ id: sub[k], level: 1 }); }
-        }
+      /* Every folder with subfolders is a bold title with its subfolders listed under it (A-Z,
+         "Egyéb ..." last, deeper levels indented further), so nothing is hidden behind a click. */
+      function addTree(id, level, out) {
+        var kids = level < 3 ? childrenOf(id) : [], k;
+        out.push({ id: id, level: level, title: kids.length > 0 });
+        kids.sort(function (x, y) {
+          var ox = /^egy[eé]b/i.test(data[x][0]) ? 1 : 0, oy = /^egy[eé]b/i.test(data[y][0]) ? 1 : 0;
+          if (ox !== oy) { return ox - oy; }
+          return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
+        });
+        for (k = 0; k < kids.length; k += 1) { addTree(kids[k], level + 1, out); }
       }
-      per = Math.ceil(entries.length / 3);
+      var blocks = [], total = 0, b, block;
+      for (i = 0; i < items.length; i += 1) {
+        block = [];
+        addTree(items[i], 0, block);
+        blocks.push(block);
+        total += block.length;
+      }
+      /* fill 3 columns, never splitting a block unless it is bigger than a column */
+      var columns = [[], [], []], c = 0, target = Math.ceil(total / 3);
+      for (b = 0; b < blocks.length; b += 1) {
+        if (c < 2 && columns[c].length > 0 && columns[c].length + blocks[b].length > target) { c += 1; }
+        for (j = 0; j < blocks[b].length; j += 1) { columns[c].push(blocks[b][j]); }
+      }
       row = document.createElement('div');
       row.className = 'row custom-dropdown-menu';
       for (i = 0; i < 3; i += 1) {
@@ -276,18 +285,20 @@
         col.className = 'col';
         ul = document.createElement('ul');
         ul.className = 'list-unstyled';
-        for (j = i * per; j < Math.min(entries.length, (i + 1) * per); j += 1) {
+        for (j = 0; j < columns[i].length; j += 1) {
+          var e = columns[i][j];
           item = document.createElement('li');
           a = document.createElement('a');
-          a.href = window.location.protocol + '//' + window.location.host + data[entries[j].id][3];
-          a.textContent = data[entries[j].id][0];
-          if (entries[j].level === 0 && cfg.first.indexOf(entries[j].id) >= 0) {
+          a.href = window.location.protocol + '//' + window.location.host + data[e.id][3];
+          a.textContent = data[e.id][0];
+          if (e.title) {
             a.style.setProperty('font-weight', '800', 'important');
+            if (e.level === 0 && j > 0) { item.style.setProperty('margin-top', '10px', 'important'); }
           }
-          if (entries[j].level === 1) {
-            item.style.setProperty('padding-left', '14px', 'important');
+          if (e.level > 0) {
+            item.style.setProperty('padding-left', (14 * e.level) + 'px', 'important');
             a.style.setProperty('font-size', '12px', 'important');
-            a.style.setProperty('opacity', '0.85', 'important');
+            if (!e.title) { a.style.setProperty('opacity', '0.85', 'important'); }
             a.textContent = '› ' + a.textContent;
           }
           item.appendChild(a);
@@ -301,8 +312,22 @@
       box.setAttribute('data-rr-built', '1');
     }
   }
+  /* Banner text "Több mint 45,000 elérhető termék" -> "[44 308] elérhető termék" (live total,
+     refreshed with the counts every 3 hours). Only the text nodes are changed. */
+  function liveTotal() {
+    if (typeof totalProducts !== 'number' || totalProducts < 1000) { return; }
+    var pattern = /(t[öo]bb\s+mint\s*)?\[?[0-9][0-9.,\s]*\]?\s*(elérhető\s+termék)/i;
+    var shown = String(totalProducts).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    var walker = document.createTreeWalker(document.body, 4, null, false), node;
+    while ((node = walker.nextNode())) {
+      if (pattern.test(node.nodeValue) && node.nodeValue.indexOf('[' + shown + ']') < 0) {
+        node.nodeValue = node.nodeValue.replace(pattern, '[' + shown + '] $2');
+      }
+    }
+  }
   function start() {
     try { buildDropdowns(); } catch (e) { /* never break the page: keep the hand-made menu */ }
+    try { liveTotal(); } catch (e) { /* the banner keeps its own text */ }
     if (!document.getElementById('rr-category-count-style')) {
       var style = document.createElement('style');
       style.id = 'rr-category-count-style';
@@ -347,7 +372,7 @@
       if (xhr.readyState !== 4 || xhr.status !== 200) { return; }
       var payload;
       try { payload = JSON.parse(xhr.responseText); } catch (e) { return; }
-      if (payload && payload.counts) { run(payload.counts); }
+      if (payload && payload.counts) { run(payload.counts, payload.total_visible_products); }
     };
     xhr.send(null);
   } catch (e) { /* no counts shown if loading fails; the menu itself is untouched */ }

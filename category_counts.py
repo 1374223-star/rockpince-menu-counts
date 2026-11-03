@@ -192,10 +192,10 @@ def fetch(environment):
     return categories, names, relations, visible, aliases
 
 
-def write(counts):
+def write(counts, total=None):
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    payload = {"generated": stamp, "counts": counts}
+    payload = {"generated": stamp, "total_visible_products": total, "counts": counts}
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     (OUT_DIR / "category_counts.json").write_text(text, encoding="utf-8")
     (OUT_DIR / "category_counts.js").write_text(f"window.RR_CATEGORY_COUNTS={text};\n", encoding="utf-8")
@@ -220,8 +220,10 @@ def main():
     args = parser.parse_args()
 
     started = time.monotonic()
-    counts = compute(*fetch(args.environment))
-    path = write(counts)
+    fetched = fetch(args.environment)
+    counts = compute(*fetched)
+    path = write(counts, len(fetched[3]))
+    print(f"Visible products in the shop: {len(fetched[3])}")
     roots = {k: v for k, v in counts.items() if not v[2]}
     for k, v in roots.items():
         print(f"ROOT {k} {v[0]}: {v[1]}")
