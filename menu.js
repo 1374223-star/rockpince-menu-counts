@@ -134,7 +134,8 @@
     if (typeof data[id][1] !== 'number') { return; }
     if (element.getAttribute('data-rr-count-applied') === '1') { return; }
     /* owner 2026-11-03: categories with 0 products are never shown (menus, dropdowns, tiles, sidebar) */
-    if (data[id][1] === 0 && String(element.tagName).toUpperCase() === 'A') {
+    /* switched-off folders too: the shop can keep showing them from its cache for a while */
+    if ((data[id][1] === 0 || data[id][5] === 0) && String(element.tagName).toUpperCase() === 'A') {
       var holder = element.closest ? element.closest('li, .subcategory__card, .card') : null;
       (holder || element).style.setProperty('display', 'none', 'important');
       element.setAttribute('data-rr-count-applied', '1');
