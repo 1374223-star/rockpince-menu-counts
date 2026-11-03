@@ -185,7 +185,83 @@
     scheduled = true;
     window.setTimeout(function () { scheduled = false; update(); }, 80);
   }
+  /* Self-updating 3-column dropdowns (DISZTÁRGY, KIEGÉSZÍTŐK), built from the live category
+     tree in the counts file: only switched-on folders, Hungarian A-Z, current names and links.
+     expand: show this folder's subfolders instead of the folder itself (jewellery types).
+     extra: also list this folder from another tree (Ékszeres dobozok under KIEGÉSZÍTŐK). */
+  var DROPDOWNS = {
+    '14130': { expand: [], extra: [] },
+    '14025': { expand: ['14136'], extra: ['14445'] }
+  };
+  var HU = '0123456789abcdefghijklmnoöpqrstuüvwxyz';
+  var HU_SAME = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ő': 'ö', 'ú': 'u', 'ű': 'ü' };
+  function huKey(text) {
+    var s = String(text || '').toLowerCase(), out = '', i, ch, r;
+    for (i = 0; i < s.length; i += 1) {
+      ch = HU_SAME[s.charAt(i)] || s.charAt(i);
+      r = HU.indexOf(ch);
+      out += r < 0 ? '00' : (r + 1 < 10 ? '0' : '') + (r + 1);
+    }
+    return out;
+  }
+  function usable(id) {
+    var c = data[id];
+    return c && c.length >= 6 && c[5] === 1 && c[3];
+  }
+  function childrenOf(id) {
+    var out = [], k;
+    for (k in data) {
+      if (Object.prototype.hasOwnProperty.call(data, k) && data[k][2] === id && usable(k)) { out.push(k); }
+    }
+    return out;
+  }
+  function buildDropdowns() {
+    var root, cfg, li, box, ids, items, i, j, per, row, col, ul, item, a, kids;
+    for (root in DROPDOWNS) {
+      if (!Object.prototype.hasOwnProperty.call(DROPDOWNS, root)) { continue; }
+      cfg = DROPDOWNS[root];
+      li = document.getElementById('cat_' + root);
+      box = li && li.querySelector('.ragna-rock-dropdown');
+      if (!box || box.getAttribute('data-rr-built') === '1') { continue; }
+      ids = childrenOf(root);
+      items = [];
+      for (i = 0; i < ids.length; i += 1) {
+        if (cfg.expand.indexOf(ids[i]) >= 0) {
+          kids = childrenOf(ids[i]);
+          for (j = 0; j < kids.length; j += 1) { items.push(kids[j]); }
+        } else { items.push(ids[i]); }
+      }
+      for (i = 0; i < cfg.extra.length; i += 1) {
+        if (usable(cfg.extra[i]) && items.indexOf(cfg.extra[i]) < 0) { items.push(cfg.extra[i]); }
+      }
+      if (items.length < 3) { continue; } /* data looks wrong: keep the hand-made menu */
+      items.sort(function (x, y) { return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1; });
+      per = Math.ceil(items.length / 3);
+      row = document.createElement('div');
+      row.className = 'row custom-dropdown-menu';
+      for (i = 0; i < 3; i += 1) {
+        col = document.createElement('div');
+        col.className = 'col';
+        ul = document.createElement('ul');
+        ul.className = 'list-unstyled';
+        for (j = i * per; j < Math.min(items.length, (i + 1) * per); j += 1) {
+          item = document.createElement('li');
+          a = document.createElement('a');
+          a.href = window.location.protocol + '//' + window.location.host + data[items[j]][3];
+          a.textContent = data[items[j]][0];
+          item.appendChild(a);
+          ul.appendChild(item);
+        }
+        col.appendChild(ul);
+        row.appendChild(col);
+      }
+      while (box.firstChild) { box.removeChild(box.firstChild); }
+      box.appendChild(row);
+      box.setAttribute('data-rr-built', '1');
+    }
+  }
   function start() {
+    try { buildDropdowns(); } catch (e) { /* never break the page: keep the hand-made menu */ }
     if (!document.getElementById('rr-category-count-style')) {
       var style = document.createElement('style');
       style.id = 'rr-category-count-style';

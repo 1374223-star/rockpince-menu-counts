@@ -74,10 +74,10 @@ def get(s, url, params):
     raise RuntimeError(f"GET failed: {url}")
 
 
-def get_all(s, url, label):
+def get_all(s, url, label, **params):
     page, items = 0, []
     while True:
-        data = get(s, url, {"full": 1, "limit": 200, "page": page})
+        data = get(s, url, {**params, "full": 1, "limit": 200, "page": page})
         items += data.get("items", [])
         page += 1
         pages = int(data.get("pageCount") or 0)
@@ -93,8 +93,14 @@ def rid(value):
     return str(value or "").rstrip("/").rsplit("/", 1)[-1]
 
 
-def compute(categories, names, relations, visible_ids):
-    """Return {innerId: [name, count, parentInnerId]} for every named category."""
+def compute(categories, names, relations, visible_ids, aliases=None):
+    """Return {innerId: [name, count, parentInnerId, url, sortOrder, status]} for every named category.
+
+    url is the storefront path ("/ajandektargyak-14130/szobrok-14454"), built from the
+    category URL aliases of the category and its parents ("" if one is missing).
+    The first three fields are what older menu scripts read, so the format stays compatible.
+    """
+    aliases = aliases or {}
     inner_of = {c["id"]: str(c.get("innerId")) for c in categories}
     parent_of = {c["id"]: rid(c.get("parentCategory")) for c in categories}
     children = defaultdict(list)
@@ -120,13 +126,29 @@ def compute(categories, names, relations, visible_ids):
         memo[cid] = result
         return result
 
+    def url(cid):
+        parts, seen = [], set()
+        while cid in inner_of and cid not in seen:
+            seen.add(cid)
+            if not aliases.get(cid):
+                return ""
+            parts.append(aliases[cid])
+            cid = parent_of.get(cid, "")
+        return "/" + "/".join(reversed(parts))
+
+    by_id = {c["id"]: c for c in categories}
     out = {}
     for cid, inner in inner_of.items():
         name = names.get(cid, "")
         if not name:
             continue
         parent = parent_of.get(cid, "")
-        out[inner] = [name, len(subtree(cid)), inner_of.get(parent, "")]
+        try:
+            sort = int(float(by_id[cid].get("sortOrder") or 0))
+        except (TypeError, ValueError):
+            sort = 0
+        status = 1 if str(by_id[cid].get("status")) == "1" else 0
+        out[inner] = [name, len(subtree(cid)), inner_of.get(parent, ""), url(cid), sort, status]
     return dict(sorted(out.items(), key=lambda kv: int(kv[0]) if kv[0].isdigit() else 0))
 
 
@@ -157,7 +179,12 @@ def fetch(environment):
         (rid(r.get("product")), rid(r.get("category")))
         for r in get_all(s, f"{base}/productCategoryRelations", "product-category links")
     ]
-    return categories, names, relations, visible
+    aliases = {
+        rid(a.get("urlAliasEntity")): str(a.get("urlAlias") or "").strip()
+        for a in get_all(s, f"{base}/urlAliases", "category addresses", type="CATEGORY")
+        if rid(a.get("language")) in ("", lang)
+    }
+    return categories, names, relations, visible, aliases
 
 
 def write(counts):
