@@ -7,7 +7,6 @@
   'use strict';
   var COUNTS_URL = 'https://raw.githubusercontent.com/1374223-star/rockpince-menu-counts/main/category_counts.json';
   function run(counts) {
-  'use strict';
   var data = counts;
   var countSuffix = /\s+\[\d+\]$/;
   var lastPathId = /-(\d+)$/;
@@ -44,9 +43,9 @@
     return candidatesByName['$' + normalize(bare(text))] || [];
   }
   function knownHost(host) {
-    return /^(www\.)?rockpince\.hu$/i.test(String(host || '')) ||
-      /^rockpince\.myshoprenter\.hu$/i.test(String(host || '')) ||
-      /^(www\.)?ragnarock\.hu$/i.test(String(host || ''));
+    return (/^(www\.)?rockpince\.hu$/i).test(String(host || '')) ||
+      (/^rockpince\.myshoprenter\.hu$/i).test(String(host || '')) ||
+      (/^(www\.)?ragnarock\.hu$/i).test(String(host || ''));
   }
   function categoryId(link) {
     if (!knownHost(link.hostname)) { return null; }
