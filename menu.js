@@ -243,7 +243,17 @@
         if (fx >= 0 || fy >= 0) { return (fx < 0 ? 999 : fx) - (fy < 0 ? 999 : fy); }
         return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
       });
-      per = Math.ceil(items.length / 3);
+      /* the bold "first" folders also list their own subfolders (in their sort order) right under them */
+      var entries = [], sub, k;
+      for (i = 0; i < items.length; i += 1) {
+        entries.push({ id: items[i], level: 0 });
+        if (cfg.first.indexOf(items[i]) >= 0) {
+          sub = childrenOf(items[i]);
+          sub.sort(function (x, y) { return (data[x][4] - data[y][4]) || (huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1); });
+          for (k = 0; k < sub.length; k += 1) { entries.push({ id: sub[k], level: 1 }); }
+        }
+      }
+      per = Math.ceil(entries.length / 3);
       row = document.createElement('div');
       row.className = 'row custom-dropdown-menu';
       for (i = 0; i < 3; i += 1) {
@@ -251,12 +261,20 @@
         col.className = 'col';
         ul = document.createElement('ul');
         ul.className = 'list-unstyled';
-        for (j = i * per; j < Math.min(items.length, (i + 1) * per); j += 1) {
+        for (j = i * per; j < Math.min(entries.length, (i + 1) * per); j += 1) {
           item = document.createElement('li');
           a = document.createElement('a');
-          a.href = window.location.protocol + '//' + window.location.host + data[items[j]][3];
-          a.textContent = data[items[j]][0];
-          if (cfg.first.indexOf(items[j]) >= 0) { a.style.setProperty('font-weight', '800', 'important'); }
+          a.href = window.location.protocol + '//' + window.location.host + data[entries[j].id][3];
+          a.textContent = data[entries[j].id][0];
+          if (entries[j].level === 0 && cfg.first.indexOf(entries[j].id) >= 0) {
+            a.style.setProperty('font-weight', '800', 'important');
+          }
+          if (entries[j].level === 1) {
+            item.style.setProperty('padding-left', '14px', 'important');
+            a.style.setProperty('font-size', '12px', 'important');
+            a.style.setProperty('opacity', '0.85', 'important');
+            a.textContent = '› ' + a.textContent;
+          }
           item.appendChild(a);
           ul.appendChild(item);
         }
