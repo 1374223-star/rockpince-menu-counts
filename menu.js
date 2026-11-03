@@ -140,10 +140,13 @@
       element.setAttribute('data-rr-count-applied', '1');
       return;
     }
+    var textMatches = normalize(bare(element.textContent)) === normalize(data[id][0]);
     if (exactId) {
       if (!normalize(bare(element.textContent))) { return; }
-      if (element.getElementsByTagName('img').length) { return; }
-    } else if (normalize(bare(element.textContent)) !== normalize(data[id][0])) { return; }
+      /* links with an image: only when the text is the category name (menu items with icons),
+         never banners / product pictures that happen to link to a category */
+      if (element.getElementsByTagName('img').length && !textMatches) { return; }
+    } else if (!textMatches) { return; }
     var count = document.createElement('span');
     count.className = 'rr-category-count';
     count.textContent = ' [' + data[id][1] + ']';
