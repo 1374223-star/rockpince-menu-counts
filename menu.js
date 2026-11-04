@@ -923,3 +923,112 @@
   (document.head || document.documentElement).appendChild(style);
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
 })();
+
+/* "Kínálatunkból véletlenszerűen" (2026-11-04): homepage row after Újdonságok with 5 random products
+   (random switched-on leaf category, random page of it) and a "Mutass mást" button for a new set. */
+(function () {
+  'use strict';
+  if (window.__rrRandom || !/home-body/.test(document.body ? document.body.className : '')) { return; }
+  window.__rrRandom = true;
+  var COUNTS = 'https://1374223-star.github.io/rockpince-menu-counts/category_counts.json';
+  var PER_PAGE = 48;
+  var WANT = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? 4 : 5;
+  var leaves = [];
+
+  function get(url, done) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () { done(x.status === 200 ? x.responseText : ''); };
+    x.onerror = function () { done(''); };
+    x.send();
+  }
+  function pickLeaves(counts) {
+    var parents = {};
+    Object.keys(counts).forEach(function (id) { parents[counts[id][2]] = true; });
+    return Object.keys(counts).filter(function (id) {
+      var c = counts[id];
+      return !parents[id] && c[1] >= 10 && (c.length < 6 || String(c[5]) === '1');
+    }).map(function (id) { return { id: id, n: counts[id][1] }; });
+  }
+  function pickLeaf() {
+    /* bigger categories are picked more often, so the mix follows the catalogue */
+    var total = leaves.reduce(function (s, l) { return s + l.n; }, 0), r = Math.random() * total;
+    for (var i = 0; i < leaves.length; i++) { r -= leaves[i].n; if (r <= 0) { return leaves[i]; } }
+    return leaves[leaves.length - 1];
+  }
+  function oneCard(done) {
+    var leaf = pickLeaf(), page = 1 + Math.floor(Math.random() * Math.max(1, Math.ceil(leaf.n / PER_PAGE)));
+    get('/index.php?route=product/list&category_id=' + leaf.id + '&page=' + page, function (htmlText) {
+      var cards = [];
+      try { cards = Array.prototype.slice.call(new DOMParser().parseFromString(htmlText, 'text/html')
+        .querySelectorAll('.product-snapshot .product-card')); } catch (e) { /* nothing */ }
+      done(cards.length ? cards[Math.floor(Math.random() * cards.length)] : null, leaf.id);
+    });
+  }
+  /* one product from each of WANT different random categories */
+  function load(grid, button) {
+    if (!leaves.length) { return; }
+    button.disabled = true;
+    var got = [], used = {}, pending = 0, rounds = 0;
+    function ask() {
+      while (pending + got.length < WANT && rounds < WANT * 3) {
+        pending++; rounds++;
+        oneCard(function (card, leafId) {
+          pending--;
+          if (card && !used[leafId]) { used[leafId] = true; got.push(card); }
+          if (got.length >= WANT || (pending === 0 && rounds >= WANT * 3)) { finish(); } else { ask(); }
+        });
+      }
+    }
+    function finish() {
+      if (finish.done) { return; }
+      finish.done = true;
+      button.disabled = false;
+      if (got.length < 2) { return; }
+      grid.innerHTML = '';
+      got.slice(0, WANT).forEach(function (card) {
+        Array.prototype.forEach.call(card.querySelectorAll('img[data-src]'), function (img) { img.setAttribute('src', img.getAttribute('data-src')); });
+        Array.prototype.forEach.call(card.querySelectorAll('img[loading="lazy"]'), function (img) { img.removeAttribute('loading'); });
+        var wrap = document.createElement('div');
+        wrap.className = 'product-snapshot list_div_item';
+        wrap.appendChild(document.importNode(card, true));
+        grid.appendChild(wrap);
+      });
+    }
+    ask();
+  }
+  function build() {
+    var after = document.querySelector('.module-latest-wrapper') || document.querySelector('.module-special-wrapper');
+    if (!after) { return; }
+    var box = document.createElement('div');
+    box.className = 'rr-random';
+    box.innerHTML = '<div class="container"><h3 class="module-head-title h2" style="text-align:center">Kínálatunkból véletlenszerűen</h3>' +
+      '<div class="rr-random-grid"></div><div style="text-align:center;margin-top:24px">' +
+      '<button type="button" class="btn btn-primary rr-random-more">Mutass mást</button></div></div>';
+    after.parentNode.insertBefore(box, after.nextSibling);
+    var grid = box.querySelector('.rr-random-grid'), button = box.querySelector('.rr-random-more');
+    button.addEventListener('click', function () { load(grid, button); });
+    function start() {
+      get(COUNTS, function (text) {
+        try { leaves = pickLeaves(JSON.parse(text).counts || {}); } catch (e) { leaves = []; }
+        if (!leaves.length) { box.parentNode.removeChild(box); return; }
+        load(grid, button);
+      });
+    }
+    /* load only when the visitor scrolls near the row (saves 5 page loads for everyone else) */
+    if (window.IntersectionObserver) {
+      var io = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; })) { io.disconnect(); start(); }
+      }, { rootMargin: '800px 0px' });
+      io.observe(box);
+    } else { start(); }
+  }
+  var style = document.createElement('style');
+  style.textContent = '.rr-random{padding:56px 0}.rr-random .module-head-title{margin-bottom:24px!important}' +
+    '.rr-random-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px;min-height:420px}' +
+    '.rr-random-grid>.product-snapshot{padding:0!important;margin:0!important;width:auto!important;max-width:none!important}' +
+    '.rr-random-more{background:#e52421!important;border-color:#e52421!important;color:#fff!important;font-weight:700;padding:12px 28px}' +
+    '@media (max-width:767px){.rr-random{padding:40px 0}.rr-random-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-height:0}}';
+  (document.head || document.documentElement).appendChild(style);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+})();
