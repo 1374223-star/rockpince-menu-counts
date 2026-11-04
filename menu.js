@@ -463,6 +463,16 @@
     if (!cartHasNewRock(body)) { return text; }
     try {
       var data = JSON.parse(text), list = Object.prototype.toString.call(data) === '[object Array]' ? data : data && data.data;
+      /* Shoprenter answers with an object keyed by code: {"simple": {...}, "cod": {...}} */
+      if (!list && data && typeof data === 'object') {
+        var removed = false;
+        for (var key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key) && isCod(data[key])) { delete data[key]; removed = true; }
+        }
+        if (!removed) { return text; }
+        setTimeout(showNotice, 300);
+        return JSON.stringify(data);
+      }
       if (!list || !list.length) { return text; }
       var kept = [];
       for (var i = 0; i < list.length; i++) { if (!isCod(list[i])) { kept.push(list[i]); } }
@@ -552,6 +562,8 @@
 (function () {
   'use strict';
   if (document.getElementById('rr-bg-design')) { return; }
+  /* the checkout (/checkout#/...) has its own light design with dark text: leave it alone */
+  if (/^\/checkout/.test(location.pathname)) { return; }
   var SKULL = "url('https://1374223-star.github.io/rockpince-menu-counts/assets/skull-hand-watermark.webp')";
   var NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .62 0 0 0 0 .85 0 0 0 -2.2 1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E\")";
   var GLOW = 'radial-gradient(ellipse 70% 55% at 50% 35%, #0e4d78 0%, #07304f 40%, #031627 75%, #010811 100%)';
