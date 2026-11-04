@@ -1053,3 +1053,37 @@
   setInterval(adjust, 700);
   window.addEventListener('resize', adjust);
 })();
+
+/* Trust row under Kosárba (2026-11-04): three short, true reassurances in the product page buy box. */
+(function () {
+  'use strict';
+  if (window.__rrTrust || !/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+  window.__rrTrust = true;
+  var ICON = {
+    shop: '<path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 20v-6h6v6"/>',
+    truck: '<path d="M1 6h13v10H1zM14 10h4l3 3v3h-7M5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>',
+    lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
+  };
+  var ROWS = [
+    ['shop', 'Ingyenes személyes átvétel budapesti boltunkban'],
+    ['truck', 'Ingyenes szállítás 30 000 Ft felett'],
+    ['lock', 'Biztonságos online bankkártyás fizetés (SimplePay)']
+  ];
+  function build() {
+    var box = document.querySelector('.product-cart-box');
+    if (!box || box.querySelector('.rr-trust')) { return; }
+    var list = document.createElement('ul');
+    list.className = 'rr-trust';
+    list.innerHTML = ROWS.map(function (r) {
+      return '<li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[r[0]] + '</svg><span>' + r[1] + '</span></li>';
+    }).join('');
+    box.appendChild(list);
+  }
+  var style = document.createElement('style');
+  style.textContent = '.rr-trust{list-style:none;margin:18px 0 0;padding:14px 0 0;border-top:1px solid rgba(255,255,255,.12)}' +
+    '.rr-trust li{display:flex;align-items:center;gap:10px;font-size:13.5px;line-height:1.35;color:#d7e6f1;margin:0 0 8px}' +
+    '.rr-trust li:last-child{margin-bottom:0}.rr-trust svg{flex:0 0 18px;color:#7fc4ea}';
+  (document.head || document.documentElement).appendChild(style);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+})();
