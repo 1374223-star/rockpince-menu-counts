@@ -1032,3 +1032,24 @@
   (document.head || document.documentElement).appendChild(style);
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
 })();
+
+/* Cookie bar at the bottom (2026-11-04): while it is showing, lift the Fogyasztóbarát badge above it so
+   the badge does not cover the cookie text; when the bar closes the badge goes back down. */
+(function () {
+  'use strict';
+  if (window.__rrBadgeLift) { return; }
+  window.__rrBadgeLift = true;
+  function adjust() {
+    var bar = document.querySelector('.nanobar-cookie-box');
+    var badge = document.getElementById('fb_header_box');  /* only the small badge (its wrapper holds a hidden panel) */
+    if (!badge) { return; }
+    var shown = bar && bar.offsetHeight > 0 && getComputedStyle(bar).display !== 'none' && getComputedStyle(bar).visibility !== 'hidden';
+    var lift = shown ? (bar.offsetHeight + 8) + 'px' : '';
+    if (badge.getAttribute('data-rr-lift') === lift) { return; }
+    badge.setAttribute('data-rr-lift', lift);
+    badge.style.setProperty('transform', shown ? 'translateY(-' + lift + ')' : '');
+    badge.style.setProperty('transition', 'transform .2s');
+  }
+  setInterval(adjust, 700);
+  window.addEventListener('resize', adjust);
+})();
