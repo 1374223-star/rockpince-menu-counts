@@ -737,3 +737,17 @@
     });
   }, true);
 })();
+
+/* Search "new rock" (2026-11-04): a plain brand search opens the NEW ROCK™ folder, where the boots
+   (FÉRFI / UNISEX, NŐI) come first, instead of a result list that starts with small accessories.
+   More specific searches ("new rock wall", a product code) stay normal searches. */
+(function () {
+  'use strict';
+  var TARGET = '/cipo_bakancs-14232/new-rock-19438';
+  var m = /[?&]keyword=([^&#]*)/.exec(location.search);
+  if (!m || !/route=product\/list/.test(location.search) || /[?&](sort|page|category_id)=/.test(location.search)) { return; }
+  var q;
+  try { q = decodeURIComponent(m[1].replace(/\+/g, ' ')); } catch (e) { return; }
+  q = q.toLowerCase().replace(/[^a-z0-9áéíóöőúüű ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/^(new ?rock)( (bakancs|bakancsok|cipo|cipő|csizma|boots?))?$/.test(q)) { location.replace(TARGET); }
+})();
