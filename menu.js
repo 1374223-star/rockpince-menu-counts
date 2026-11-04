@@ -1217,3 +1217,73 @@
     link.style.cursor = 'zoom-in';
   });
 })();
+
+/* "Mutass még" on listing pages (2026-11-04): loads the next page's products under the current ones,
+   without leaving the page. Page numbers stay (they follow along). Works on category and search lists. */
+(function () {
+  'use strict';
+  if (window.__rrLoadMore) { return; }
+  window.__rrLoadMore = true;
+  function grid() { return document.querySelector('.product-list .product-snapshot-vertical'); }
+  function nextLink(root) {
+    var all = (root || document).querySelectorAll('a[data-test-id="nextPageIcon"]');
+    return all.length ? all[all.length - 1] : null;
+  }
+  function build() {
+    var g = grid(), next = nextLink();
+    if (!g || !next || document.querySelector('.rr-loadmore')) { return; }
+    var wrap = document.createElement('div');
+    wrap.className = 'rr-loadmore';
+    wrap.innerHTML = '<button type="button" class="btn btn-primary rr-loadmore-btn">Mutass még</button>' +
+      '<div class="rr-loadmore-info"></div>';
+    g.parentNode.insertBefore(wrap, g.nextSibling);
+    var btn = wrap.querySelector('button'), info = wrap.querySelector('.rr-loadmore-info');
+    var url = next.getAttribute('href');
+    function count() {
+      var shown = g.querySelectorAll('.product-snapshot').length;
+      var total = ((document.querySelector('h1') || {}).textContent || '').match(/\[(\d+)\]/);
+      info.textContent = shown + (total ? ' / ' + total[1] : '') + ' termék';
+    }
+    count();
+    btn.addEventListener('click', function () {
+      if (!url) { return; }
+      btn.disabled = true;
+      btn.textContent = 'Betöltés…';
+      var x = new XMLHttpRequest();
+      x.open('GET', url, true);
+      x.onload = function () {
+        var doc = null;
+        try { doc = new DOMParser().parseFromString(x.responseText, 'text/html'); } catch (e) { /* keep page */ }
+        var items = doc ? doc.querySelectorAll('.product-list .product-snapshot-vertical > .product-snapshot') : [];
+        Array.prototype.forEach.call(items, function (it) {
+          Array.prototype.forEach.call(it.querySelectorAll('img[data-src]'), function (img) { img.setAttribute('src', img.getAttribute('data-src')); });
+          Array.prototype.forEach.call(it.querySelectorAll('img[loading="lazy"]'), function (img) { img.removeAttribute('loading'); });
+          Array.prototype.forEach.call(it.querySelectorAll('[data-aos]'), function (el) { el.removeAttribute('data-aos'); });
+          it.removeAttribute('data-aos');
+          g.appendChild(document.importNode(it, true));
+        });
+        /* page numbers follow the last loaded page */
+        var newPag = doc && doc.querySelectorAll('.pagination'), oldPag = document.querySelectorAll('.pagination');
+        if (newPag && newPag.length && oldPag.length) {
+          oldPag[oldPag.length - 1].innerHTML = newPag[newPag.length - 1].innerHTML;
+        }
+        try { history.replaceState(null, '', url.replace(/#.*$/, '')); } catch (e) { /* old browser */ }
+        var n = doc && nextLink(doc);
+        url = n ? n.getAttribute('href') : null;
+        btn.disabled = false;
+        btn.textContent = 'Mutass még';
+        if (!url || !items.length) { btn.style.display = 'none'; }
+        count();
+      };
+      x.onerror = function () { btn.disabled = false; btn.textContent = 'Mutass még'; };
+      x.send();
+    });
+  }
+  var style = document.createElement('style');
+  style.textContent = '.rr-loadmore{text-align:center;margin:32px 0 8px}' +
+    '.rr-loadmore-btn{background:#e52421!important;border-color:#e52421!important;color:#fff!important;font-weight:700;' +
+    'padding:14px 40px;font-size:15px;min-width:220px}.rr-loadmore-btn:disabled{opacity:.7}' +
+    '.rr-loadmore-info{margin-top:10px;font-size:13px;color:#b9cddd}';
+  (document.head || document.documentElement).appendChild(style);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+})();
