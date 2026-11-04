@@ -443,3 +443,71 @@
     xhr.send(null);
   } catch (e) { /* no counts shown if loading fails; the menu itself is untouched */ }
 }());
+
+/* New Rock = prepaid only (owner 2026-11-04). When the cart holds a New Rock item
+   (product names start with "New Rock - "), the checkout's payment list
+   (POST checkout/paymentmethod/list) is filtered so cash on delivery (utánvét) is not offered,
+   and a short notice is shown. Page-side only: unpaid New Rock orders are refused by hand. */
+(function () {
+  'use strict';
+  if (!window.XMLHttpRequest || !Object.defineProperty) { return; }
+  var MARK = /New Rock - /;
+  var NOTICE = 'A New Rock termékek csak előre fizetéssel rendelhetők, ezért utánvét nem választható.';
+  function isCod(m) {
+    return m && (/^cod/i.test(String(m.code || '')) || /utánvét|utanvet/i.test(String(m.title || '')));
+  }
+  function cartHasNewRock(body) {
+    return MARK.test(String(body || '')) || MARK.test(document.body ? document.body.innerText : '');
+  }
+  function filter(text, body) {
+    if (!cartHasNewRock(body)) { return text; }
+    try {
+      var data = JSON.parse(text), list = Object.prototype.toString.call(data) === '[object Array]' ? data : data && data.data;
+      if (!list || !list.length) { return text; }
+      var kept = [];
+      for (var i = 0; i < list.length; i++) { if (!isCod(list[i])) { kept.push(list[i]); } }
+      if (kept.length === list.length) { return text; }
+      if (list === data) { data = kept; } else { data.data = kept; }
+      setTimeout(showNotice, 300);
+      return JSON.stringify(data);
+    } catch (e) { return text; }
+  }
+  function showNotice() {
+    var box = document.querySelector('.payment-method');
+    if (!box || document.getElementById('rr-newrock-prepaid')) { return; }
+    var p = document.createElement('div');
+    p.id = 'rr-newrock-prepaid';
+    p.style.cssText = 'margin:0 0 12px;padding:10px 14px;border-left:4px solid #e52421;background:#fff3f3;color:#222;font-weight:600';
+    p.appendChild(document.createTextNode(NOTICE));
+    box.insertBefore(p, box.firstChild);
+  }
+  var open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
+  var proto = XMLHttpRequest.prototype;
+  var textDesc = Object.getOwnPropertyDescriptor(proto, 'responseText');
+  var respDesc = Object.getOwnPropertyDescriptor(proto, 'response');
+  if (!textDesc || !respDesc) { return; }
+  proto.open = function (method, url) {
+    this.__rrPay = /checkout\/paymentmethod\/list/.test(String(url || ''));
+    return open.apply(this, arguments);
+  };
+  proto.send = function (body) {
+    var xhr = this;
+    if (xhr.__rrPay) {
+      var cache = null;
+      var get = function () {
+        if (cache === null && xhr.readyState === 4) { cache = filter(textDesc.get.call(xhr), body); }
+        return cache === null ? textDesc.get.call(xhr) : cache;
+      };
+      try {
+        Object.defineProperty(xhr, 'responseText', { configurable: true, get: get });
+        Object.defineProperty(xhr, 'response', { configurable: true, get: function () {
+          var raw = respDesc.get.call(xhr);
+          if (xhr.readyState !== 4) { return raw; }
+          if (typeof raw === 'string') { return get(); }
+          try { return JSON.parse(filter(JSON.stringify(raw), body)); } catch (e) { return raw; }
+        } });
+      } catch (e) { /* leave the request alone */ }
+    }
+    return send.apply(this, arguments);
+  };
+})();
