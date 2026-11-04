@@ -587,3 +587,33 @@
   style.appendChild(document.createTextNode(css));
   (document.head || document.documentElement).appendChild(style);
 })();
+
+/* Spacing (2026-11-04): one scale (8/12/16/24/32/56 px) - same section padding everywhere, 24 px card grid
+   both ways, equal-height cards with prices and buttons lined up, bigger prices, product title in 2-3 lines,
+   bigger size picker. Also re-measures the sticky header after the menu got shorter (no empty gap). */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-spacing')) { return; }
+  var css = ".module-dealofday-wrapper, .module-special-wrapper, .module-latest-wrapper, .section-wrapper:has(.location-module) { padding-top: 56px !important; padding-bottom: 56px !important; } .section-wrapper:has(.seoh1-module) { padding-top: 32px !important; padding-bottom: 32px !important; } .main-content .module-head-title { margin-bottom: 24px !important; } .product-module-list-link-wrapper { margin-top: 24px !important; } .product-snapshot-vertical { margin-left: -12px !important; margin-right: -12px !important; row-gap: 0 !important; } .product-snapshot-vertical > .product-snapshot { padding-left: 12px !important; padding-right: 12px !important; margin-top: 24px !important; } .product-card { padding: 12px !important; height: 100%; display: flex !important; flex-direction: column !important; } .product-card .card__body { flex: 1 1 auto; } .product-card .card__footer { margin-top: auto; } .product-card__title { font-size: 14px !important; line-height: 1.35 !important; margin: 12px 0 8px !important; min-height: calc(3 * 1.35em); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .product-card__sku { font-size: 11px !important; opacity: .65; margin: 0 0 8px !important; } .product-card__price { font-size: 18px !important; font-weight: 800 !important; margin: 0 0 12px !important; } .product-card .button-add-to-cart { min-height: 44px; font-size: 13px !important; font-weight: 700 !important; } .page-head h1, .category-list-body h1 { margin-bottom: 16px !important; } .column-left .module { padding: 16px !important; margin-bottom: 16px !important; } .product-page-body h1, .product-body h1 { font-size: clamp(24px, 2.1vw, 32px) !important; line-height: 1.2 !important; margin-bottom: 16px !important; } .product-page-body select, .product-body select { min-height: 44px; min-width: 120px; font-size: 15px !important; } #add_to_cart.button-add-to-cart { min-height: 52px; } @media (max-width: 767px) { .module-dealofday-wrapper, .module-special-wrapper, .module-latest-wrapper, .section-wrapper:has(.location-module) { padding-top: 40px !important; padding-bottom: 40px !important; } .product-snapshot-vertical { margin-left: -6px !important; margin-right: -6px !important; } .product-snapshot-vertical > .product-snapshot { padding-left: 6px !important; padding-right: 6px !important; margin-top: 12px !important; } .product-card { padding: 8px !important; } .product-card__title { font-size: 13px !important; } .product-card__price { font-size: 16px !important; } } .product-page-body .product-price { font-size: 30px !important; font-weight: 800 !important; } .product-option__title { font-size: 15px !important; margin-bottom: 8px !important; }";
+  var style = document.createElement('style');
+  style.id = 'rr-spacing';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+
+  /* The theme stores the header height once at load; with the one-row menu that height is too big. */
+  function fixHeader() {
+    var sticky = document.querySelector('.header-sticky');
+    var header = sticky && sticky.querySelector('.header');
+    if (!header || !/headroom--top/.test(sticky.className) || !header.offsetHeight) { return; }
+    sticky.style.setProperty('--header-element-height', header.offsetHeight + 'px');
+    var bottom = sticky.querySelector('.header-bottom');
+    if (bottom && bottom.offsetHeight) { sticky.style.setProperty('--header-bottom-height', bottom.offsetHeight + 'px'); }
+  }
+  var timer = null;
+  function later() { clearTimeout(timer); timer = setTimeout(fixHeader, 150); }
+  if (document.readyState === 'complete') { later(); } else { window.addEventListener('load', later); }
+  document.addEventListener('DOMContentLoaded', later);
+  window.addEventListener('resize', later);
+  setTimeout(fixHeader, 1500);
+})();
