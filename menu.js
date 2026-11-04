@@ -829,3 +829,97 @@
       .observe(document.documentElement, { childList: true, subtree: true });
   }
 })();
+
+/* "Ehhez ajánljuk" cross-sell row (2026-11-04), on product pages below the advantages strip:
+   boots -> laces / care (Bakancsfűzők és ápolási termékek) + boot ornaments (Cipődíszek, pántok);
+   band merch -> patches of the same band ("<band> felvarró" search). Loaded from the shop's own
+   listing pages, so it is always current and needs no product data. */
+(function () {
+  'use strict';
+  if (window.__rrXsell || !/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+  window.__rrXsell = true;
+  var WANT = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? 4 : 5;
+
+  function crumbs() {
+    return Array.prototype.map.call(document.querySelectorAll('.breadcrumb li'), function (li) {
+      return li.textContent.replace(/\[\d+\]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+    });
+  }
+  function fetchCards(query, done) {
+    var x = new XMLHttpRequest();
+    x.open('GET', '/index.php?route=product/list&' + query, true);
+    x.onload = function () {
+      var cards = [];
+      try {
+        var doc = new DOMParser().parseFromString(x.responseText, 'text/html');
+        cards = Array.prototype.slice.call(doc.querySelectorAll('.product-snapshot .product-card'));
+      } catch (e) { /* nothing */ }
+      done(cards);
+    };
+    x.onerror = function () { done([]); };
+    x.send();
+  }
+  function idOf(card) {
+    var b = card.querySelector('[data-product-id]');
+    return b ? b.getAttribute('data-product-id') : '';
+  }
+  function show(cards) {
+    var anchor = document.querySelector('.product-advantages-module');
+    anchor = anchor && (anchor.closest('.section-wrapper') || anchor);
+    var self = (document.querySelector('form#product input[name="product_id"]') || {}).value;
+    var seen = {}, picked = [];
+    for (var i = 0; i < cards.length && picked.length < WANT; i++) {
+      var id = idOf(cards[i]);
+      if (!id || id === self || seen[id]) { continue; }
+      seen[id] = true;
+      picked.push(cards[i]);
+    }
+    if (!anchor || picked.length < 2) { return; }
+    var box = document.createElement('div');
+    box.className = 'rr-xsell container';
+    box.innerHTML = '<h3 class="module-head-title h2" style="text-align:center">Ehhez ajánljuk</h3><div class="rr-xsell-grid"></div>';
+    var grid = box.querySelector('.rr-xsell-grid');
+    picked.forEach(function (card) {
+      Array.prototype.forEach.call(card.querySelectorAll('img[data-src]'), function (img) {
+        img.setAttribute('src', img.getAttribute('data-src'));
+      });
+      Array.prototype.forEach.call(card.querySelectorAll('img[loading="lazy"]'), function (img) { img.removeAttribute('loading'); });
+      var wrap = document.createElement('div');
+      wrap.className = 'product-snapshot list_div_item';  /* same wrapper as on listing pages (theme styles) */
+      wrap.appendChild(document.importNode(card, true));
+      grid.appendChild(wrap);
+    });
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+  }
+
+  function run() {
+    var btn = document.querySelector('form#product #add_to_cart[data-name]');
+    var c = crumbs(), title = (btn && btn.getAttribute('data-name')) || ((document.querySelector('.product-page-top h1') || {}).textContent || '');
+    var path = c.join(' > ');
+    if (/BAKANCSOK/.test(path) && !/FŰZŐ|ÁPOLÁS|CIPŐDÍSZ/.test(path)) {
+      fetchCards('category_id=14247', function (laces) {
+        fetchCards('category_id=14634', function (orn) { show(laces.slice(0, 3).concat(orn.slice(0, 6), laces.slice(3))); });
+      });
+      return;
+    }
+    if (/ZENEKAROS/.test(path) && !/FELVARR/.test(path) && title.indexOf(' - ') > 0) {
+      var band = title.split(' - ')[0].trim();
+      if (band.length >= 2 && band.length <= 40) {
+        fetchCards('keyword=' + encodeURIComponent(band + ' felvarró'), function (patches) {
+          var b = band.toUpperCase();
+          show(patches.filter(function (card) {
+            var t = ((card.querySelector('.product-card__title') || {}).textContent || '').trim().toUpperCase();
+            return t.indexOf(b) === 0;  /* only this band's patches */
+          }));
+        });
+      }
+    }
+  }
+  var style = document.createElement('style');
+  style.textContent = '.rr-xsell{padding:40px 0 16px}.rr-xsell .module-head-title{margin-bottom:24px!important}' +
+    '.rr-xsell-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px}' +
+    '.rr-xsell-grid>.product-snapshot{padding:0!important;margin:0!important;width:auto!important;max-width:none!important}' +
+    '@media (max-width:767px){.rr-xsell-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}';
+  (document.head || document.documentElement).appendChild(style);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
+})();
