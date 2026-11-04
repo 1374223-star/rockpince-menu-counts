@@ -617,3 +617,106 @@
   window.addEventListener('resize', later);
   setTimeout(fixHeader, 1500);
 })();
+
+/* Size guard (2026-11-04): no order without a size.
+   1) Product page + quick view: no size is preselected ("Válassz méretet"); Kosárba without a size shows a
+      warning instead of adding the product.
+   2) Kosárba on a product card: if the product has sizes, the quick view opens so the size can be picked;
+      products without sizes are added as before. */
+(function () {
+  'use strict';
+  if (window.__rrSizeGuard) { return; }
+  window.__rrSizeGuard = true;
+  var PLACEHOLDER = 'Válassz méretet';
+  var WARNING = 'Kérjük, válassz méretet!';
+
+  function optionSelects(root) {
+    return root ? Array.prototype.slice.call(root.querySelectorAll('select[name^="option["]')) : [];
+  }
+  /* add an empty first choice and select it, once per select */
+  function addPlaceholder(select) {
+    if (select.getAttribute('data-rr-placeholder')) { return; }
+    select.setAttribute('data-rr-placeholder', '1');
+    var opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = PLACEHOLDER;
+    opt.disabled = true;
+    select.insertBefore(opt, select.firstChild);
+    select.value = '';
+    select.selectedIndex = 0;
+    select.addEventListener('change', function () { clearWarning(select); });
+  }
+  function warn(select) {
+    select.style.setProperty('outline', '2px solid #e52421', 'important');
+    var box = select.parentNode;
+    if (!box.querySelector('.rr-size-warning')) {
+      var p = document.createElement('div');
+      p.className = 'rr-size-warning';
+      p.style.cssText = 'color:#ff5a55;font-weight:700;font-size:14px;margin-top:6px';
+      p.appendChild(document.createTextNode(WARNING));
+      box.appendChild(p);
+    }
+    try { select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* old browser */ }
+  }
+  function clearWarning(select) {
+    select.style.removeProperty('outline');
+    var w = select.parentNode.querySelector('.rr-size-warning');
+    if (w) { w.parentNode.removeChild(w); }
+  }
+  function prepare(root) { optionSelects(root).forEach(addPlaceholder); }
+
+  /* the product page form, and quick views as they open */
+  function scan() { prepare(document.getElementById('product')); prepare(document.querySelector('.fancybox-quickview, .fancybox-content, .fancybox-container')); }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', scan); } else { scan(); }
+  if (window.MutationObserver) {
+    new MutationObserver(function () { scan(); }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  var hasOptions = {};  /* product id -> true/false, from the quick view html */
+  function checkOptions(id, done) {
+    if (id in hasOptions) { done(hasOptions[id]); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/index.php?route=product/quickview&product_id=' + encodeURIComponent(id), true);
+    xhr.onload = function () {
+      hasOptions[id] = xhr.status === 200 && /name="option\[/.test(xhr.responseText);
+      done(hasOptions[id]);
+    };
+    xhr.onerror = function () { done(false); };
+    xhr.send();
+  }
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target && event.target.closest ? event.target.closest('.button-add-to-cart') : null;
+    if (!btn || btn.getAttribute('data-rr-pass') === '1') { return; }
+
+    /* product page / quick view: the form has the size picker */
+    var form = btn.closest('form');
+    var selects = optionSelects(form);
+    if (selects.length) {
+      var missing = selects.filter(function (s) { return !s.value; });
+      if (missing.length) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        warn(missing[0]);
+      }
+      return;
+    }
+
+    /* product card: find out whether this product has sizes */
+    var card = btn.closest('.product-card');
+    var id = btn.getAttribute('data-product-id');
+    if (!card || !id) { return; }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    checkOptions(id, function (sized) {
+      var quick = card.querySelector('.btn-quickview');
+      if (sized && quick) {
+        quick.click();
+      } else {
+        btn.setAttribute('data-rr-pass', '1');
+        btn.click();
+        btn.removeAttribute('data-rr-pass');
+      }
+    });
+  }, true);
+})();
