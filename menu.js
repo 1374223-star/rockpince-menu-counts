@@ -710,8 +710,13 @@
     event.stopImmediatePropagation();
     checkOptions(id, function (sized) {
       var quick = card.querySelector('.btn-quickview');
+      var link = card.querySelector('a.product-card__title-link, a.product-card-image__link, a.product-card__details-button');
       if (sized && quick) {
         quick.click();
+      } else if (sized) {
+        /* cards without a quick view (product-page rows, cart popup): open the product to pick a size */
+        if (link) { window.location.href = link.href; }
+        else { window.location.href = '/index.php?route=product/product&product_id=' + encodeURIComponent(id); }
       } else {
         btn.setAttribute('data-rr-pass', '1');
         btn.click();
