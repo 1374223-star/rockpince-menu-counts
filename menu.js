@@ -511,3 +511,37 @@
     return send.apply(this, arguments);
   };
 })();
+
+/* Layout fixes (2026-11-04): one-row desktop menu (counts kept), red Kosárba on product pages,
+   no net "+ ÁFA" price, simpler product cards, no fade-in on scroll, smaller phone badge. */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-ui-fixes')) { return; }
+  var css =
+    '@media (min-width: 992px) {' +
+    ' .header-bottom ul.category-menu { flex-wrap: nowrap !important; justify-content: center !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 22px clamp(8px, 1.05vw, 22px) !important;' +
+    '   font-size: clamp(12px, .95vw, 14px) !important; white-space: nowrap !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link .rr-category-count { font-size: .9em !important; }' +
+    '}' +
+    /* 992-1279 px (small laptops): smaller items; under 1140 px it wraps to two neat rows instead of overflowing */
+    '@media (min-width: 992px) and (max-width: 1279px) {' +
+    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 18px 7px !important; font-size: 11.5px !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link > img { width: 16px !important; height: 16px !important; }' +
+    '}' +
+    '@media (min-width: 992px) and (max-width: 1139px) { .header-bottom ul.category-menu { flex-wrap: wrap !important; } }' +
+    '.product-price__postfix { display: none !important; }' +
+    '#add_to_cart.button-add-to-cart { background: #e52421 !important; border-color: #e52421 !important; color: #fff !important;' +
+    ' font-size: 16px !important; font-weight: 700 !important; padding: 14px 28px !important; min-width: 200px; }' +
+    '#add_to_cart.button-add-to-cart:hover { background: #c41c19 !important; border-color: #c41c19 !important; }' +
+    '.product-card__details { display: none !important; }' +
+    '.product-card .list_addtocart .quantity-input, .product-card .list_addtocart .quantity-name-text { display: none !important; }' +
+    '.product-card .list_addtocart .button-add-to-cart { width: 100% !important; flex: 1 1 100% !important; }' +
+    '[data-aos] { opacity: 1 !important; transform: none !important; transition: none !important; }' +
+    '@media (max-width: 991px) { #fb_header_box { transform: scale(.75); transform-origin: left bottom; opacity: .9; } }';
+  var style = document.createElement('style');
+  style.id = 'rr-ui-fixes';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+})();
