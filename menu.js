@@ -1185,3 +1185,35 @@
   }
   var tries = 0, t = setInterval(function () { if (add() || ++tries > 20) { clearInterval(t); } }, 300);
 })();
+
+/* Hover zoom on product photos, desktop only (2026-11-04): moving the mouse over the main photo shows a
+   1.8x close-up of the sharp 1000 px version; clicking still opens the theme's full-screen viewer. */
+(function () {
+  'use strict';
+  if (window.__rrHoverZoom || !/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+  if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 992px)').matches) { return; }
+  window.__rrHoverZoom = true;
+  var SCALE = 1.8;
+  document.addEventListener('mouseover', function (e) {
+    var link = e.target.closest && e.target.closest('.product-image__main-link');
+    if (!link || link.getAttribute('data-rr-zoom')) { return; }
+    var img = link.querySelector('img');
+    if (!img) { return; }
+    link.setAttribute('data-rr-zoom', '1');
+    link.style.overflow = 'hidden';
+    img.style.transition = 'transform .15s ease-out';
+    var big = link.getAttribute('href');
+    if (big && /\.(jpe?g|png|webp)/i.test(big)) {
+      var pre = new Image();
+      pre.onload = function () { img.setAttribute('data-rr-small', img.src); img.src = big; };
+      pre.src = big;
+    }
+    link.addEventListener('mousemove', function (ev) {
+      var r = link.getBoundingClientRect();
+      img.style.transformOrigin = ((ev.clientX - r.left) / r.width * 100) + '% ' + ((ev.clientY - r.top) / r.height * 100) + '%';
+      img.style.transform = 'scale(' + SCALE + ')';
+    });
+    link.addEventListener('mouseleave', function () { img.style.transform = ''; });
+    link.style.cursor = 'zoom-in';
+  });
+})();
