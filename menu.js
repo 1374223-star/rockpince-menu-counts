@@ -751,3 +751,81 @@
   q = q.toLowerCase().replace(/[^a-z0-9áéíóöőúüű ]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (/^(new ?rock)( (bakancs|bakancsok|cipo|cipő|csizma|boots?))?$/.test(q)) { location.replace(TARGET); }
 })();
+
+/* Free-shipping progress bar (2026-11-04): on the basket page and in the "Kosárba raktad!" popup.
+   Free shipping from 30 000 Ft (GLS, as on the site); total = gross basket value (ShopRenter.cart). */
+(function () {
+  'use strict';
+  if (window.__rrShipBar) { return; }
+  window.__rrShipBar = true;
+  var LIMIT = 30000;
+  function total() {
+    var items = (window.ShopRenter && ShopRenter.cart && ShopRenter.cart.items) || [];
+    var sum = 0;
+    for (var i = 0; i < items.length; i++) { sum += Number(items[i].totalNumber || 0); }
+    return Math.round(sum);
+  }
+  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function html(sum) {
+    var left = LIMIT - sum, pct = Math.max(4, Math.min(100, Math.round(sum / LIMIT * 100))), done = left <= 0;
+    var text = done ? '<strong>Ingyenes a szállítás!</strong> A kosarad értéke elérte a ' + ft(LIMIT) + '-ot.'
+                    : 'Még <strong>' + ft(left) + '</strong> és <strong>ingyenes</strong> a szállítás!';
+    return '<div style="font-size:15px;color:#1b1b1b;margin-bottom:6px">' + text + '</div>' +
+      '<div style="height:8px;background:#e9e9e9;border-radius:4px;overflow:hidden">' +
+      '<div style="height:100%;width:' + pct + '%;background:' + (done ? '#1b8a4c' : '#e52421') + ';transition:width .4s"></div></div>';
+  }
+  function place(target, where, sum) {
+    if (!target) { return; }
+    var box = target.querySelector(':scope > .rr-shipbar') || (where === 'before' && target.previousElementSibling &&
+      target.previousElementSibling.classList.contains('rr-shipbar') ? target.previousElementSibling : null);
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'rr-shipbar';
+      box.style.cssText = 'background:#fff;border:1px solid #e3e3e3;border-radius:6px;padding:12px 16px;margin:0 0 16px';
+      if (where === 'before') { target.parentNode.insertBefore(box, target); } else { target.insertBefore(box, target.firstChild); }
+    }
+    if (box.getAttribute('data-sum') === String(sum)) { return; }  /* unchanged: no DOM write (no observer loop) */
+    box.setAttribute('data-sum', String(sum));
+    if (!sum) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    box.innerHTML = html(sum);
+  }
+  /* outside the basket page ShopRenter.cart is not loaded: ask the mini-cart endpoint for the total */
+  var asking = false;
+  function remoteTotal(done) {
+    if (asking) { return; }
+    asking = true;
+    var x = new XMLHttpRequest();
+    x.open('POST', '/index.php?route=module/cart/callback', true);
+    x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    x.onloadend = function () {
+      asking = false;
+      try {
+        var t = JSON.parse(x.responseText).total || '';
+        done(Number(String(t).replace(/[^0-9]/g, '')) || 0);
+      } catch (e) { /* leave the popup as it is */ }
+    };
+    x.send();
+  }
+  function render() {
+    var table = document.querySelector('.sr-cart-table-wrapper');
+    if (table && window.ShopRenter && ShopRenter.cart) { place(table, 'before', total()); }
+    var head = null, all = document.querySelectorAll('.fancybox-container *');
+    for (var i = 0; i < all.length && !head; i++) {
+      if (!all[i].children.length && /Kosárba raktad/.test(all[i].textContent)) { head = all[i]; }
+    }
+    if (!head) { return; }
+    var pop = head.closest('.fancybox-content') || head.parentNode;
+    if (pop.querySelector('.rr-shipbar[data-sum]') && pop.getAttribute('data-rr-asked')) { return; }
+    pop.setAttribute('data-rr-asked', '1');
+    remoteTotal(function (sum) { place(pop, 'first', sum); });
+  }
+  function later() { setTimeout(render, 400); setTimeout(render, 1500); }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', later); } else { later(); }
+  document.addEventListener('cartChanged', later);
+  if (window.MutationObserver) {
+    var t = null;
+    new MutationObserver(function () { clearTimeout(t); t = setTimeout(render, 300); })
+      .observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
