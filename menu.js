@@ -1044,7 +1044,11 @@
     var badge = document.getElementById('fb_header_box');  /* only the small badge (its wrapper holds a hidden panel) */
     if (!badge) { return; }
     var shown = bar && bar.offsetHeight > 0 && getComputedStyle(bar).display !== 'none' && getComputedStyle(bar).visibility !== 'hidden';
-    var lift = shown ? (bar.offsetHeight + 8) + 'px' : '';
+    var nav = document.querySelector('.rr-bottomnav');
+    var navH = nav && nav.offsetHeight ? nav.offsetHeight : 0;  /* phone bottom bar, when it is showing */
+    var px = (shown ? bar.offsetHeight + 8 : 0) + navH;
+    shown = px > 0;
+    var lift = shown ? px + 'px' : '';
     if (badge.getAttribute('data-rr-lift') === lift) { return; }
     badge.setAttribute('data-rr-lift', lift);
     badge.style.setProperty('transform', shown ? 'translateY(-' + lift + ')' : '');
@@ -1086,4 +1090,74 @@
     '.rr-trust li:last-child{margin-bottom:0}.rr-trust svg{flex:0 0 18px;color:#7fc4ea}';
   (document.head || document.documentElement).appendChild(style);
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+})();
+
+/* App-style bottom bar on phones (2026-11-04): Főoldal / Kategóriák / Keresés / Kosár, fixed at the bottom.
+   Not on product pages (the theme's sticky Kosárba bar is there) and not in the checkout. */
+(function () {
+  'use strict';
+  if (window.__rrBottomNav) { return; }
+  window.__rrBottomNav = true;
+  var body = document.body;
+  if (!body || /product-page-body/.test(body.className) || /^\/checkout/.test(location.pathname)) { return; }
+  var H = 60;
+  var ICON = {
+    home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    cart: '<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
+  };
+  function svg(name) {
+    return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[name] + '</svg>';
+  }
+  function build() {
+    if (document.querySelector('.rr-bottomnav')) { return; }
+    var nav = document.createElement('nav');
+    nav.className = 'rr-bottomnav';
+    nav.setAttribute('aria-label', 'Gyors menü');
+    nav.innerHTML =
+      '<a href="/" class="rr-bn-item">' + svg('home') + '<span>Főoldal</span></a>' +
+      '<button type="button" class="rr-bn-item rr-bn-menu">' + svg('menu') + '<span>Kategóriák</span></button>' +
+      '<button type="button" class="rr-bn-item rr-bn-search">' + svg('search') + '<span>Keresés</span></button>' +
+      '<a href="/index.php?route=checkout/cart" class="rr-bn-item rr-bn-cart">' + svg('cart') + '<span>Kosár</span><b class="rr-bn-count"></b></a>';
+    body.appendChild(nav);
+    nav.querySelector('.rr-bn-menu').addEventListener('click', function () {
+      var b = document.getElementById('js-hamburger-icon');
+      if (b) { b.click(); }
+    });
+    nav.querySelector('.rr-bn-search').addEventListener('click', function () {
+      var i = document.getElementById('filter_keyword');
+      if (!i) { location.href = '/index.php?route=product/list'; return; }
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+      setTimeout(function () { i.focus(); }, 250);
+    });
+    body.classList.add('rr-has-bottomnav');
+    window.__rrBottomNavHeight = H;
+    count();
+  }
+  /* basket count: mirror the number shown on the header basket icon */
+  function count() {
+    var t = document.querySelector('.cart-dropdown-toggle');
+    var n = t ? ((t.innerText || '').match(/\d+/) || [''])[0] : '';
+    var b = document.querySelector('.rr-bn-count');
+    if (b) { b.textContent = n; b.style.display = n && n !== '0' ? '' : 'none'; }  /* empty basket: no dot */
+  }
+  var style = document.createElement('style');
+  style.textContent =
+    '.rr-bottomnav{display:none}' +
+    '@media (max-width:767px){' +
+    ' .rr-bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;height:' + H + 'px;z-index:1020;' +
+    '  background:rgba(4,20,34,.97);border-top:1px solid rgba(127,196,234,.25);padding-bottom:env(safe-area-inset-bottom)}' +
+    ' .rr-bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
+    '  color:#d7e6f1!important;font-size:11px;font-weight:600;background:none;border:0;text-decoration:none!important;position:relative}' +
+    ' .rr-bn-item:active{color:#fff!important;background:rgba(127,196,234,.12)}' +
+    ' .rr-bn-count{position:absolute;top:6px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:#e52421;' +
+    '  color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 4px}' +
+    ' body.rr-has-bottomnav{padding-bottom:' + H + 'px!important}' +
+    ' body.rr-has-bottomnav .scroll-top-button{bottom:' + (H + 16) + 'px!important}' +
+    '}';
+  (document.head || document.documentElement).appendChild(style);
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+  setInterval(count, 1500);
 })();
