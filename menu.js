@@ -1161,3 +1161,27 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
   setInterval(count, 1500);
 })();
+
+/* Google rating line in the trust row (2026-11-04): real numbers from the shop's Google Maps listing
+   "Rockpince RagnaRock" on 2026-11-04 (4,4 from 932 reviews); links to the reviews. Update by hand. */
+(function () {
+  'use strict';
+  if (window.__rrGoogle) { return; }
+  window.__rrGoogle = true;
+  var RATING = '4,4', COUNT = '932';
+  var URL = 'https://www.google.com/maps/search/?api=1&query=Rockpince+RagnaRock+Budapest+D%C3%B3zsa+Gy%C3%B6rgy+%C3%BAt+19';
+  function add() {
+    var list = document.querySelector('.rr-trust');
+    if (!list) { return false; }
+    if (list.querySelector('.rr-google')) { return true; }
+    var li = document.createElement('li');
+    li.className = 'rr-google';
+    li.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#f5c518" aria-hidden="true">' +
+      '<path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>' +
+      '<span><a href="' + URL + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">' +
+      '<strong style="color:#fff">' + RATING + '</strong> · ' + COUNT + ' Google-értékelés</a></span>';
+    list.appendChild(li);
+    return true;
+  }
+  var tries = 0, t = setInterval(function () { if (add() || ++tries > 20) { clearInterval(t); } }, 300);
+})();
