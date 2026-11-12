@@ -1287,3 +1287,33 @@
   (document.head || document.documentElement).appendChild(style);
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
 })();
+
+/* Owner 2026-11-12: ÚJDONSÁGOK opens sorted by "Elérhetőség, legújabb" (newest first) on PC and phone.
+   Links to it get the sort added when clicked; landing on it without any sort switches to it.
+   A sort the visitor picks in the list (price, name, ...) is always kept. */
+(function () {
+  var SORT = 'sort=p.date_available&order=DESC';
+  function isNew(url) {
+    return /\/ujdonsagok2-18914(?:[?#]|$)/.test(url) || /[?&]category_id=18914(?:[&#]|$)/.test(url);
+  }
+  function withSort(href) {
+    if (!href || !isNew(href) || /[?&]sort=/.test(href)) { return href; }
+    var hash = '', i = href.indexOf('#');
+    if (i >= 0) { hash = href.slice(i); href = href.slice(0, i); }
+    return href + (href.indexOf('?') >= 0 ? '&' : '?') + SORT + hash;
+  }
+  try {
+    if (isNew(location.pathname + location.search) && !/[?&]sort=/.test(location.search)) {
+      location.replace(withSort(location.href));
+      return;
+    }
+  } catch (e) { /* keep the page as it is */ }
+  if (!document.addEventListener) { return; }
+  document.addEventListener('click', function (ev) {
+    var a = ev.target;
+    while (a && a.nodeName !== 'A') { a = a.parentNode; }
+    if (!a || !a.getAttribute) { return; }
+    var href = a.getAttribute('href'), sorted = withSort(href);
+    if (sorted !== href) { a.setAttribute('href', sorted); }
+  }, true);
+})();
