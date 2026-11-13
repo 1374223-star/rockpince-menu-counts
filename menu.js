@@ -246,7 +246,7 @@
     /* depth: how many subfolder levels show under each folder (owner 2026-11-03: KIEGÉSZÍTŐK
        shows only its own folders on hover, the subfolders stay on the category pages) */
     '14130': { expand: [], extra: [], first: ['14454'], depth: 3 },
-    '14025': { expand: [], extra: [], first: [], depth: 0 }
+    '14025': { expand: [], extra: [], first: ['19518'], depth: 0 }
   };
   var HU = '0123456789abcdefghijklmnoöpqrstuüvwxyz';
   var HU_SAME = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ő': 'ö', 'ú': 'u', 'ű': 'ü' };
@@ -299,7 +299,7 @@
          "Egyéb ..." last, deeper levels indented further), so nothing is hidden behind a click. */
       function addTree(id, level, out) {
         var kids = level < (cfg.depth === undefined ? 3 : cfg.depth) ? childrenOf(id) : [], k;
-        out.push({ id: id, level: level, title: kids.length > 0 });
+        out.push({ id: id, level: level, title: kids.length > 0 || (level === 0 && cfg.first.indexOf(id) >= 0) });
         kids.sort(function (x, y) {
           var ox = /^egy[eé]b/i.test(data[x][0]) ? 1 : 0, oy = /^egy[eé]b/i.test(data[y][0]) ? 1 : 0;
           if (ox !== oy) { return ox - oy; }
