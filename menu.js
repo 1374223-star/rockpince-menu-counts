@@ -1627,7 +1627,7 @@
     '.rr-xmas{background:linear-gradient(90deg,#8e0f0d,#e52421,#8e0f0d);color:#fff;text-align:center;padding:9px 14px;font-weight:800;font-size:13.5px;' +
     'letter-spacing:.05em;text-transform:uppercase;line-height:1.35}' +
     /* 14 concert tiles */
-    '.rr-gigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(560px,100%),1fr));gap:18px;margin:0 0 26px}' +
+    '.rr-gigs{display:grid;grid-template-columns:1fr;gap:18px;margin:0 0 26px}' +
     '.rr-gigwrap{container-type:inline-size;container-name:gig;min-width:0}' +
     '.rr-gig{--gold:#d4b46a;--ink:#efe3c2;--bg0:#08080b;--bg1:#2b2621;--bg2:#15131a;--plate:8,8,11;--line:217,180,90;--btn0:#f6e2a1;--btn1:#d4b46a;--btn2:#a9822f;--btnsh:#5e4718;--stub:250px;' +
     'position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;height:100%;padding:0 0 18px;' +
@@ -1639,7 +1639,6 @@
     '.rr-gig .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),transparent 28%,transparent 72%,rgba(0,0,0,.42))}' +
     '.rr-gig .lt{display:contents}' +
     '.rr-gig .logo{position:relative;display:block;height:auto;width:min(100%,430px);margin:0 auto}' +
-    '.rr-gig.g-manowar .logo{width:min(100%,330px)}' +
     '.rr-gig .txt{position:relative;isolation:isolate;text-align:center;padding:0 16px;margin-top:-12px;min-width:0}' +
     '.rr-gig .txt:before,.rr-gig .lt:before{content:"";position:absolute;z-index:-1;left:-70px;right:-110px;top:-80px;bottom:-80px;' +
     'background:radial-gradient(ellipse 52% 58% at 44% 50%,rgba(var(--plate),.96) 30%,rgba(var(--plate),.78) 58%,rgba(var(--plate),0) 100%)}' +
@@ -1655,38 +1654,37 @@
     '.rr-gig .m{margin-top:9px;font-size:13px;font-weight:600;letter-spacing:.04em;color:rgba(239,227,194,.72);white-space:nowrap}' +
     '.rr-gig .stub{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;margin:16px 16px 0;padding:16px 0 0;' +
     'border-top:2px dashed rgba(var(--line),.42)}' +
-    '.rr-gig .btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;width:100%;box-sizing:border-box;padding:15px 26px;border-radius:4px;' +
-    'font-family:Cinzel,"Times New Roman",serif;font-weight:800;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#1a1408!important;text-decoration:none!important;white-space:nowrap;' +
+    '.rr-gig .btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;width:100%;box-sizing:border-box;padding:17px 26px;border-radius:4px;' +
+    'font-family:Cinzel,"Times New Roman",serif;font-weight:800;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:#1a1408!important;text-decoration:none!important;white-space:nowrap;' +
     'background:linear-gradient(180deg,var(--btn0),var(--btn1) 52%,var(--btn2));box-shadow:0 4px 0 var(--btnsh),0 12px 26px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,filter .15s}' +
     '.rr-gig .btn i{font-style:normal;font-size:1.25em;line-height:0}' +
     '.rr-gig .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}' +
     '.rr-gig .s2{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(239,227,194,.62);white-space:nowrap}' +
     '@container gig (min-width:600px){' +
-    '.rr-gig{flex-direction:row;align-items:center;min-height:206px;padding:0}' +
+    '.rr-gig{flex-direction:row;align-items:center;min-height:206px;padding:0;--stub:330px}' +
     '.rr-gig .art{left:0;right:var(--stub);background-position:right center;background-size:auto 100%;opacity:.8}' +
     '.rr-gig .lt{display:flex;flex-direction:column;justify-content:center;position:relative;isolation:isolate;flex:0 1 auto;max-width:62%;padding:14px 24px 14px 20px}' +
     '.rr-gig .lt:before{display:block;left:-60px;right:-120px;top:-60px;bottom:-60px}' +
     '.rr-gig .txt:before{display:none}' +
     '.rr-gig .logo{width:min(100%,236px);margin:0}' +
-    '.rr-gig.g-manowar .logo{width:min(100%,150px)}' +
     '.rr-gig .txt{text-align:left;padding:0;margin-top:6px}' +
     '.rr-gig .eye{font-size:10.5px}.rr-gig h3{font-size:22px;margin:4px 0 3px}.rr-gig .d{font-size:12.5px}' +
-    '.rr-gig .stub{flex:0 0 var(--stub);box-sizing:border-box;align-self:stretch;margin:0;padding:0 18px;border-top:0;border-left:2px dashed rgba(var(--line),.42);' +
+    '.rr-gig .stub{flex:0 0 var(--stub);box-sizing:border-box;align-self:stretch;margin:0 0 0 auto;padding:0 18px;border-top:0;border-left:2px dashed rgba(var(--line),.42);' +
     'background:linear-gradient(90deg,rgba(var(--plate),.55),rgba(var(--plate),.84));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
     '.rr-gig .btn{width:auto;font-size:13px;padding:14px 20px}' +
     '}' +
     '@container gig (min-width:1000px){' +
-    '.rr-gig{--stub:clamp(300px,22cqw,400px);height:clamp(196px,12cqw,290px)}' +
+    '.rr-gig{--stub:clamp(420px,28cqw,520px);height:clamp(204px,12cqw,290px)}' +
     '.rr-gig .art{opacity:.92}' +
     '.rr-gig .lt{display:contents}.rr-gig .lt:before{display:none}.rr-gig .txt:before{display:block}' +
     '.rr-gig .logo{height:100%;width:auto;max-width:none;margin:0 0 0 -6px}' +
-    '.rr-gig.g-manowar .logo{width:auto}' +
     '.rr-gig .txt{flex:0 1 auto;max-width:380px;padding:0 24px 0 8px;margin:0}' +
     '.rr-gig .eye{font-size:clamp(10.5px,.72cqw,13px);white-space:normal}.rr-gig .eye .x{display:inline}' +
     '.rr-gig h3{font-size:clamp(22px,2.05cqw,36px);margin:6px 0 4px}' +
     '.rr-gig .d{font-size:clamp(13px,1.05cqw,18px)}.rr-gig .d span{margin:0 10px}' +
-    '.rr-gig .stub{padding:0 34px}' +
-    '.rr-gig .btn{font-size:clamp(13px,.95cqw,16px);padding:15px 26px}' +
+    '.rr-gig .stub{flex:0 0 var(--stub);width:var(--stub);padding:0 24px}' +
+    '.rr-gig .btn{font-size:clamp(14px,1.05cqw,18px);padding:18px 32px;gap:14px}' +
+    '.rr-gig .s2{font-size:11.5px}' +
     '}' +
     '@container gig (min-width:1500px){' +
     '.rr-gig .m{display:block}.rr-gig .txt{max-width:620px;padding-right:60px}' +
@@ -1965,8 +1963,8 @@
     if (budapestNow().ymd > XMAS_UNTIL || document.querySelector('.rr-xmas')) { return; }
     var head = document.querySelector('.header');
     if (!head) { return; }
-    var bar = el('div', 'rr-xmas', phone() ? 'Rendeld meg időben a karácsonyi ajándékokat!'
-      : 'Karácsonyra készülsz? Rendeld meg időben az ajándékokat, hogy karácsonyra megérkezzenek!');
+    /* owner 2026-11-14: this text only, in caps (the .rr-xmas style is uppercase) */
+    var bar = el('div', 'rr-xmas', '<span class="rr-xmas-text">Rendeld meg időben az ajándékokat, hogy karácsonyra megérkezzenek!</span>');
     var top = head.closest('.section-wrapper') || head;
     top.parentNode.insertBefore(bar, top);
   }
@@ -2100,14 +2098,21 @@
     '.rr-social-top { display: inline-flex; gap: 8px; align-items: center; margin-right: 14px; }' +
     '.rr-social-top a { display: inline-flex; width: 26px; height: 26px; }' +
     '.rr-social-top svg { width: 26px !important; height: 26px !important; }' +
-    /* snowfall on the Christmas bar */
-    '.rr-xmas { position: relative; overflow: hidden; }' +
-    '.rr-xmas::before, .rr-xmas::after { content: ""; position: absolute; inset: -40px 0 0 0; pointer-events: none;' +
-    ' background-image: radial-gradient(circle, rgba(255,255,255,.95) 0 1.4px, transparent 2px), radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 1.6px);' +
-    ' background-size: 90px 40px, 55px 30px; background-position: 0 0, 25px 12px; animation: rrsnow 7s linear infinite; }' +
-    '.rr-xmas::after { background-size: 130px 50px, 70px 35px; background-position: 40px 5px, 10px 20px; opacity: .6; animation-duration: 11s; }' +
-    '@keyframes rrsnow { to { transform: translateY(40px); } }' +
-    '@media (prefers-reduced-motion: reduce) { .rr-xmas::before, .rr-xmas::after { animation: none; } }';
+    /* Christmas bar v2 (owner 2026-11-14): ~15% taller, string lights on the top edge, canvas snowfall */
+    '.rr-xmas { position: relative; overflow: hidden; padding: 14px 14px 8px !important; font-size: 14px !important; }' +
+    '.rr-xmas-text { position: relative; z-index: 3; text-shadow: 0 1px 3px rgba(0,0,0,.45); }' +
+    '.rr-xmas canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }' +
+    '.rr-lights { position: absolute; left: 0; right: 0; top: 0; height: 14px; z-index: 4; pointer-events: none; }' +
+    '.rr-lights svg { position: absolute; left: 0; top: 0; width: 100%; height: 8px; }' +
+    '.rr-bulb { position: absolute; top: 3px; width: 6px; height: 9px; border-radius: 45% 45% 50% 50% / 40% 40% 60% 60%;' +
+    ' animation: rrtwinkle 2.6s ease-in-out infinite; }' +
+    '.rr-bulb::before { content: ""; position: absolute; left: 1px; top: -2px; width: 4px; height: 3px; background: #2a2a2a; border-radius: 1px; }' +
+    '.rr-bulb.c0 { background: #ff4b4b; box-shadow: 0 0 6px 2px rgba(255,75,75,.75); }' +
+    '.rr-bulb.c1 { background: #4dff88; box-shadow: 0 0 6px 2px rgba(77,255,136,.7); }' +
+    '.rr-bulb.c2 { background: #ffd34d; box-shadow: 0 0 6px 2px rgba(255,211,77,.75); }' +
+    '.rr-bulb.c3 { background: #7fd4ff; box-shadow: 0 0 6px 2px rgba(127,212,255,.75); }' +
+    '@keyframes rrtwinkle { 0%, 100% { opacity: 1; filter: brightness(1.15); } 50% { opacity: .45; filter: brightness(.7); } }' +
+    '@media (prefers-reduced-motion: reduce) { .rr-bulb { animation: none; } }';
   var style = document.createElement('style');
   style.id = 'rr-round6';
   style.appendChild(document.createTextNode(css));
@@ -2143,4 +2148,200 @@
     }
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { setTimeout(apply, 50); }); } else { setTimeout(apply, 50); }
+})();
+
+/* Admin quick delete (owner 2026-11-14): when the shop owner is logged in to the admin (the theme then shows
+   its pencil "edit" links), every product card gets a TÖRLÉS button and product pages a TERMÉK TÖRLÉSE button.
+   First click arms it ("BIZTOS? KATTINTS ÚJRA", 4 s), second click deletes through the admin's own GraphQL
+   (same request as the admin product list's Törlés). Visitors never see it: no pencil = no button, and the
+   request only works with the admin login. Success is checked by the product page returning "not found". */
+(function () {
+  'use strict';
+  if (window.__rrAdminDelete) { return; }
+  window.__rrAdminDelete = true;
+  var MUTATION = 'mutation deleteProducts($data: [ProductIdInput!]!) { deleteProducts(productIdsInput: $data) { deletedQuantity } }';
+  var css =
+    '.rr-del{position:absolute;z-index:30;top:8px;left:8px;background:#e52421;color:#fff;border:0;border-radius:4px;padding:6px 10px;' +
+    'font:800 11.5px/1 Poppins,Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;opacity:0;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,.4)}' +
+    '.product-card:hover .rr-del,.rr-del.armed,.rr-del.busy,.rr-del.page{opacity:1}' +
+    '.rr-del.armed{background:#8e0f0d;outline:2px solid #fff}.rr-del.busy{background:#555;cursor:wait}' +
+    '.rr-del.page{position:static;margin:0 0 12px;padding:10px 16px;font-size:13px}' +
+    '.rr-deleted{position:relative;pointer-events:none}.rr-deleted::after{content:"TÖRÖLVE";position:absolute;inset:0;z-index:40;display:flex;' +
+    'align-items:center;justify-content:center;background:rgba(0,0,0,.72);color:#ff6b68;font:900 22px Poppins,Arial,sans-serif;letter-spacing:.08em}';
+  function idFrom(a) { var m = (a.getAttribute('href') || '').match(/[?&]product_id=(\d+)/); return m ? m[1] : null; }
+  function gone(url, done) {
+    if (!url) { done(true); return; }
+    var x = new XMLHttpRequest();
+    x.open('GET', url + (url.indexOf('?') >= 0 ? '&' : '?') + 'rrcheck=' + Date.now(), true);
+    /* the shop answers 200 with "A termék nem található!" for a deleted product */
+    x.onloadend = function () { done(x.status === 404 || x.status === 410 || /A termék nem található/.test(x.responseText || '')); };
+    x.send();
+  }
+  function remove(id, url, btn, onDone) {
+    btn.classList.remove('armed'); btn.classList.add('busy'); btn.textContent = 'Törlés…';
+    var x = new XMLHttpRequest();
+    x.open('POST', '/admin/graphql?operation_name=deleteProducts', true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.withCredentials = true;
+    x.onloadend = function () {
+      var ok = false;
+      try { ok = x.status === 200 && !JSON.parse(x.responseText).errors; } catch (e) { ok = false; }
+      if (!ok) { btn.classList.remove('busy'); btn.textContent = 'Hiba – nem törölve'; return; }
+      setTimeout(function () {
+        gone(url, function (really) {
+          btn.classList.remove('busy');
+          if (!really) { btn.textContent = 'Nem sikerült'; return; }
+          try {
+            var log = JSON.parse(localStorage.getItem('rr-deleted') || '[]');
+            log.push({ id: id, url: url, at: new Date().toISOString() });
+            localStorage.setItem('rr-deleted', JSON.stringify(log.slice(-500)));
+          } catch (e) { /* private window */ }
+          onDone();
+        });
+      }, 600);
+    };
+    x.send(JSON.stringify({ operationName: 'deleteProducts', query: MUTATION, variables: { data: [{ productId: String(id) }] } }));
+  }
+  function armable(btn, label, go) {
+    var timer = null;
+    btn.textContent = label;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (btn.classList.contains('busy')) { return; }
+      if (!btn.classList.contains('armed')) {
+        btn.classList.add('armed'); btn.textContent = 'Biztos? Kattints újra';
+        timer = setTimeout(function () { btn.classList.remove('armed'); btn.textContent = label; }, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      go();
+    });
+  }
+  function scan() {
+    var links = document.querySelectorAll('a.edit-link[href*="catalog/product/update"]:not([data-rr-del])');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i], id = idFrom(a);
+      a.setAttribute('data-rr-del', '1');
+      if (!id) { continue; }
+      var card = a.closest('.product-card');
+      if (card) {
+        if (card.querySelector('.rr-del')) { continue; }
+        var link = card.querySelector('a.product-card__title-link, a.product-card-image__link');
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'rr-del';
+        var img = card.querySelector('.product-card-image') || card;
+        if (getComputedStyle(img).position === 'static') { img.style.position = 'relative'; }
+        img.appendChild(b);
+        (function (b, id, card, url) {
+          armable(b, 'Törlés', function () {
+            remove(id, url, b, function () { card.classList.add('rr-deleted'); b.style.display = 'none'; });
+          });
+        })(b, id, card, link ? link.href : null);
+        continue;
+      }
+      if (a.closest('.product-page-head-title') && !document.querySelector('.rr-del.page')) {
+        var h = document.querySelector('.product-page-middle h1, h1');
+        var pb = document.createElement('button');
+        pb.type = 'button'; pb.className = 'rr-del page';
+        h.parentNode.insertBefore(pb, h);
+        (function (pb, id) {
+          armable(pb, 'Termék törlése', function () {
+            remove(id, location.href.split('#')[0], pb, function () {
+              pb.textContent = 'Törölve – vissza…';
+              setTimeout(function () { if (history.length > 1) { history.back(); } else { location.href = '/'; } }, 900);
+            });
+          });
+        })(pb, id);
+      }
+    }
+  }
+  function start() {
+    if (!document.querySelector('a.edit-link')) { return; }  /* not logged in to the admin: nothing at all */
+    var st = document.createElement('style');
+    st.id = 'rr-admin-delete';
+    st.appendChild(document.createTextNode(css));
+    document.head.appendChild(st);
+    scan();
+    if (window.MutationObserver) {
+      var t = null;
+      new MutationObserver(function () { clearTimeout(t); t = setTimeout(scan, 300); }).observe(document.documentElement, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
+
+/* Christmas bar v2 (owner 2026-11-14): a string of twinkling lights hanging from the top edge and a real
+   snowfall (each flake its own size, speed, sideways sway and depth) drawn on a canvas behind the text.
+   Pauses when the bar is off screen or the tab is hidden; still lights and no snow for "reduce motion". */
+(function () {
+  'use strict';
+  if (window.__rrXmas2) { return; }
+  window.__rrXmas2 = true;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function lights(bar) {
+    var box = document.createElement('div');
+    box.className = 'rr-lights';
+    var w = Math.max(bar.clientWidth, window.screen ? screen.width : 0), step = 30, n = Math.ceil(w / step) + 1, path = 'M0 2';  /* enough for a wider window later */
+    for (var i = 0; i < n; i++) { path += ' Q' + (i * step + step / 2) + ' 7 ' + ((i + 1) * step) + ' 2'; }
+    box.style.width = (n * step) + 'px';
+    box.innerHTML = '<svg viewBox="0 0 ' + (n * step) + ' 8" preserveAspectRatio="none"><path d="' + path +
+      '" fill="none" stroke="#1d2a1d" stroke-width="1.6"/></svg>';
+    for (var j = 0; j < n; j++) {
+      var b = document.createElement('span');
+      b.className = 'rr-bulb c' + (j % 4);
+      b.style.left = (j * step + step / 2 - 3) + 'px';
+      b.style.animationDelay = (-Math.random() * 2.6).toFixed(2) + 's';
+      box.appendChild(b);
+    }
+    bar.appendChild(box);
+  }
+  function snow(bar) {
+    var c = document.createElement('canvas'), ctx = c.getContext && c.getContext('2d');
+    if (!ctx) { return; }
+    bar.appendChild(c);
+    var flakes = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), running = true, visible = true, last = 0;
+    function size() {
+      W = bar.clientWidth; H = bar.clientHeight;
+      c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var want = Math.round(W / 14);
+      while (flakes.length < want) { flakes.push(make(true)); }
+      flakes.length = want;
+    }
+    function make(anywhere) {
+      var z = Math.random();  /* depth: near flakes are bigger, faster, brighter */
+      return { x: Math.random() * W, y: anywhere ? Math.random() * H : -4, r: 0.6 + z * 1.9, v: 7 + z * 22,
+        sway: 4 + Math.random() * 10, phase: Math.random() * 6.28, freq: 0.6 + Math.random() * 1.2, a: 0.35 + z * 0.6 };
+    }
+    function frame(t) {
+      if (!running) { return; }
+      var dt = Math.min(0.05, (t - (last || t)) / 1000); last = t;
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < flakes.length; i++) {
+        var f = flakes[i];
+        f.y += f.v * dt; f.phase += f.freq * dt;
+        if (f.y - f.r > H) { flakes[i] = f = make(false); }
+        var x = f.x + Math.sin(f.phase) * f.sway;
+        ctx.beginPath(); ctx.arc(x, f.y, f.r, 0, 6.2832);
+        ctx.fillStyle = 'rgba(255,255,255,' + f.a.toFixed(2) + ')'; ctx.fill();
+      }
+      if (visible && !document.hidden) { requestAnimationFrame(frame); } else { running = false; }
+    }
+    function resume() { if (!running && visible && !document.hidden) { running = true; last = 0; requestAnimationFrame(frame); } }
+    size();
+    window.addEventListener('resize', size);
+    document.addEventListener('visibilitychange', resume);
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (e) { visible = e[0].isIntersecting; resume(); }).observe(bar);
+    }
+    requestAnimationFrame(frame);
+  }
+  var tries = 0;
+  (function wait() {
+    var bar = document.querySelector('.rr-xmas');
+    if (!bar) { if (tries++ < 40) { setTimeout(wait, 150); } return; }
+    if (bar.getAttribute('data-rr-deco')) { return; }
+    bar.setAttribute('data-rr-deco', '1');
+    lights(bar);
+    if (!reduce) { snow(bar); }
+  })();
 })();
