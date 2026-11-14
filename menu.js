@@ -2346,3 +2346,158 @@
     if (!reduce) { snow(bar); }
   })();
 })();
+
+/* Admin quick "remove discount" (owner 2026-11-14): logged-in admin only (theme pencil links present).
+   Hovering the discount badge of a product card shows a big X; first click arms it ("BIZTOS?", 4 s),
+   second click opens the product's own admin edit page in an invisible frame, removes every row on its
+   Akciók tab, unselects the AKCIÓS TERMÉKEK category (15455) and presses the page's own Mentés - the same
+   as doing it by hand. Then the edit page is read again to confirm before the card is updated. */
+(function () {
+  'use strict';
+  if (window.__rrUnsale) { return; }
+  window.__rrUnsale = true;
+  var SALE_CATEGORY = '15455';
+  var X = '✕';
+  var css =
+    '.rr-unsale{position:absolute;z-index:70;top:0;left:0;min-width:58px;min-height:44px;width:100%;height:100%;display:flex;align-items:center;' +
+    'justify-content:center;background:rgba(10,10,10,.82);color:#fff;border:2px solid #e52421;border-radius:4px;font:900 30px/1 Arial,sans-serif;' +
+    'cursor:pointer;opacity:0;transition:opacity .12s;padding:0 8px;white-space:nowrap}' +
+    '.rr-unsale:hover,.rr-unsale.armed,.rr-unsale.busy{opacity:1}' +
+    '.rr-unsale.armed{font-size:12px;background:#8e0f0d;letter-spacing:.04em}.rr-unsale.busy{font-size:12px;background:#555;cursor:wait}' +
+    '.rr-unsale-done{position:absolute;z-index:70;top:8px;left:8px;background:#1a9b3c;color:#fff;font:800 11px Poppins,Arial,sans-serif;' +
+    'padding:5px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}';
+
+  function editUrl(card) {
+    var a = card.querySelector('a.edit-link[href*="catalog/product/update"]');
+    return a ? a.getAttribute('href') : null;
+  }
+  /* read the edit page: is the form there, how many discount rows, is the sale category still selected */
+  function state(url, done) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.withCredentials = true;
+    x.onloadend = function () {
+      try {
+        var d = new DOMParser().parseFromString(x.responseText, 'text/html');
+        var sel = d.querySelector('select[name="product_category[]"]');
+        var opt = sel && sel.querySelector('option[value="' + SALE_CATEGORY + '"]');
+        done({ ok: !!d.getElementById('form'), specials: d.querySelectorAll('[id^="special_row"]').length, sale: !!(opt && opt.selected) });
+      } catch (e) { done({ ok: false }); }
+    };
+    x.send();
+  }
+  function unsale(url, done) {
+    var f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:1300px;height:900px;opacity:0;pointer-events:none;border:0';
+    var step = 0;
+    var timer = setTimeout(function () { finish(false, 'időtúllépés'); }, 45000);
+    function finish(ok, why) {
+      clearTimeout(timer);
+      setTimeout(function () { if (f.parentNode) { f.parentNode.removeChild(f); } }, 500);
+      done(ok, why);
+    }
+    f.onload = function () {
+      step += 1;
+      var doc;
+      try { doc = f.contentDocument; } catch (e) { finish(false, 'nincs hozzáférés'); return; }
+      if (step === 1) {
+        var form = doc && doc.getElementById('form');
+        if (!form) { finish(false, 'nincs szerkesztő űrlap'); return; }
+        var rows = doc.querySelectorAll('[id^="special_row"]');
+        for (var i = 0; i < rows.length; i++) { rows[i].parentNode.removeChild(rows[i]); }
+        var sel = doc.querySelector('select[name="product_category[]"]');
+        var opt = sel && sel.querySelector('option[value="' + SALE_CATEGORY + '"]');
+        if (opt) {
+          opt.selected = false;
+          try { f.contentWindow.jQuery(sel).trigger('change').trigger('chosen:updated'); } catch (e) { /* plain select */ }
+        }
+        var save = Array.prototype.filter.call(doc.querySelectorAll('a,button'), function (e) { return e.textContent.trim() === 'Mentés'; })[0];
+        if (!save) { finish(false, 'nincs Mentés gomb'); return; }
+        save.click();
+        return;
+      }
+      /* the edit page reloaded after Mentés: confirm from a fresh read */
+      state(url, function (s) {
+        if (s.ok && s.specials === 0 && !s.sale) { finish(true); } else { finish(false, 'mentés után még akciós'); }
+      });
+    };
+    f.src = url;
+    document.body.appendChild(f);
+  }
+  function arm(btn, run) {
+    var t = null;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.classList.contains('busy')) { return; }
+      if (!btn.classList.contains('armed')) {
+        btn.classList.add('armed');
+        btn.textContent = 'BIZTOS?';
+        t = setTimeout(function () { btn.classList.remove('armed'); btn.textContent = X; }, 4000);
+        return;
+      }
+      clearTimeout(t);
+      run();
+    });
+  }
+  function onCardDone(card) {
+    var badges = card.querySelector('.product_badges');
+    if (badges) { badges.style.display = 'none'; }
+    var price = card.querySelector('.product-card__price');
+    if (price) {
+      var nums = (price.textContent.match(/\d[\d.]*\s*Ft/g) || []).map(function (s) { return Number(s.replace(/\D/g, '')); }).filter(Boolean);
+      if (nums.length >= 2) {
+        var hi = Math.max.apply(null, nums);
+        price.innerHTML = '<span class="snapshot-price snapshot-price--regular">' + String(hi).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft</span>';
+      }
+    }
+    var img = card.querySelector('.product-card-image') || card;
+    var tag = document.createElement('div');
+    tag.className = 'rr-unsale-done';
+    tag.textContent = 'Akció törölve';
+    img.appendChild(tag);
+  }
+  function scan() {
+    var cards = document.querySelectorAll('.product-card:not([data-rr-unsale])');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      card.setAttribute('data-rr-unsale', '1');
+      var badges = card.querySelector('.product_badges');
+      var url = editUrl(card);
+      if (!badges || !url || !/-\d+\s*%/.test(badges.textContent)) { continue; }
+      if (getComputedStyle(badges).position === 'static') { badges.style.position = 'relative'; }
+      badges.style.pointerEvents = 'auto';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rr-unsale';
+      b.textContent = X;
+      b.title = 'Akció törlése (2 kattintás)';
+      badges.appendChild(b);
+      (function (b, card, url) {
+        arm(b, function () {
+          b.classList.remove('armed');
+          b.classList.add('busy');
+          b.textContent = 'MENTÉS…';
+          unsale(url, function (ok, why) {
+            b.classList.remove('busy');
+            if (ok) { onCardDone(card); } else { b.classList.add('armed'); b.textContent = 'HIBA: ' + (why || ''); }
+          });
+        });
+      })(b, card, url);
+    }
+  }
+  function start() {
+    if (!document.querySelector('a.edit-link')) { return; }  /* not logged in to the admin */
+    var st = document.createElement('style');
+    st.id = 'rr-unsale';
+    st.appendChild(document.createTextNode(css));
+    document.head.appendChild(st);
+    scan();
+    if (window.MutationObserver) {
+      var t = null;
+      new MutationObserver(function () { clearTimeout(t); t = setTimeout(scan, 300); })
+        .observe(document.documentElement, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
