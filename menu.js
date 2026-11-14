@@ -1461,7 +1461,7 @@
   'use strict';
   if (document.getElementById('rr-round4')) { return; }
   var css =
-    '.rr-hide { display: none !important; }' +
+    '.rr-hide, .product-page-left .social-share-module, #socail-media { display: none !important; }' +
     '.header input[type=text], .header input[type=search] { font-size: 16px !important; height: 52px !important; padding-left: 18px !important; }' +
     '.header input::placeholder { color: #9cc7e3 !important; opacity: 1 !important; text-transform: uppercase; letter-spacing: .03em; }' +
     '.headermenu-list .nav-link { font-size: 13px !important; }' +
