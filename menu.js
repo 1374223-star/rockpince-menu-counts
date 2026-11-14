@@ -957,18 +957,51 @@
     for (var i = 0; i < leaves.length; i++) { r -= leaves[i].n; if (r <= 0) { return leaves[i]; } }
     return leaves[leaves.length - 1];
   }
+  /* owner 2026-11-14 ("main page awfully slow"): every visit used to download 5+ whole category pages
+     (~2 s each on the server). Now each downloaded page leaves up to 8 of its products in a pool kept in the
+     visitor's browser for 2 hours; the row and "Mutass mást" draw from the pool and only fetch when it runs low. */
+  var POOL_KEY = 'rr-random-pool', POOL_TTL = 2 * 3600 * 1000;
+  function readPool() {
+    try {
+      var p = JSON.parse(localStorage.getItem(POOL_KEY) || 'null');
+      return p && Date.now() - p.t < POOL_TTL ? p.items : [];
+    } catch (e) { return []; }
+  }
+  function savePool(items) {
+    try { localStorage.setItem(POOL_KEY, JSON.stringify({ t: (JSON.parse(localStorage.getItem(POOL_KEY) || 'null') || {}).t || Date.now(), items: items.slice(-80) })); } catch (e) { /* full or private */ }
+  }
+  function toCard(html) {
+    var d = document.createElement('div'); d.innerHTML = html;
+    return d.firstElementChild;
+  }
   function oneCard(done) {
     var leaf = pickLeaf(), page = 1 + Math.floor(Math.random() * Math.max(1, Math.ceil(leaf.n / PER_PAGE)));
     get('/index.php?route=product/list&category_id=' + leaf.id + '&page=' + page, function (htmlText) {
       var cards = [];
       try { cards = Array.prototype.slice.call(new DOMParser().parseFromString(htmlText, 'text/html')
         .querySelectorAll('.product-snapshot .product-card')); } catch (e) { /* nothing */ }
+      if (cards.length) {
+        var pool = readPool();
+        cards.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 8)
+          .forEach(function (c) { pool.push({ leaf: leaf.id, html: c.outerHTML }); });
+        savePool(pool);
+      }
       done(cards.length ? cards[Math.floor(Math.random() * cards.length)] : null, leaf.id);
     });
+  }
+  /* WANT products from different categories out of the stored pool, or null if the pool is too thin */
+  function fromPool() {
+    var pool = readPool().slice().sort(function () { return Math.random() - 0.5; }), used = {}, out = [];
+    for (var i = 0; i < pool.length && out.length < WANT; i++) {
+      if (!used[pool[i].leaf]) { used[pool[i].leaf] = true; var c = toCard(pool[i].html); if (c) { out.push(c); } }
+    }
+    return out.length >= WANT && pool.length >= WANT * 4 ? out : null;
   }
   /* one product from each of WANT different random categories */
   function load(grid, button) {
     if (!leaves.length) { return; }
+    var cached = fromPool();
+    if (cached) { render(grid, cached); return; }
     button.disabled = true;
     var got = [], used = {}, pending = 0, rounds = 0;
     function ask() {
@@ -986,6 +1019,12 @@
       finish.done = true;
       button.disabled = false;
       if (got.length < 2) { return; }
+      render(grid, got);
+    }
+    ask();
+  }
+  function render(grid, got) {
+    {
       grid.innerHTML = '';
       got.slice(0, WANT).forEach(function (card) {
         Array.prototype.forEach.call(card.querySelectorAll('img[data-src]'), function (img) { img.setAttribute('src', img.getAttribute('data-src')); });
@@ -996,7 +1035,6 @@
         grid.appendChild(wrap);
       });
     }
-    ask();
   }
   function build() {
     var after = document.querySelector('.module-latest-wrapper') || document.querySelector('.module-special-wrapper');
@@ -1705,8 +1743,35 @@
 
   /* ---------- 1 sizes on product cards ---------- */
   var sizeCache = {};
-  try { sizeCache = JSON.parse((ss && ss.getItem('rr-sizes')) || '{}'); } catch (e) { sizeCache = {}; }
-  function saveSizes() { try { if (ss) { ss.setItem('rr-sizes', JSON.stringify(sizeCache)); } } catch (e) { /* full */ } }
+  /* sizes are remembered for 3 hours across pages and visits (fewer quick-view requests to the shop) */
+  var SIZE_TTL = 3 * 3600 * 1000;
+  try {
+    var sc = JSON.parse((ls && ls.getItem('rr-sizes')) || 'null');
+    sizeCache = sc && sc.t && Date.now() - sc.t < SIZE_TTL ? sc.d : {};
+    sizeCache.__t = sc && sc.t && Date.now() - sc.t < SIZE_TTL ? sc.t : Date.now();
+  } catch (e) { sizeCache = { __t: Date.now() }; }
+  function saveSizes() {
+    try {
+      var t = sizeCache.__t, d = {}, keys = Object.keys(sizeCache).filter(function (k) { return k !== '__t'; }).slice(-1500);
+      keys.forEach(function (k) { d[k] = sizeCache[k]; });
+      if (ls) { ls.setItem('rr-sizes', JSON.stringify({ t: t, d: d })); }
+    } catch (e) { /* full */ }
+  }
+  /* product counts of a search (Sabaton tile, band link): searches are slow on the shop, so remember 24 h */
+  function searchCount(url, done) {
+    var key = 'rr-cnt:' + url, hit = null;
+    try { hit = JSON.parse((ls && ls.getItem(key)) || 'null'); } catch (e) { hit = null; }
+    if (hit && Date.now() - hit.t < 24 * 3600 * 1000) { done(hit.n); return; }
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () {
+      var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
+      var n = m ? Number(m[1].replace(/\D/g, '')) : 0;
+      try { if (ls) { ls.setItem(key, JSON.stringify({ t: Date.now(), n: n })); } } catch (e) { /* full */ }
+      done(n);
+    };
+    x.send();
+  }
   function parseSizes(html) {
     var doc = new DOMParser().parseFromString(html, 'text/html');
     var sel = doc.querySelector('select[name^="option["]');
@@ -1772,15 +1837,31 @@
     if (!id) { return; }
     var url = q ? q.getAttribute('data-src') : '/index.php?route=product/quickview&product_id=' + encodeURIComponent(id);
     if (id && sizeCache[id]) { renderSizes(card, sizeCache[id]); return; }
-    var x = new XMLHttpRequest();
-    x.open('GET', url, true);
-    x.onload = function () {
-      if (x.status !== 200) { return; }
-      var data = parseSizes(x.responseText);
-      if (id) { sizeCache[id] = data; saveSizes(); }
-      renderSizes(card, data);
-    };
-    x.send();
+    sizeQueue.push(function (next) {
+      var x = new XMLHttpRequest();
+      x.open('GET', url, true);
+      x.onload = function () {
+        if (x.status === 200) {
+          var data = parseSizes(x.responseText);
+          if (id) { sizeCache[id] = data; saveSizes(); }
+          renderSizes(card, data);
+        }
+      };
+      x.onloadend = next;
+      x.send();
+    });
+    pumpSizes();
+  }
+  /* owner 2026-11-14 ("slow when I click"): at most 3 size lookups at a time, and only after the page
+     itself has finished loading, so they never compete with the visitor's own clicks */
+  var sizeQueue = [], sizeRunning = 0, pageLoaded = document.readyState === 'complete';
+  if (!pageLoaded) { window.addEventListener('load', function () { pageLoaded = true; setTimeout(pumpSizes, 300); }); }
+  function pumpSizes() {
+    if (!pageLoaded) { return; }
+    while (sizeRunning < 3 && sizeQueue.length) {
+      sizeRunning += 1;
+      sizeQueue.shift()(function () { sizeRunning -= 1; pumpSizes(); });
+    }
   }
   var cardObserver = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
     entries.forEach(function (en) { if (en.isIntersecting) { cardObserver.unobserve(en.target); loadSizes(en.target); } });
@@ -1845,17 +1926,12 @@
     var band = h.textContent.split(' - ')[0].replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
     if (band.length < 2 || band.length > 40 || band === h.textContent.trim() || /^\d+$/.test(band)) { return; }
     var url = '/index.php?route=product/list&keyword=' + encodeURIComponent(band.toLowerCase());
-    var x = new XMLHttpRequest();
-    x.open('GET', url, true);
-    x.onload = function () {
-      var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
-      var n = m ? Number(m[1].replace(/\D/g, '')) : 0;
+    searchCount(url, function (n) {
       if (n < 2 || document.querySelector('.rr-band')) { return; }
       var a = el('a', 'rr-band', 'Még több ' + esc(band) + ' termék (' + n + ') &rarr;');
       a.href = url;
       h.parentNode.insertBefore(a, h.nextSibling);
-    };
-    x.send();
+    });
   }
   function stickyBar() {
     var add = document.querySelector('.product-cart-box #add_to_cart');
@@ -1996,13 +2072,9 @@
         '<div class="stub"><a class="btn" href="' + url + '">' + g.label + ' termékek <i>&rarr;</i></a>' +
         '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
       grid.appendChild(w);
-      var x = new XMLHttpRequest();
-      x.open('GET', url, true);
-      x.onload = function () {
-        var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
-        if (m) { w.querySelector('.btn').innerHTML = g.label + ' termékek (' + m[1].replace(/\D/g, '') + ') <i>&rarr;</i>'; }
-      };
-      x.send();
+      searchCount(url, function (n) {  /* cached 24 h: searches are slow on the shop */
+        if (n) { w.querySelector('.btn').innerHTML = g.label + ' termékek (' + n + ') <i>&rarr;</i>'; }
+      });
     });
     target.parentNode.insertBefore(wrap, target);
   }
