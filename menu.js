@@ -1521,7 +1521,8 @@
   var HOURS = { 1: [12, 18], 2: [12, 18], 3: [12, 18], 4: [12, 18], 5: [12, 18], 6: [10, 14] };  /* Sunday closed */
   var CLOSED_DATES = ['2026-12-24', '2026-12-25', '2026-12-26', '2027-01-01'];  /* shop closed: no "MOST NYITVA" */
   var XMAS_UNTIL = '2026-12-24';
-  var SABATON = { until: '2027-05-01', date: '2027. MÁJUS 1.', place: 'MVM DOME, BUDAPEST', keyword: 'sabaton' };
+  var SABATON = { until: '2027-05-01', date: '2027. május 1.', place: 'MVM Dome', keyword: 'sabaton',
+    logo: 'https://1374223-star.github.io/rockpince-menu-counts/assets/sabaton-logo.webp' };
   var WEARABLE = /póló|polo|pulóver|pulcsi|kapucnis|hoodie|\bing\b|ruha|szoknya|nadrág|short|kesztyű|zokni|\böv\b|gyűrű|karkötő|bakancs|cipő|csizma|\btop\b|felső|harisnya|leggings|kabát|dzseki|mellény|choker|nyakörv|hám|harness|sapka|dress|skirt|corset|fűző|body|trikó/i;
 
   var body = document.body || document.documentElement;
@@ -1619,17 +1620,40 @@
     '.rr-xmas{background:linear-gradient(90deg,#8e0f0d,#e52421,#8e0f0d);color:#fff;text-align:center;padding:9px 14px;font-weight:800;font-size:13.5px;' +
     'letter-spacing:.05em;text-transform:uppercase;line-height:1.35}' +
     /* 14 sabaton */
-    '.rr-gig{position:relative;overflow:hidden;display:flex;align-items:center;gap:28px;margin:0 0 26px;padding:24px 32px;border:1px solid #8a7a4a;border-radius:6px;' +
-    'background:repeating-linear-gradient(135deg,rgba(0,0,0,.18) 0 14px,rgba(0,0,0,0) 14px 28px),linear-gradient(90deg,#1c1d13,#2f3220 55%,#1c1d13);color:#e8dcb5;' +
-    'box-shadow:inset 0 0 0 4px rgba(212,180,106,.08),0 10px 30px rgba(0,0,0,.45)}' +
-    '.rr-gig:before{content:"";position:absolute;inset:6px;border:1px dashed rgba(212,180,106,.35);border-radius:3px;pointer-events:none}' +
-    '.rr-gig h3{margin:0;font-family:"Black Ops One",Impact,sans-serif;font-size:clamp(26px,3vw,40px);color:#d4b46a;letter-spacing:.06em;text-transform:uppercase;' +
-    'text-shadow:0 2px 0 #000}.rr-gig .d{margin-top:4px;font-weight:800;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#e8dcb5}' +
-    '.rr-gig .d span{color:#d4b46a;margin:0 10px}' +
-    '.rr-gig a{margin-left:auto;position:relative;background:#d4b46a;color:#1c1d13!important;font-weight:900;text-transform:uppercase;letter-spacing:.06em;' +
-    'padding:14px 24px;border-radius:3px;font-size:14px;text-decoration:none!important;white-space:nowrap;box-shadow:0 3px 0 #8a7a4a}' +
-    '.rr-gig a:hover{background:#e8cf8a}' +
-    '@media (max-width:767px){.rr-gig{flex-direction:column;align-items:flex-start;gap:14px;padding:20px}.rr-gig a{margin-left:0}.rr-gig .d span{margin:0 5px}}' +
+    '.rr-gig{--h:clamp(196px,12vw,290px);--stub:clamp(300px,22vw,400px);--gold:#d4b46a;position:relative;overflow:hidden;display:flex;align-items:center;margin:0 0 26px;height:var(--h);' +
+    'border:1px solid rgba(217,180,90,.55);border-radius:8px;color:#efe3c2;' +
+    'background:#08080b radial-gradient(ellipse 60% 140% at 42% 50%,#2b2621 0%,#15131a 48%,#08080b 100%);' +
+    'box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,222,150,.09),inset 0 0 60px rgba(0,0,0,.6),0 16px 44px rgba(0,0,0,.55)}' +
+    '.rr-gig .art{position:absolute;left:0;right:var(--stub);top:0;bottom:0;background:url("https://1374223-star.github.io/rockpince-menu-counts/assets/sabaton-battle.webp") right center/auto 100% no-repeat;opacity:.92}' +
+    '.rr-gig .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),transparent 28%,transparent 72%,rgba(0,0,0,.42))}' +
+    '.rr-gig .logo{position:relative;flex:0 0 auto;height:100%;width:auto;display:block;margin-left:-6px}' +
+    '.rr-gig .txt{position:relative;isolation:isolate;flex:0 1 auto;max-width:360px;min-width:0;padding:0 24px 0 8px}' +
+    '.rr-gig .txt:before{content:"";position:absolute;z-index:-1;left:-70px;right:-110px;top:-80px;bottom:-80px;background:radial-gradient(ellipse 52% 58% at 44% 50%,rgba(8,8,11,.96) 30%,rgba(8,8,11,.78) 58%,rgba(8,8,11,0) 100%)}' +
+    '@media (min-width:1700px){.rr-gig .txt{max-width:600px;padding-right:60px}}' +
+    '@media (max-width:1699px){.rr-gig .m{display:none}.rr-gig .eye,.rr-gig .d{white-space:normal}.rr-gig .logo{height:86%}}' +
+    '.rr-gig .eye{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:clamp(10.5px,.72vw,13px);letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.92;white-space:nowrap}' +
+    '.rr-gig h3{margin:6px 0 4px;font-family:Cinzel,"Times New Roman",serif;font-weight:900;font-size:clamp(22px,2.05vw,36px);line-height:1.05;letter-spacing:.04em;text-transform:uppercase;' +
+    'background:linear-gradient(180deg,#fbeec2 0%,#e9cc7e 42%,#b8903f 70%,#e2c173 100%);-webkit-background-clip:text;background-clip:text;color:transparent;' +
+    'filter:drop-shadow(0 2px 0 #1a1206) drop-shadow(0 6px 14px rgba(0,0,0,.6))}' +
+    '.rr-gig .d{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:clamp(13px,1.05vw,18px);letter-spacing:.16em;text-transform:uppercase;color:#f3e9cf;white-space:nowrap}' +
+    '.rr-gig .d span{color:var(--gold);margin:0 10px}' +
+    '.rr-gig .m{margin-top:9px;font-size:clamp(11.5px,.8vw,13.5px);font-weight:600;letter-spacing:.04em;color:rgba(239,227,194,.72);white-space:nowrap}' +
+    '.rr-gig .stub{position:relative;align-self:stretch;margin-left:auto;flex:0 0 var(--stub);box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:0 34px;' +
+    'border-left:2px dashed rgba(217,180,90,.42);background:linear-gradient(90deg,rgba(6,6,9,.55),rgba(6,6,9,.84));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
+    '.rr-gig .btn{display:inline-flex;align-items:center;gap:12px;padding:15px 26px;border-radius:4px;font-family:Cinzel,"Times New Roman",serif;font-weight:800;font-size:clamp(13px,.95vw,16px);letter-spacing:.1em;text-transform:uppercase;' +
+    'color:#1a1408!important;text-decoration:none!important;white-space:nowrap;background:linear-gradient(180deg,#f6e2a1,#d4b46a 52%,#a9822f);' +
+    'box-shadow:0 4px 0 #5e4718,0 12px 26px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,filter .15s}' +
+    '.rr-gig .btn i{font-style:normal;font-size:1.25em;line-height:0}' +
+    '.rr-gig .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}' +
+    '.rr-gig .s2{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(239,227,194,.62);white-space:nowrap}' +
+    '@media (max-width:1199px){.rr-gig{--stub:272px}.rr-gig .m,.rr-gig .eye .x{display:none}.rr-gig .art{opacity:.42}.rr-gig .logo{height:76%;margin-left:-4px}.rr-gig .stub{padding:0 18px}' +
+    '.rr-gig .txt{padding:0 14px 0 4px}.rr-gig .d span{margin:0 7px}}' +
+    '@media (max-width:1023px){.rr-gig{flex-direction:column;align-items:stretch;height:auto;padding:0 0 18px}' +
+    '.rr-gig .art{right:0;background-position:50% 38%;background-size:cover;opacity:.3}' +
+    '.rr-gig .logo{height:auto;width:min(100%,430px);margin:0 auto}' +
+    '.rr-gig .txt{max-width:none;text-align:center;padding:0 16px;margin-top:-12px}.rr-gig .eye,.rr-gig .d{white-space:normal}.rr-gig .d span{margin:0 7px}' +
+    '.rr-gig .stub{flex:0 0 auto;margin:16px 16px 0;border-left:0;border-top:2px dashed rgba(217,180,90,.42);padding:16px 0 0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;align-self:auto}' +
+    '.rr-gig .btn{width:100%;justify-content:center;box-sizing:border-box}}' +
     /* 16, 17 toasts */
     '.rr-toast{position:fixed;z-index:99990;right:20px;bottom:20px;width:min(340px,calc(100vw - 32px));background:#0b2236;border:1px solid rgba(127,196,234,.35);' +
     'border-left:4px solid #e52421;border-radius:8px;padding:14px 38px 14px 16px;color:#e9f2f9;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:14px;' +
@@ -1915,21 +1939,26 @@
     if (!isHome || budapestNow().ymd > SABATON.until || document.querySelector('.rr-gig')) { return; }
     var target = document.querySelector('.module-special-wrapper');
     if (!target) { return; }
-    if (!document.getElementById('rr-blackops')) {
-      var f = el('link'); f.id = 'rr-blackops'; f.rel = 'stylesheet';
-      f.href = 'https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap';
+    if (!document.getElementById('rr-cinzel')) {
+      var f = el('link'); f.id = 'rr-cinzel'; f.rel = 'stylesheet';
+      f.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap';
       document.head.appendChild(f);
     }
     var url = '/index.php?route=product/list&keyword=' + SABATON.keyword;
     var wrap = el('div', 'container');
-    wrap.innerHTML = '<div class="rr-gig"><div><h3>Sabaton koncert</h3><div class="d">' + SABATON.date + '<span>|</span>' + SABATON.place +
-      '</div></div><a href="' + url + '">Sabaton termékek &rarr;</a></div>';
+    wrap.innerHTML = '<div class="rr-gig"><div class="art"></div><div class="shade"></div>' +
+      '<img class="logo" src="' + SABATON.logo + '" alt="Sabaton">' +
+      '<div class="txt"><div class="eye">The Legendary Tour<span class="x"> &middot; Part 2 &middot; Europe 2027</span></div>' +
+      '<h3>Koncert Budapesten</h3><div class="d"><b>' + SABATON.date + '</b><span>&middot;</span>' + SABATON.place + '</div>' +
+      '<div class="m">Pólók, pulóverek, zászlók és kiegészítők &ndash; készülj a koncertre a boltunkból</div></div>' +
+      '<div class="stub"><a class="btn" href="' + url + '">Sabaton termékek <i>&rarr;</i></a>' +
+      '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
     target.parentNode.insertBefore(wrap, target);
     var x = new XMLHttpRequest();
     x.open('GET', url, true);
     x.onload = function () {
       var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
-      if (m) { wrap.querySelector('a').innerHTML = 'Sabaton termékek (' + m[1].replace(/\D/g, '') + ') &rarr;'; }
+      if (m) { wrap.querySelector('.btn').innerHTML = 'Sabaton termékek (' + m[1].replace(/\D/g, '') + ') <i>&rarr;</i>'; }
     };
     x.send();
   }
