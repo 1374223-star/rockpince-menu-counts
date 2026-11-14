@@ -2161,7 +2161,8 @@
   window.__rrAdminDelete = true;
   var MUTATION = 'mutation deleteProducts($data: [ProductIdInput!]!) { deleteProducts(productIdsInput: $data) { deletedQuantity } }';
   var css =
-    '.rr-del{position:absolute;z-index:30;top:8px;left:8px;background:#e52421;color:#fff;border:0;border-radius:4px;padding:6px 10px;' +
+    /* bottom-left of the photo: the top-left corner holds the discount badge (owner 2026-11-14) */
+    '.rr-del{position:absolute;z-index:60;bottom:8px;left:8px;top:auto;background:#e52421;color:#fff;border:0;border-radius:4px;padding:6px 10px;' +
     'font:800 11.5px/1 Poppins,Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;opacity:0;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,.4)}' +
     '.product-card:hover .rr-del,.rr-del.armed,.rr-del.busy,.rr-del.page{opacity:1}' +
     '.rr-del.armed{background:#8e0f0d;outline:2px solid #fff}.rr-del.busy{background:#555;cursor:wait}' +
