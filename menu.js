@@ -1372,7 +1372,7 @@
     '.module-head-title, .location-title, .product-option__title, .sort-label, .product-option__name, .quantity-text,' +
     ' .btn, button.btn, a.button, .button-add-to-cart, .modules-all-link, .rr-loadmore-btn, .rr-random-more,' +
     ' .headermenu-list .nav-link, .information-box__item-link, .rr-loadmore-info, .sortbar select, .product-options select,' +
-    ' .modal-title, .modal .btn, .cart-popup, [class*=popup] .btn, [class*=popup] h3, [class*=popup] h4,' +
+    ' .modal-title, .modal .btn, .cart-popup__success-text, .rr-shipbar, [class*=popup] .btn, [class*=popup] h3, [class*=popup] h4,' +
     ' .location-description strong, .product-page-right-box h6 { text-transform: uppercase !important; letter-spacing: .02em; }';
   var style = document.createElement('style');
   style.id = 'rr-fluid';
