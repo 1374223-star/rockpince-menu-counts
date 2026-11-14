@@ -528,18 +528,19 @@
   'use strict';
   if (document.getElementById('rr-ui-fixes')) { return; }
   var css =
-    /* Menu bar edge to edge (owner 2026-11-14): one row on every desktop width, first item at the left edge,
-       last at the right, text + icons scale with the screen (10.5px at 992 px ... 22px from ~2250 px). */
+    /* owner 2026-11-14: edge-to-edge menu reverted ("looks weird"): centred, one row, as on 2026-11-04 */
     '@media (min-width: 992px) {' +
-    ' .header-bottom .container-wide { max-width: none !important;' +
-    '   padding-left: clamp(16px, 2vw, 48px) !important; padding-right: clamp(16px, 2vw, 48px) !important; }' +
-    ' .header-bottom ul.category-menu { display: flex !important; width: 100% !important; margin-left: 0 !important; margin-right: 0 !important;' +
-    '   flex-wrap: nowrap !important; justify-content: space-between !important; }' +
-    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 22px 0 !important; font-size: clamp(10.5px, .98vw, 22px) !important;' +
-    '   white-space: nowrap !important; display: flex !important; align-items: center !important; }' +
-    ' .header-bottom ul.category-menu > li > a.nav-link > img { width: 1.45em !important; height: 1.45em !important; }' +
+    ' .header-bottom ul.category-menu { flex-wrap: nowrap !important; justify-content: center !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 22px clamp(8px, 1.05vw, 22px) !important;' +
+    '   font-size: clamp(12px, .95vw, 14px) !important; white-space: nowrap !important; }' +
     ' .header-bottom ul.category-menu > li > a.nav-link .rr-category-count { font-size: .9em !important; }' +
     '}' +
+    /* 992-1279 px (small laptops): smaller items; under 1140 px it wraps to two neat rows instead of overflowing */
+    '@media (min-width: 992px) and (max-width: 1279px) {' +
+    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 18px 7px !important; font-size: 11.5px !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link > img { width: 16px !important; height: 16px !important; }' +
+    '}' +
+    '@media (min-width: 992px) and (max-width: 1139px) { .header-bottom ul.category-menu { flex-wrap: wrap !important; } }' +
     '.product-price__postfix { display: none !important; }' +
     '#add_to_cart.button-add-to-cart { background: #e52421 !important; border-color: #e52421 !important; color: #fff !important;' +
     ' font-size: 16px !important; font-weight: 700 !important; padding: 14px 28px !important; min-width: 200px; }' +
@@ -1426,7 +1427,8 @@
     ' url("https://rockpince.cdn.shoprenter.hu/custom/rockpince/image/data/design/ujdonsagok-ragna-rock-hatter.jpg") center/cover !important; }' +
     '.module-latest-wrapper .module-head-title { color: #fff !important; }' +
     '#newsletter_subscribe { padding-top: 36px !important; padding-bottom: 36px !important; }' +
-    '#module_newsletter_subscribe_wrapper { background-size: auto 100% !important; background-position: left center !important;' +
+    /* cover + left: fills any width (owner 2026-11-14: gap on the right on wide screens), skull hand stays on the left */
+    '#module_newsletter_subscribe_wrapper { background-size: cover !important; background-position: left center !important;' +
     ' background-repeat: no-repeat !important; background-color: #0b2236 !important; }' +
     '.rr-seo-fold summary { cursor: pointer; color: #9cc7e3; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;' +
     ' font-size: 13px; padding: 10px 0; list-style: none; }' +
@@ -1521,8 +1523,13 @@
   var HOURS = { 1: [12, 18], 2: [12, 18], 3: [12, 18], 4: [12, 18], 5: [12, 18], 6: [10, 14] };  /* Sunday closed */
   var CLOSED_DATES = ['2026-12-24', '2026-12-25', '2026-12-26', '2027-01-01'];  /* shop closed: no "MOST NYITVA" */
   var XMAS_UNTIL = '2026-12-24';
-  var SABATON = { until: '2027-05-01', date: '2027. május 1.', place: 'MVM Dome', keyword: 'sabaton',
-    logo: 'https://1374223-star.github.io/rockpince-menu-counts/assets/sabaton-logo.webp' };
+  var GIG_ASSETS = 'https://1374223-star.github.io/rockpince-menu-counts/assets/';
+  var GIGS = [  /* shown until `until` (Budapest date); logo/art = GIG_ASSETS + key + '-logo.webp' / '-battle.webp' */
+    { key: 'manowar', label: 'Manowar', keyword: 'manowar', until: '2027-01-23', date: '2027. január 23.', place: 'Papp László Sportaréna',
+      eyebrow: 'World Tour 2027<span class="x"> &middot; Fighting the World</span>' },
+    { key: 'sabaton', label: 'Sabaton', keyword: 'sabaton', until: '2027-05-01', date: '2027. május 1.', place: 'MVM Dome',
+      eyebrow: 'The Legendary Tour<span class="x"> &middot; Part 2 &middot; Europe 2027</span>' }
+  ];
   var WEARABLE = /póló|polo|pulóver|pulcsi|kapucnis|hoodie|\bing\b|ruha|szoknya|nadrág|short|kesztyű|zokni|\böv\b|gyűrű|karkötő|bakancs|cipő|csizma|\btop\b|felső|harisnya|leggings|kabát|dzseki|mellény|choker|nyakörv|hám|harness|sapka|dress|skirt|corset|fűző|body|trikó/i;
 
   var body = document.body || document.documentElement;
@@ -1619,41 +1626,71 @@
     /* 13 christmas bar */
     '.rr-xmas{background:linear-gradient(90deg,#8e0f0d,#e52421,#8e0f0d);color:#fff;text-align:center;padding:9px 14px;font-weight:800;font-size:13.5px;' +
     'letter-spacing:.05em;text-transform:uppercase;line-height:1.35}' +
-    /* 14 sabaton */
-    '.rr-gig{--h:clamp(196px,12vw,290px);--stub:clamp(300px,22vw,400px);--gold:#d4b46a;position:relative;overflow:hidden;display:flex;align-items:center;margin:0 0 26px;height:var(--h);' +
-    'border:1px solid rgba(217,180,90,.55);border-radius:8px;color:#efe3c2;' +
-    'background:#08080b radial-gradient(ellipse 60% 140% at 42% 50%,#2b2621 0%,#15131a 48%,#08080b 100%);' +
+    /* 14 concert tiles */
+    '.rr-gigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(560px,100%),1fr));gap:18px;margin:0 0 26px}' +
+    '.rr-gigwrap{container-type:inline-size;container-name:gig;min-width:0}' +
+    '.rr-gig{--gold:#d4b46a;--ink:#efe3c2;--bg0:#08080b;--bg1:#2b2621;--bg2:#15131a;--plate:8,8,11;--line:217,180,90;--btn0:#f6e2a1;--btn1:#d4b46a;--btn2:#a9822f;--btnsh:#5e4718;--stub:250px;' +
+    'position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;height:100%;padding:0 0 18px;' +
+    'border:1px solid rgba(var(--line),.55);border-radius:8px;color:var(--ink);' +
+    'background:var(--bg0) radial-gradient(ellipse 60% 140% at 42% 50%,var(--bg1) 0%,var(--bg2) 48%,var(--bg0) 100%);' +
     'box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,222,150,.09),inset 0 0 60px rgba(0,0,0,.6),0 16px 44px rgba(0,0,0,.55)}' +
-    '.rr-gig .art{position:absolute;left:0;right:var(--stub);top:0;bottom:0;background:url("https://1374223-star.github.io/rockpince-menu-counts/assets/sabaton-battle.webp") right center/auto 100% no-repeat;opacity:.92}' +
+    '.rr-gig.g-manowar{--gold:#edb95a;--ink:#f7e7c9;--bg0:#0b0604;--bg1:#4a2008;--bg2:#1d0d05;--plate:12,6,3;--line:235,165,70;--btn0:#ffe09a;--btn1:#e7ad42;--btn2:#a86314;--btnsh:#5c3008}' +
+    '.rr-gig .art{position:absolute;inset:0;background-position:50% 38%;background-size:cover;background-repeat:no-repeat;opacity:.3}' +
     '.rr-gig .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),transparent 28%,transparent 72%,rgba(0,0,0,.42))}' +
-    '.rr-gig .logo{position:relative;flex:0 0 auto;height:100%;width:auto;display:block;margin-left:-6px}' +
-    '.rr-gig .txt{position:relative;isolation:isolate;flex:0 1 auto;max-width:360px;min-width:0;padding:0 24px 0 8px}' +
-    '.rr-gig .txt:before{content:"";position:absolute;z-index:-1;left:-70px;right:-110px;top:-80px;bottom:-80px;background:radial-gradient(ellipse 52% 58% at 44% 50%,rgba(8,8,11,.96) 30%,rgba(8,8,11,.78) 58%,rgba(8,8,11,0) 100%)}' +
-    '@media (min-width:1700px){.rr-gig .txt{max-width:600px;padding-right:60px}}' +
-    '@media (max-width:1699px){.rr-gig .m{display:none}.rr-gig .eye,.rr-gig .d{white-space:normal}.rr-gig .logo{height:86%}}' +
-    '.rr-gig .eye{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:clamp(10.5px,.72vw,13px);letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.92;white-space:nowrap}' +
-    '.rr-gig h3{margin:6px 0 4px;font-family:Cinzel,"Times New Roman",serif;font-weight:900;font-size:clamp(22px,2.05vw,36px);line-height:1.05;letter-spacing:.04em;text-transform:uppercase;' +
+    '.rr-gig .lt{display:contents}' +
+    '.rr-gig .logo{position:relative;display:block;height:auto;width:min(100%,430px);margin:0 auto}' +
+    '.rr-gig.g-manowar .logo{width:min(100%,330px)}' +
+    '.rr-gig .txt{position:relative;isolation:isolate;text-align:center;padding:0 16px;margin-top:-12px;min-width:0}' +
+    '.rr-gig .txt:before,.rr-gig .lt:before{content:"";position:absolute;z-index:-1;left:-70px;right:-110px;top:-80px;bottom:-80px;' +
+    'background:radial-gradient(ellipse 52% 58% at 44% 50%,rgba(var(--plate),.96) 30%,rgba(var(--plate),.78) 58%,rgba(var(--plate),0) 100%)}' +
+    '.rr-gig .lt:before{display:none}' +
+    '.rr-gig .eye{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);opacity:.92}' +
+    '.rr-gig .eye .x,.rr-gig .m{display:none}' +
+    '.rr-gig h3{margin:6px 0 4px;font-family:Cinzel,"Times New Roman",serif;font-weight:900;font-size:26px;line-height:1.05;letter-spacing:.04em;text-transform:uppercase;' +
     'background:linear-gradient(180deg,#fbeec2 0%,#e9cc7e 42%,#b8903f 70%,#e2c173 100%);-webkit-background-clip:text;background-clip:text;color:transparent;' +
     'filter:drop-shadow(0 2px 0 #1a1206) drop-shadow(0 6px 14px rgba(0,0,0,.6))}' +
-    '.rr-gig .d{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:clamp(13px,1.05vw,18px);letter-spacing:.16em;text-transform:uppercase;color:#f3e9cf;white-space:nowrap}' +
-    '.rr-gig .d span{color:var(--gold);margin:0 10px}' +
-    '.rr-gig .m{margin-top:9px;font-size:clamp(11.5px,.8vw,13.5px);font-weight:600;letter-spacing:.04em;color:rgba(239,227,194,.72);white-space:nowrap}' +
-    '.rr-gig .stub{position:relative;align-self:stretch;margin-left:auto;flex:0 0 var(--stub);box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:0 34px;' +
-    'border-left:2px dashed rgba(217,180,90,.42);background:linear-gradient(90deg,rgba(6,6,9,.55),rgba(6,6,9,.84));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
-    '.rr-gig .btn{display:inline-flex;align-items:center;gap:12px;padding:15px 26px;border-radius:4px;font-family:Cinzel,"Times New Roman",serif;font-weight:800;font-size:clamp(13px,.95vw,16px);letter-spacing:.1em;text-transform:uppercase;' +
-    'color:#1a1408!important;text-decoration:none!important;white-space:nowrap;background:linear-gradient(180deg,#f6e2a1,#d4b46a 52%,#a9822f);' +
-    'box-shadow:0 4px 0 #5e4718,0 12px 26px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,filter .15s}' +
+    '.rr-gig.g-manowar h3{background:linear-gradient(180deg,#fff0c8 0%,#f3c86e 42%,#c27a1e 70%,#f1c468 100%);-webkit-background-clip:text;background-clip:text}' +
+    '.rr-gig .d{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#f3e9cf}' +
+    '.rr-gig .d span{color:var(--gold);margin:0 7px}' +
+    '.rr-gig .m{margin-top:9px;font-size:13px;font-weight:600;letter-spacing:.04em;color:rgba(239,227,194,.72);white-space:nowrap}' +
+    '.rr-gig .stub{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;margin:16px 16px 0;padding:16px 0 0;' +
+    'border-top:2px dashed rgba(var(--line),.42)}' +
+    '.rr-gig .btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;width:100%;box-sizing:border-box;padding:15px 26px;border-radius:4px;' +
+    'font-family:Cinzel,"Times New Roman",serif;font-weight:800;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:#1a1408!important;text-decoration:none!important;white-space:nowrap;' +
+    'background:linear-gradient(180deg,var(--btn0),var(--btn1) 52%,var(--btn2));box-shadow:0 4px 0 var(--btnsh),0 12px 26px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,filter .15s}' +
     '.rr-gig .btn i{font-style:normal;font-size:1.25em;line-height:0}' +
     '.rr-gig .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}' +
     '.rr-gig .s2{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(239,227,194,.62);white-space:nowrap}' +
-    '@media (max-width:1199px){.rr-gig{--stub:272px}.rr-gig .m,.rr-gig .eye .x{display:none}.rr-gig .art{opacity:.42}.rr-gig .logo{height:76%;margin-left:-4px}.rr-gig .stub{padding:0 18px}' +
-    '.rr-gig .txt{padding:0 14px 0 4px}.rr-gig .d span{margin:0 7px}}' +
-    '@media (max-width:1023px){.rr-gig{flex-direction:column;align-items:stretch;height:auto;padding:0 0 18px}' +
-    '.rr-gig .art{right:0;background-position:50% 38%;background-size:cover;opacity:.3}' +
-    '.rr-gig .logo{height:auto;width:min(100%,430px);margin:0 auto}' +
-    '.rr-gig .txt{max-width:none;text-align:center;padding:0 16px;margin-top:-12px}.rr-gig .eye,.rr-gig .d{white-space:normal}.rr-gig .d span{margin:0 7px}' +
-    '.rr-gig .stub{flex:0 0 auto;margin:16px 16px 0;border-left:0;border-top:2px dashed rgba(217,180,90,.42);padding:16px 0 0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;align-self:auto}' +
-    '.rr-gig .btn{width:100%;justify-content:center;box-sizing:border-box}}' +
+    '@container gig (min-width:600px){' +
+    '.rr-gig{flex-direction:row;align-items:center;min-height:206px;padding:0}' +
+    '.rr-gig .art{left:0;right:var(--stub);background-position:right center;background-size:auto 100%;opacity:.8}' +
+    '.rr-gig .lt{display:flex;flex-direction:column;justify-content:center;position:relative;isolation:isolate;flex:0 1 auto;max-width:62%;padding:14px 24px 14px 20px}' +
+    '.rr-gig .lt:before{display:block;left:-60px;right:-120px;top:-60px;bottom:-60px}' +
+    '.rr-gig .txt:before{display:none}' +
+    '.rr-gig .logo{width:min(100%,236px);margin:0}' +
+    '.rr-gig.g-manowar .logo{width:min(100%,150px)}' +
+    '.rr-gig .txt{text-align:left;padding:0;margin-top:6px}' +
+    '.rr-gig .eye{font-size:10.5px}.rr-gig h3{font-size:22px;margin:4px 0 3px}.rr-gig .d{font-size:12.5px}' +
+    '.rr-gig .stub{flex:0 0 var(--stub);box-sizing:border-box;align-self:stretch;margin:0;padding:0 18px;border-top:0;border-left:2px dashed rgba(var(--line),.42);' +
+    'background:linear-gradient(90deg,rgba(var(--plate),.55),rgba(var(--plate),.84));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
+    '.rr-gig .btn{width:auto;font-size:13px;padding:14px 20px}' +
+    '}' +
+    '@container gig (min-width:1000px){' +
+    '.rr-gig{--stub:clamp(300px,22cqw,400px);height:clamp(196px,12cqw,290px)}' +
+    '.rr-gig .art{opacity:.92}' +
+    '.rr-gig .lt{display:contents}.rr-gig .lt:before{display:none}.rr-gig .txt:before{display:block}' +
+    '.rr-gig .logo{height:100%;width:auto;max-width:none;margin:0 0 0 -6px}' +
+    '.rr-gig.g-manowar .logo{width:auto}' +
+    '.rr-gig .txt{flex:0 1 auto;max-width:380px;padding:0 24px 0 8px;margin:0}' +
+    '.rr-gig .eye{font-size:clamp(10.5px,.72cqw,13px);white-space:normal}.rr-gig .eye .x{display:inline}' +
+    '.rr-gig h3{font-size:clamp(22px,2.05cqw,36px);margin:6px 0 4px}' +
+    '.rr-gig .d{font-size:clamp(13px,1.05cqw,18px)}.rr-gig .d span{margin:0 10px}' +
+    '.rr-gig .stub{padding:0 34px}' +
+    '.rr-gig .btn{font-size:clamp(13px,.95cqw,16px);padding:15px 26px}' +
+    '}' +
+    '@container gig (min-width:1500px){' +
+    '.rr-gig .m{display:block}.rr-gig .txt{max-width:620px;padding-right:60px}' +
+    '}' +
     /* 16, 17 toasts */
     '.rr-toast{position:fixed;z-index:99990;right:20px;bottom:20px;width:min(340px,calc(100vw - 32px));background:#0b2236;border:1px solid rgba(127,196,234,.35);' +
     'border-left:4px solid #e52421;border-radius:8px;padding:14px 38px 14px 16px;color:#e9f2f9;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:14px;' +
@@ -1934,9 +1971,12 @@
     top.parentNode.insertBefore(bar, top);
   }
 
-  /* ---------- 14 sabaton tile ---------- */
+  /* ---------- 14 concert tiles (Manowar, Sabaton): side by side on wide screens, each retires after its date ---------- */
   function sabatonTile() {
-    if (!isHome || budapestNow().ymd > SABATON.until || document.querySelector('.rr-gig')) { return; }
+    if (!isHome || document.querySelector('.rr-gigs')) { return; }
+    var today = budapestNow().ymd;
+    var gigs = GIGS.filter(function (g) { return today <= g.until; });
+    if (!gigs.length) { return; }
     var target = document.querySelector('.module-special-wrapper');
     if (!target) { return; }
     if (!document.getElementById('rr-cinzel')) {
@@ -1944,23 +1984,29 @@
       f.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap';
       document.head.appendChild(f);
     }
-    var url = '/index.php?route=product/list&keyword=' + SABATON.keyword;
     var wrap = el('div', 'container');
-    wrap.innerHTML = '<div class="rr-gig"><div class="art"></div><div class="shade"></div>' +
-      '<img class="logo" src="' + SABATON.logo + '" alt="Sabaton">' +
-      '<div class="txt"><div class="eye">The Legendary Tour<span class="x"> &middot; Part 2 &middot; Europe 2027</span></div>' +
-      '<h3>Koncert Budapesten</h3><div class="d"><b>' + SABATON.date + '</b><span>&middot;</span>' + SABATON.place + '</div>' +
-      '<div class="m">Pólók, pulóverek, zászlók és kiegészítők &ndash; készülj a koncertre a boltunkból</div></div>' +
-      '<div class="stub"><a class="btn" href="' + url + '">Sabaton termékek <i>&rarr;</i></a>' +
-      '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
+    var grid = el('div', 'rr-gigs');
+    wrap.appendChild(grid);
+    gigs.forEach(function (g) {
+      var url = '/index.php?route=product/list&keyword=' + g.keyword;
+      var w = el('div', 'rr-gigwrap');
+      w.innerHTML = '<div class="rr-gig g-' + g.key + '"><div class="art" style="background-image:url(' + GIG_ASSETS + g.key + '-battle.webp)"></div><div class="shade"></div>' +
+        '<div class="lt"><img class="logo" src="' + GIG_ASSETS + g.key + '-logo.webp" alt="' + g.label + '">' +
+        '<div class="txt"><div class="eye">' + g.eyebrow + '</div><h3>Koncert Budapesten</h3>' +
+        '<div class="d"><b>' + g.date + '</b><span>&middot;</span>' + g.place + '</div>' +
+        '<div class="m">Pólók, pulóverek és kiegészítők &ndash; készülj a koncertre a boltunkból</div></div></div>' +
+        '<div class="stub"><a class="btn" href="' + url + '">' + g.label + ' termékek <i>&rarr;</i></a>' +
+        '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
+      grid.appendChild(w);
+      var x = new XMLHttpRequest();
+      x.open('GET', url, true);
+      x.onload = function () {
+        var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
+        if (m) { w.querySelector('.btn').innerHTML = g.label + ' termékek (' + m[1].replace(/\D/g, '') + ') <i>&rarr;</i>'; }
+      };
+      x.send();
+    });
     target.parentNode.insertBefore(wrap, target);
-    var x = new XMLHttpRequest();
-    x.open('GET', url, true);
-    x.onload = function () {
-      var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
-      if (m) { wrap.querySelector('.btn').innerHTML = 'Sabaton termékek (' + m[1].replace(/\D/g, '') + ') <i>&rarr;</i>'; }
-    };
-    x.send();
   }
 
   /* ---------- 16, 17 toasts (one at a time) ---------- */
@@ -2022,4 +2068,79 @@
       tm = setTimeout(function () { watchCards(); savings(); }, 250);
     }).observe(document.documentElement, { childList: true, subtree: true });
   }
+})();
+
+/* Round 6 (owner 2026-11-14): menu dropdown centred (was stuck to the left edge on wide screens),
+   tighter / bigger advantages strip ("very airy ... too much empty space"), TikTok next to Facebook and
+   Instagram + the same buttons at the top of the page, light snowfall on the red Christmas bar. */
+(function () {
+  'use strict';
+  if (window.__rrRound6) { return; }
+  window.__rrRound6 = true;
+  var TIKTOK = 'https://www.tiktok.com/@ragnarock.hu';  /* owner 2026-11-14; empty = no TikTok button */
+  var css =
+    /* dropdown centred under the menu */
+    '@media (min-width: 992px) { .header-bottom .js-subtree-dropdown { left: 0 !important; right: 0 !important; width: auto !important;' +
+    ' max-width: 1800px; margin-left: auto !important; margin-right: auto !important; } }' +
+    /* advantages strip: three boxed cards, bigger icons and text, less empty space */
+    '.advantages-module, .advantages-module .module-body { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }' +
+    '.section-wrapper:has(.advantages-module) { padding-top: 20px !important; padding-bottom: 20px !important; }' +
+    '.advantages-grid, .product-advantages-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 16px !important;' +
+    ' padding-top: 0 !important; padding-bottom: 0 !important; }' +
+    '.module.advantages-module { margin-bottom: 0 !important; }' +
+    '.advantages-item, .product-advantages-item { background: rgba(127,196,234,.06); border: 1px solid rgba(127,196,234,.22); border-radius: 8px;' +
+    ' padding: clamp(14px, 1.1vw, 26px) clamp(18px, 1.4vw, 32px) !important; margin: 0 !important; align-items: center !important; gap: 18px; max-width: none !important; width: auto !important; }' +
+    '.advantages-item__image, .product-advantages-item__image { height: clamp(42px, 2.6vw, 72px) !important; width: auto !important; }' +
+    '.advantages-item__image-wrapper, .product-advantages-item__image-wrapper { margin: 0 !important; }' +
+    '.advantages-item__title, .product-advantages-item__title { font-size: clamp(15px, 1.05vw, 26px) !important; margin: 0 0 4px !important; letter-spacing: .02em; }' +
+    '.advantages-item__text, .product-advantages-item__text { font-size: clamp(13px, .8vw, 19px) !important; line-height: 1.4 !important; opacity: .9; }' +
+    '@media (max-width: 767px) { .advantages-grid, .product-advantages-grid { grid-template-columns: 1fr !important; gap: 10px !important; }' +
+    ' .advantages-item, .product-advantages-item { padding: 14px 16px !important; } }' +
+    /* social buttons at the top (desktop header row) */
+    '.rr-social-top { display: inline-flex; gap: 8px; align-items: center; margin-right: 14px; }' +
+    '.rr-social-top a { display: inline-flex; width: 26px; height: 26px; }' +
+    '.rr-social-top svg { width: 26px !important; height: 26px !important; }' +
+    /* snowfall on the Christmas bar */
+    '.rr-xmas { position: relative; overflow: hidden; }' +
+    '.rr-xmas::before, .rr-xmas::after { content: ""; position: absolute; inset: -40px 0 0 0; pointer-events: none;' +
+    ' background-image: radial-gradient(circle, rgba(255,255,255,.95) 0 1.4px, transparent 2px), radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 1.6px);' +
+    ' background-size: 90px 40px, 55px 30px; background-position: 0 0, 25px 12px; animation: rrsnow 7s linear infinite; }' +
+    '.rr-xmas::after { background-size: 130px 50px, 70px 35px; background-position: 40px 5px, 10px 20px; opacity: .6; animation-duration: 11s; }' +
+    '@keyframes rrsnow { to { transform: translateY(40px); } }' +
+    '@media (prefers-reduced-motion: reduce) { .rr-xmas::before, .rr-xmas::after { animation: none; } }';
+  var style = document.createElement('style');
+  style.id = 'rr-round6';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+
+  var TT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none"><rect width="35" height="35" rx="10" fill="#fff"/>' +
+    '<path d="M21.6 8.5c.5 2.4 2 3.9 4.4 4.1v3.3c-1.6.1-3-.4-4.4-1.2v6.6c0 4-3.1 6.4-6.4 6.2-3.4-.2-5.8-3.3-5.2-6.7.5-2.8 3.1-4.9 6.1-4.6v3.4' +
+    'c-1.6-.4-3 .6-3.2 2-.3 1.6 1 3 2.6 2.9 1.4-.1 2.4-1.2 2.4-2.7V8.5h3.7z" fill="#0b1a28"/></svg>';
+  function addTikTok(wrap) {
+    if (!TIKTOK || !wrap || wrap.querySelector('.rr-tiktok')) { return; }
+    var a = document.createElement('a');
+    a.className = 'social-link rr-tiktok';
+    a.href = TIKTOK; a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'TikTok');
+    a.innerHTML = TT_SVG;
+    wrap.appendChild(a);
+  }
+  function apply() {
+    var wraps = document.querySelectorAll('.social-links-wrapper');
+    for (var i = 0; i < wraps.length; i++) { addTikTok(wraps[i]); }
+    /* copy at the top: next to the shop open/closed chip in the header row */
+    var src = wraps[0], row = document.querySelector('.header-top-row');
+    var ul = row && row.querySelector('ul');
+    if (src && ul && !document.querySelector('.rr-social-top')) {
+      var top = document.createElement('div');
+      top.className = 'rr-social-top';
+      var links = src.querySelectorAll('a');
+      for (var j = 0; j < links.length; j++) {
+        var c = links[j].cloneNode(true);
+        c.target = '_blank'; c.rel = 'noopener';
+        top.appendChild(c);
+      }
+      ul.parentNode.insertBefore(top, ul);
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { setTimeout(apply, 50); }); } else { setTimeout(apply, 50); }
 })();
