@@ -528,18 +528,18 @@
   'use strict';
   if (document.getElementById('rr-ui-fixes')) { return; }
   var css =
+    /* Menu bar edge to edge (owner 2026-11-14): one row on every desktop width, first item at the left edge,
+       last at the right, text + icons scale with the screen (10.5px at 992 px ... 22px from ~2250 px). */
     '@media (min-width: 992px) {' +
-    ' .header-bottom ul.category-menu { flex-wrap: nowrap !important; justify-content: center !important; }' +
-    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 22px clamp(8px, 1.05vw, 22px) !important;' +
-    '   font-size: clamp(12px, .95vw, 14px) !important; white-space: nowrap !important; }' +
+    ' .header-bottom .container-wide { max-width: none !important;' +
+    '   padding-left: clamp(16px, 2vw, 48px) !important; padding-right: clamp(16px, 2vw, 48px) !important; }' +
+    ' .header-bottom ul.category-menu { display: flex !important; width: 100% !important; margin-left: 0 !important; margin-right: 0 !important;' +
+    '   flex-wrap: nowrap !important; justify-content: space-between !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 22px 0 !important; font-size: clamp(10.5px, .98vw, 22px) !important;' +
+    '   white-space: nowrap !important; display: flex !important; align-items: center !important; }' +
+    ' .header-bottom ul.category-menu > li > a.nav-link > img { width: 1.45em !important; height: 1.45em !important; }' +
     ' .header-bottom ul.category-menu > li > a.nav-link .rr-category-count { font-size: .9em !important; }' +
     '}' +
-    /* 992-1279 px (small laptops): smaller items; under 1140 px it wraps to two neat rows instead of overflowing */
-    '@media (min-width: 992px) and (max-width: 1279px) {' +
-    ' .header-bottom ul.category-menu > li > a.nav-link { margin: 18px 7px !important; font-size: 11.5px !important; }' +
-    ' .header-bottom ul.category-menu > li > a.nav-link > img { width: 16px !important; height: 16px !important; }' +
-    '}' +
-    '@media (min-width: 992px) and (max-width: 1139px) { .header-bottom ul.category-menu { flex-wrap: wrap !important; } }' +
     '.product-price__postfix { display: none !important; }' +
     '#add_to_cart.button-add-to-cart { background: #e52421 !important; border-color: #e52421 !important; color: #fff !important;' +
     ' font-size: 16px !important; font-weight: 700 !important; padding: 14px 28px !important; min-width: 200px; }' +
@@ -1316,4 +1316,188 @@
     var href = a.getAttribute('href'), sorted = withSort(href);
     if (sorted !== href) { a.setAttribute('href', sorted); }
   }, true);
+})();
+
+/* Wider pages, tighter spacing, caps labels (owner 2026-11-14: "everything is always tight, filled ...
+   no weird large empty spaces"; "all texts all caps like ... headings, buttons; descriptions not").
+   Width (middle version, owner chose it over full-bleed after the before/after comparison):
+   - page content grows to 1800 px (the theme stopped at 960-1440 px), centred, small side margin
+   - product lists add columns as the screen grows; homepage product sliders ~1 card per 290 px
+   - product pages keep the theme width (owner 2026-11-14: "the product page doesnt need the stretch")
+   Knot divider under homepage titles removed (owner: "remove these weird symbol lines").
+   Spacing: product blocks had 130 px below each, homepage sections 56 px padding, an empty product
+   tab box (120 px) and a 279 px footer logo; phone category pages repeated three side boxes
+   (follow us, customer service photo, full shipping-cost list) under the products.
+   Caps: section titles, buttons, header + footer menu links, filter/sort/size labels, cart popup. */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-fluid')) { return; }
+  if (/^\/checkout/.test(location.pathname)) { return; }
+  var W = 'min(100%, 1800px)';
+  var css =
+    /* width */
+    '@media (min-width: 576px) {' +
+    ' body:not(.product-page-body) .layout-wrapper .container, body:not(.product-page-body) .footer-container { max-width: ' + W + ' !important; width: 100% !important;' +
+    '   padding-left: clamp(16px, 2vw, 40px) !important; padding-right: clamp(16px, 2vw, 40px) !important; }' +
+    ' .slick-slider .slick-prev.custom-slick-arrow { left: 0 !important; z-index: 5; }' +
+    ' .slick-slider .slick-next.custom-slick-arrow { right: 0 !important; z-index: 5; }' +
+    '}' +
+    '@media (min-width: 992px) {' +
+    ' .product-snapshot-vertical:not(.slick-slider) { display: grid !important;' +
+    '   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }' +
+    ' .product-snapshot-vertical:not(.slick-slider) > .product-snapshot { max-width: none !important; width: auto !important; flex: none !important; }' +
+    '}' +
+    /* spacing */
+    '.module.product-position, .module.home-position { margin-bottom: clamp(24px, 2.2vw, 36px) !important; }' +
+    '.module-dealofday-wrapper, .module-special-wrapper, .module-latest-wrapper, .section-wrapper:has(.location-module) {' +
+    ' padding-top: clamp(20px, 2vw, 32px) !important; padding-bottom: clamp(20px, 2vw, 32px) !important; }' +
+    '.rr-random { padding-top: clamp(20px, 2vw, 32px) !important; padding-bottom: clamp(20px, 2vw, 32px) !important; }' +
+    '.section-wrapper:has(.seoh1-module), .section-wrapper:has(.advantages-module) { padding-top: 16px !important; padding-bottom: 16px !important; }' +
+    '.section-wrapper:has(.newsletter_subscribe-module), #module_newsletter_subscribe_wrapper { padding-top: 24px !important; padding-bottom: 24px !important; }' +
+    '.main-content .module-head-title, .module-head-title { margin-bottom: 14px !important; }' +
+    '.home-body .main-content .module-head-title::after { content: none !important; display: none !important; }' +
+    '.product-module-list-link-wrapper { margin-top: 16px !important; }' +
+    /* bigger buttons instead of empty space */
+    '.modules-all-link, .rr-random-more, .rr-loadmore-btn, .location-button { font-size: 15px !important; font-weight: 700 !important;' +
+    ' padding: 14px 36px !important; min-width: min(320px, 90vw); border-radius: 4px; }' +
+    '.product-card .button-add-to-cart { min-height: 46px !important; font-size: 14px !important; }' +
+    '.product-page-tab.rr-empty { display: none !important; }' +
+    'footer .ragna-rock-logo img { max-height: clamp(110px, 10vw, 170px) !important; width: auto !important; }' +
+    'footer .ragna-rock-logo { text-align: center; }' +
+    '.footer-middle { padding-top: 32px !important; padding-bottom: 32px !important; margin-bottom: 24px !important; }' +
+    '@media (max-width: 991px) {' +
+    ' #module_customcontent2_wrapper, #module_customcontent3_wrapper, #module_customcontent4_wrapper { display: none !important; }' +
+    '}' +
+    /* caps */
+    '.module-head-title, .location-title, .product-option__title, .sort-label, .product-option__name, .quantity-text,' +
+    ' .btn, button.btn, a.button, .button-add-to-cart, .modules-all-link, .rr-loadmore-btn, .rr-random-more,' +
+    ' .headermenu-list .nav-link, .information-box__item-link, .rr-loadmore-info, .sortbar select, .product-options select,' +
+    ' .modal-title, .modal .btn, .cart-popup, [class*=popup] .btn, [class*=popup] h3, [class*=popup] h4,' +
+    ' .location-description strong, .product-page-right-box h6 { text-transform: uppercase !important; letter-spacing: .02em; }';
+  var style = document.createElement('style');
+  style.id = 'rr-fluid';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+
+  function fitSliders() {
+    var $ = window.jQuery;
+    if (!$ || !$.fn || !$.fn.slick || window.innerWidth < 1200) { return; }
+    $('.slick-slider').each(function () {
+      if (!this.querySelector('.product-snapshot') || !this.slick) { return; }
+      var n = Math.max(5, Math.min(7, Math.floor(this.getBoundingClientRect().width / 270)));
+      var sk = this.slick;
+      if (sk.originalSettings && sk.originalSettings.slidesToShow !== n) {
+        sk.originalSettings.slidesToShow = n;
+        sk.options.slidesToShow = n;
+        sk.refresh(true);
+        $(this).slick('setPosition');
+      }
+    });
+  }
+  function tidy() {
+    var tabs = document.querySelectorAll('.product-page-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (!tabs[i].innerText.trim() && !tabs[i].querySelector('img, iframe, video')) { tabs[i].classList.add('rr-empty'); }
+    }
+    var q = document.querySelectorAll('.quantity-text');
+    for (var j = 0; j < q.length; j++) { if (/^\s*Menny\.?:?\s*$/i.test(q[j].textContent)) { q[j].textContent = 'Mennyiség:'; } }
+  }
+  var timer;
+  function run() { try { tidy(); fitSliders(); } catch (e) { /* leave the theme layout */ } }
+  if (document.readyState !== 'loading') { tidy(); } else { document.addEventListener('DOMContentLoaded', tidy); }
+  window.addEventListener('load', function () { run(); setTimeout(run, 1500); });
+  window.addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(run, 250); });
+})();
+
+/* Design round 3 (owner 2026-11-14, picked from before/after screenshots: 2, 3, 4, 7 ok; 1, 5, 6 no):
+   - category sidebar: TERMÉK SZŰRÉS first, KÖVESS MINKET under it
+   - homepage ÚJDONSÁGOK on the dark navy look (same lightning photo under a navy tint) instead of light grey
+   - newsletter block lower, the skull hand shown whole on the left
+   - footer: the long "Üdvözlünk ..." SEO text folds behind a "Rólunk" line (still in the page for Google) */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-round3')) { return; }
+  var css =
+    '.module-latest-wrapper { background: linear-gradient(180deg, rgba(4,28,46,.72), rgba(2,12,24,.9)),' +
+    ' url("https://rockpince.cdn.shoprenter.hu/custom/rockpince/image/data/design/ujdonsagok-ragna-rock-hatter.jpg") center/cover !important; }' +
+    '.module-latest-wrapper .module-head-title { color: #fff !important; }' +
+    '#newsletter_subscribe { padding-top: 36px !important; padding-bottom: 36px !important; }' +
+    '#module_newsletter_subscribe_wrapper { background-size: auto 100% !important; background-position: left center !important;' +
+    ' background-repeat: no-repeat !important; background-color: #0b2236 !important; }' +
+    '.rr-seo-fold summary { cursor: pointer; color: #9cc7e3; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;' +
+    ' font-size: 13px; padding: 10px 0; list-style: none; }' +
+    '.rr-seo-fold summary::-webkit-details-marker { display: none; }' +
+    '.rr-seo-fold summary::after { content: " ▾"; }' +
+    '.rr-seo-fold[open] summary::after { content: " ▴"; }';
+  var style = document.createElement('style');
+  style.id = 'rr-round3';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+  function apply() {
+    var aside = document.querySelector('aside.column-left'), filter = document.getElementById('module_paf_filter_wrapper');
+    if (aside && filter && aside.firstElementChild !== filter) { aside.insertBefore(filter, aside.firstChild); }
+    var seo = document.querySelector('.footer-seo');
+    if (seo && !seo.closest('.rr-seo-fold')) {
+      var d = document.createElement('details'), s = document.createElement('summary');
+      d.className = 'rr-seo-fold';
+      s.textContent = 'Rólunk – Ragnarock webáruház';
+      d.appendChild(s);
+      seo.parentNode.insertBefore(d, seo);
+      d.appendChild(seo);
+    }
+  }
+  if (document.readyState !== 'loading') { apply(); } else { document.addEventListener('DOMContentLoaded', apply); }
+})();
+
+/* Design round 4 (owner 2026-11-14, all ok'd from before/after screenshots):
+   - product page: no Pinterest "Mentés / Megosztás" buttons, no "Átlagos értékelés: Nem értékelt" line while a
+     product has no reviews, no stray "db" under the quantity box
+   - search bar: bigger, "Keress zenekarra, termékre..." in ice blue; top header links a bit bigger
+   - footer: no Shoprenter referral logo in the partner row; the "Segítség" column (one duplicate link) hidden
+   - "Kínálatunkból véletlenszerűen": shimmering placeholder cards until the random products arrive */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-round4')) { return; }
+  var css =
+    '.rr-hide { display: none !important; }' +
+    '.header input[type=text], .header input[type=search] { font-size: 16px !important; height: 52px !important; padding-left: 18px !important; }' +
+    '.header input::placeholder { color: #9cc7e3 !important; opacity: 1 !important; text-transform: uppercase; letter-spacing: .03em; }' +
+    '.headermenu-list .nav-link { font-size: 13px !important; }' +
+    '#module_information3_wrapper { display: none !important; }' +
+    ".partners__item:has(a[href*='www.shoprenter.hu']) { display: none !important; }" +
+    '.rr-random-grid:empty { height: 360px; border-radius: 8px;' +
+    ' background: repeating-linear-gradient(90deg, rgba(127,196,234,.10) 0 calc(16.666% - 18px), transparent calc(16.666% - 18px) 16.666%);' +
+    ' -webkit-mask: linear-gradient(90deg, #000 40%, rgba(0,0,0,.45) 50%, #000 60%) 0 0/300% 100%;' +
+    ' mask: linear-gradient(90deg, #000 40%, rgba(0,0,0,.45) 50%, #000 60%) 0 0/300% 100%; animation: rrshim 1.4s linear infinite; }' +
+    '@media (max-width: 767px) { .rr-random-grid:empty { height: 300px;' +
+    ' background: repeating-linear-gradient(90deg, rgba(127,196,234,.10) 0 calc(50% - 8px), transparent calc(50% - 8px) 50%); } }' +
+    '@keyframes rrshim { to { -webkit-mask-position: -150% 0; mask-position: -150% 0; } }';
+  var style = document.createElement('style');
+  style.id = 'rr-round4';
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(style);
+  function leaves(root, re) {
+    var out = [], all = root ? root.querySelectorAll('*') : [];
+    for (var i = 0; i < all.length; i++) { if (!all[i].children.length && re.test(all[i].textContent.trim())) { out.push(all[i]); } }
+    return out;
+  }
+  function apply() {
+    var inputs = document.querySelectorAll('.header input[type=text], .header input[type=search]');
+    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = 'Keress zenekarra, termékre...'; }
+    if (!/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+    var rows = document.querySelectorAll('.product-parameters tr');
+    for (var j = 0; j < rows.length; j++) {
+      if (/Átlagos értékelés/.test(rows[j].textContent) && /Nem értékelt/.test(rows[j].textContent)) { rows[j].classList.add('rr-hide'); }
+    }
+    leaves(document.querySelector('.product-page-left'), /^(Mentés|Megosztás)$/).forEach(function (e) {
+      var x = e.closest('a,button,span,div') || e;
+      (x.parentElement && x.parentElement.children.length <= 3 ? x.parentElement : x).classList.add('rr-hide');
+    });
+    leaves(document.querySelector('.product-cart-box'), /^db$/).forEach(function (e) { e.classList.add('rr-hide'); });
+  }
+  if (document.readyState !== 'loading') { apply(); } else { document.addEventListener('DOMContentLoaded', apply); }
+  window.addEventListener('load', apply);
 })();
