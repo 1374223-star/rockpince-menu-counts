@@ -1267,7 +1267,8 @@
         if (newPag && newPag.length && oldPag.length) {
           oldPag[oldPag.length - 1].innerHTML = newPag[newPag.length - 1].innerHTML;
         }
-        try { history.replaceState(null, '', url.replace(/#.*$/, '')); } catch (e) { /* old browser */ }
+        /* the address stays on the first page: Back from a product restores all loaded pages (round 5) */
+        wrap.setAttribute('data-loaded', String(Number(wrap.getAttribute('data-loaded') || 0) + 1));
         var n = doc && nextLink(doc);
         url = n ? n.getAttribute('href') : null;
         btn.disabled = false;
@@ -1500,4 +1501,492 @@
   }
   if (document.readyState !== 'loading') { apply(); } else { document.addEventListener('DOMContentLoaded', apply); }
   window.addEventListener('load', apply);
+})();
+
+/* Round 5 (owner 2026-11-14, ok'd from mock-ups): 1 sizes on product cards, 2 free-shipping bar on the
+   product page, 3 "more from this band" link, 4 savings on sale prices, 6 sticky Kosárba bar on phones,
+   9 Back keeps the loaded list, 10 size chart pop-up, 12 shop open/closed in the header, 13 Christmas bar,
+   14 Sabaton concert tile, 16 "items waiting in your basket" toast, 17 first-visit pickup toast. */
+(function () {
+  'use strict';
+  if (window.__rrRound5) { return; }
+  window.__rrRound5 = true;
+  if (/^\/checkout/.test(location.pathname)) { return; }
+
+  var FREE = 30000;
+  var HOURS = { 1: [12, 18], 2: [12, 18], 3: [12, 18], 4: [12, 18], 5: [12, 18], 6: [10, 14] };  /* Sunday closed */
+  var CLOSED_DATES = ['2026-12-24', '2026-12-25', '2026-12-26', '2027-01-01'];  /* shop closed: no "MOST NYITVA" */
+  var XMAS_UNTIL = '2026-12-24';
+  var SABATON = { until: '2027-05-01', date: '2027. MÁJUS 1.', place: 'MVM DOME, BUDAPEST', keyword: 'sabaton' };
+  var WEARABLE = /póló|polo|pulóver|pulcsi|kapucnis|hoodie|ing\b|ruha|szoknya|nadrág|short|kesztyű|zokni|\böv\b|gyűrű|karkötő|bakancs|cipő|csizma|\btop\b|felső|harisnya|leggings|kabát|dzseki|mellény|choker|nyakörv|hám|harness|sapka|dress|skirt|corset|fűző|body|trikó/i;
+
+  var body = document.body || document.documentElement;
+  var isProduct = /product-page-body/.test(body.className);
+  var isHome = /home-body/.test(body.className) || location.pathname === '/';
+  var isCart = /route=checkout\/cart/.test(location.search) || /\/kosar/.test(location.pathname);
+  var phone = function () { return window.innerWidth < 768; };
+
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) { e.className = cls; } if (html != null) { e.innerHTML = html; } return e; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function store(kind) { try { var s = window[kind]; s.setItem('rr-t', '1'); s.removeItem('rr-t'); return s; } catch (e) { return null; } }
+  var ls = store('localStorage'), ss = store('sessionStorage');
+  function ready(fn) { if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn); } else { fn(); } }
+
+  /* one basket request per page (mini-cart endpoint: total + item count) */
+  var cartWaiters = null, cartData = null;
+  function cartInfo(done, fresh) {
+    if (cartData && !fresh) { done(cartData); return; }
+    if (cartWaiters) { cartWaiters.push(done); return; }
+    cartWaiters = [done];
+    var x = new XMLHttpRequest();
+    x.open('POST', '/index.php?route=module/cart/callback', true);
+    x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    x.onloadend = function () {
+      var d = { total: 0, count: 0 };
+      try {
+        var j = JSON.parse(x.responseText);
+        d.total = Number(String(j.total || '').replace(/[^0-9]/g, '')) || 0;
+        d.count = Number(j.countProducts || 0) || 0;
+      } catch (e) { /* empty basket */ }
+      cartData = d;
+      var w = cartWaiters; cartWaiters = null;
+      for (var i = 0; i < w.length; i++) { w[i](d); }
+    };
+    x.send();
+  }
+  document.addEventListener('cartChanged', function () { cartData = null; });
+
+  function budapestNow() {
+    var parts = {};
+    try {
+      new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit',
+        weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date())
+        .forEach(function (p) { parts[p.type] = p.value; });
+    } catch (e) { var d = new Date(); return { ymd: d.toISOString().slice(0, 10), dow: d.getDay(), min: d.getHours() * 60 + d.getMinutes() }; }
+    var dow = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.weekday];
+    return { ymd: parts.year + '-' + parts.month + '-' + parts.day, dow: dow, min: (Number(parts.hour) % 24) * 60 + Number(parts.minute) };
+  }
+
+  var css =
+    /* 1 sizes on cards */
+    '.rr-sz{margin:2px 0 8px;text-align:center}.rr-sz .l{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#5b7a92;text-transform:uppercase;margin-bottom:4px}' +
+    '.rr-sz .c{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}' +
+    '.rr-sz .c button{min-width:32px;padding:5px 4px;border:1px solid #0b2a44;border-radius:3px;background:#fff;font-size:11.5px;font-weight:700;color:#0b2a44;line-height:1.1;cursor:pointer}' +
+    '.rr-sz .c button small{display:block;font-size:9px;font-weight:600;color:#b3261e}' +
+    '.rr-sz .c button.on{background:#0b2a44;color:#fff}.rr-sz .c button.on small{color:#ffb3b1}' +
+    '.rr-sz select{width:100%;height:36px;border:1px solid #0b2a44;border-radius:3px;font-size:12.5px;font-weight:700;color:#0b2a44;background:#fff;padding:0 8px;text-transform:uppercase}' +
+    '.rr-sz .one{font-size:11.5px;font-weight:700;color:#5b7a92;text-transform:uppercase;letter-spacing:.04em}' +
+    '.rr-sz .warn{color:#e52421;font-size:11.5px;font-weight:800;text-transform:uppercase;margin-top:4px}' +
+    '.rr-sz.shake{animation:rrshake .35s}@keyframes rrshake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}' +
+    /* 2 free shipping on product page */
+    '.rr-fs{margin:12px 0 2px;font-size:13px;color:#e9f2f9;text-transform:uppercase;letter-spacing:.02em}.rr-fs b{color:#fff}' +
+    '.rr-fs .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:6px;overflow:hidden}.rr-fs .bar i{display:block;height:100%;background:#e52421}' +
+    '.rr-fs.done{color:#34d06a}.rr-fs.done .bar i{background:#1a9b3c}' +
+    /* 3 band link */
+    '.rr-band{display:inline-flex;gap:8px;align-items:center;margin:2px 0 14px;padding:8px 14px;border:1px solid rgba(127,196,234,.45);border-radius:4px;' +
+    'color:#9cc7e3!important;font-weight:700;text-transform:uppercase;font-size:13px;letter-spacing:.04em;text-decoration:none!important}' +
+    '.rr-band:hover{background:rgba(127,196,234,.12)}' +
+    /* 4 savings */
+    '.rr-save{display:block;margin:2px auto 4px;color:#1a9b3c;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.02em}' +
+    '.product-page-price .rr-save{color:#34d06a;font-size:14px;margin:6px 0 0}' +
+    /* 6 sticky bar on phones */
+    '.rr-sticky{position:fixed;left:0;right:0;bottom:0;z-index:1030;background:#06131f;border-top:1px solid rgba(127,196,234,.35);padding:10px 14px;' +
+    'display:flex;align-items:center;gap:12px;box-shadow:0 -8px 24px rgba(0,0,0,.5);transform:translateY(110%);transition:transform .25s}' +
+    '.rr-sticky.show{transform:none}.rr-sticky img{width:44px;height:44px;object-fit:cover;border-radius:4px;background:#fff}' +
+    '.rr-sticky .t{flex:1;min-width:0;color:#fff;font-size:12px;line-height:1.25}.rr-sticky .t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.rr-sticky .t b{display:block;font-size:16px}' +
+    '.rr-sticky a{background:#e52421;color:#fff!important;font-weight:800;text-transform:uppercase;padding:12px 18px;border-radius:4px;font-size:14px;text-decoration:none}' +
+    /* 10 size chart */
+    '.rr-sg{margin-left:10px;color:#9cc7e3!important;font-weight:700;font-size:12.5px;text-transform:uppercase;text-decoration:underline!important;cursor:pointer;white-space:nowrap}' +
+    '.rr-modal-bg{position:fixed;inset:0;background:rgba(0,6,14,.72);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px}' +
+    '.rr-modal{width:min(620px,100%);max-height:90vh;overflow:auto;background:linear-gradient(180deg,#0d2a42,#06131f);border:1px solid rgba(127,196,234,.35);' +
+    'border-radius:10px;padding:30px 26px 24px;color:#e9f2f9;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6)}' +
+    '.rr-modal h3{color:#fff;font-weight:800;text-transform:uppercase;font-size:24px;margin:0 0 6px}' +
+    '.rr-modal .x{position:absolute;right:14px;top:8px;font-size:28px;color:#9cc7e3;background:none;border:0;cursor:pointer;line-height:1}' +
+    '.rr-modal table{width:100%;color:#fff;font-size:14px;margin-top:12px}.rr-modal td,.rr-modal th{padding:8px 6px;border-bottom:1px solid rgba(127,196,234,.2);color:#fff!important}' +
+    /* 12 open now */
+    '.rr-open{display:inline-flex;align-items:center;gap:7px;margin-right:18px;padding:4px 11px;border-radius:999px;font-weight:700;font-size:11.5px;' +
+    'letter-spacing:.04em;text-transform:uppercase;text-decoration:none!important;white-space:nowrap}' +
+    '.rr-open i{width:8px;height:8px;border-radius:50%}' +
+    '.rr-open.on{background:rgba(26,155,60,.15);color:#34d06a!important;border:1px solid rgba(52,208,106,.5)}.rr-open.on i{background:#34d06a;box-shadow:0 0 8px #34d06a}' +
+    '.rr-open.off{background:rgba(229,36,33,.12);color:#ff8a87!important;border:1px solid rgba(229,36,33,.45)}.rr-open.off i{background:#e52421}' +
+    /* 13 christmas bar */
+    '.rr-xmas{background:linear-gradient(90deg,#8e0f0d,#e52421,#8e0f0d);color:#fff;text-align:center;padding:9px 14px;font-weight:800;font-size:13.5px;' +
+    'letter-spacing:.05em;text-transform:uppercase;line-height:1.35}' +
+    /* 14 sabaton */
+    '.rr-gig{position:relative;overflow:hidden;display:flex;align-items:center;gap:28px;margin:0 0 26px;padding:24px 32px;border:1px solid #8a7a4a;border-radius:6px;' +
+    'background:repeating-linear-gradient(135deg,rgba(0,0,0,.18) 0 14px,rgba(0,0,0,0) 14px 28px),linear-gradient(90deg,#1c1d13,#2f3220 55%,#1c1d13);color:#e8dcb5;' +
+    'box-shadow:inset 0 0 0 4px rgba(212,180,106,.08),0 10px 30px rgba(0,0,0,.45)}' +
+    '.rr-gig:before{content:"";position:absolute;inset:6px;border:1px dashed rgba(212,180,106,.35);border-radius:3px;pointer-events:none}' +
+    '.rr-gig h3{margin:0;font-family:"Black Ops One",Impact,sans-serif;font-size:clamp(26px,3vw,40px);color:#d4b46a;letter-spacing:.06em;text-transform:uppercase;' +
+    'text-shadow:0 2px 0 #000}.rr-gig .d{margin-top:4px;font-weight:800;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#e8dcb5}' +
+    '.rr-gig .d span{color:#d4b46a;margin:0 10px}' +
+    '.rr-gig a{margin-left:auto;position:relative;background:#d4b46a;color:#1c1d13!important;font-weight:900;text-transform:uppercase;letter-spacing:.06em;' +
+    'padding:14px 24px;border-radius:3px;font-size:14px;text-decoration:none!important;white-space:nowrap;box-shadow:0 3px 0 #8a7a4a}' +
+    '.rr-gig a:hover{background:#e8cf8a}' +
+    '@media (max-width:767px){.rr-gig{flex-direction:column;align-items:flex-start;gap:14px;padding:20px}.rr-gig a{margin-left:0}.rr-gig .d span{margin:0 5px}}' +
+    /* 16, 17 toasts */
+    '.rr-toast{position:fixed;z-index:99990;right:20px;bottom:20px;width:min(340px,calc(100vw - 32px));background:#0b2236;border:1px solid rgba(127,196,234,.35);' +
+    'border-left:4px solid #e52421;border-radius:8px;padding:14px 38px 14px 16px;color:#e9f2f9;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:14px;' +
+    'opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s}' +
+    '.rr-toast.show{opacity:1;transform:none}.rr-toast b{color:#fff;text-transform:uppercase;letter-spacing:.03em}' +
+    '.rr-toast .x{position:absolute;right:10px;top:6px;background:none;border:0;color:#9cc7e3;font-size:22px;cursor:pointer}' +
+    '.rr-toast a.go{display:inline-block;margin-top:10px;background:#e52421;color:#fff!important;font-weight:800;text-transform:uppercase;padding:9px 16px;' +
+    'border-radius:4px;font-size:12.5px;text-decoration:none!important}' +
+    '@media (max-width:767px){.rr-toast{right:16px;left:16px;width:auto}}';
+  var st = el('style');
+  st.id = 'rr-round5';
+  st.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(st);
+
+  /* ---------- 1 sizes on product cards ---------- */
+  var sizeCache = {};
+  try { sizeCache = JSON.parse((ss && ss.getItem('rr-sizes')) || '{}'); } catch (e) { sizeCache = {}; }
+  function saveSizes() { try { if (ss) { ss.setItem('rr-sizes', JSON.stringify(sizeCache)); } } catch (e) { /* full */ } }
+  function parseSizes(html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var sel = doc.querySelector('select[name^="option["]');
+    if (!sel) { return { name: '', opts: [] }; }
+    var opts = [];
+    for (var i = 0; i < sel.options.length; i++) {
+      var o = sel.options[i];
+      if (!o.value) { continue; }
+      var label = o.textContent.replace(/\s+/g, ' ').trim(), m = label.match(/^(.*?)\s*(\+\s*[\d.\s]+\s*Ft)$/);
+      opts.push({ v: o.value, l: m ? m[1] : label, x: m ? m[2].replace(/\s/g, '') : '' });
+    }
+    return { name: sel.getAttribute('name'), opts: opts };
+  }
+  function renderSizes(card, data) {
+    if (card.querySelector('.rr-sz')) { return; }
+    var footer = card.querySelector('.card__footer'), add = card.querySelector('.list_addtocart');
+    if (!footer || !add) { return; }
+    var box = el('div', 'rr-sz');
+    if (!data.opts.length) {
+      var title = (card.querySelector('.product-card__title') || {}).textContent || '';
+      if (!WEARABLE.test(title)) { return; }
+      box.innerHTML = '<div class="one">Egy méret</div>';
+      footer.insertBefore(box, footer.firstChild);
+      return;
+    }
+    box.setAttribute('data-sized', '1');
+    var hidden = el('input'); hidden.type = 'hidden'; hidden.name = data.name; hidden.value = ''; hidden.disabled = true;
+    add.appendChild(hidden);
+    var btn = add.querySelector('.button-add-to-cart');
+    function pick(v) {
+      hidden.value = v; hidden.disabled = !v;
+      if (btn) { if (v) { btn.setAttribute('data-rr-pass', '1'); } else { btn.removeAttribute('data-rr-pass'); } }
+      var w = box.querySelector('.warn'); if (w) { w.parentNode.removeChild(w); }
+    }
+    var short = data.opts.length <= 8 && data.opts.every(function (o) { return o.l.length <= 12; });
+    if (short) {
+      var wrap = el('div', 'c');
+      data.opts.forEach(function (o) {
+        var b = el('button', 'excluded-extra', esc(o.l) + (o.x ? '<small>' + esc(o.x) + '</small>' : ''));
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          var on = wrap.querySelectorAll('.on'); for (var i = 0; i < on.length; i++) { on[i].classList.remove('on'); }
+          b.classList.add('on'); pick(o.v);
+        });
+        wrap.appendChild(b);
+      });
+      box.appendChild(el('div', 'l', 'Méret'));
+      box.appendChild(wrap);
+    } else {
+      var s = el('select', 'excluded-extra');
+      s.innerHTML = '<option value="">Válassz méretet (' + data.opts.length + ')</option>' +
+        data.opts.map(function (o) { return '<option value="' + esc(o.v) + '">' + esc(o.l + (o.x ? ' ' + o.x : '')) + '</option>'; }).join('');
+      s.addEventListener('change', function () { pick(s.value); });
+      box.appendChild(s);
+    }
+    footer.insertBefore(box, footer.firstChild);
+  }
+  function loadSizes(card) {
+    if (card.getAttribute('data-rr-sz')) { return; }
+    card.setAttribute('data-rr-sz', '1');
+    var q = card.querySelector('.btn-quickview[data-src]');
+    if (!q) { return; }
+    var url = q.getAttribute('data-src'), id = (url.match(/product_id=(\d+)/) || [])[1];
+    if (id && sizeCache[id]) { renderSizes(card, sizeCache[id]); return; }
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () {
+      if (x.status !== 200) { return; }
+      var data = parseSizes(x.responseText);
+      if (id) { sizeCache[id] = data; saveSizes(); }
+      renderSizes(card, data);
+    };
+    x.send();
+  }
+  var cardObserver = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { cardObserver.unobserve(en.target); loadSizes(en.target); } });
+  }, { rootMargin: '300px 0px' }) : null;
+  function watchCards() {
+    var cards = document.querySelectorAll('.product-snapshot .product-card:not([data-rr-watch])');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].closest('.slick-cloned')) { continue; }
+      cards[i].setAttribute('data-rr-watch', '1');
+      if (cardObserver) { cardObserver.observe(cards[i]); } else { loadSizes(cards[i]); }
+    }
+  }
+  /* Kosárba on a card with sizes but none picked: ask for the size here (runs before the size guard) */
+  window.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest ? ev.target.closest('.product-card .button-add-to-cart') : null;
+    if (!btn) { return; }
+    var box = btn.closest('.product-card').querySelector('.rr-sz[data-sized]');
+    if (!box || btn.getAttribute('data-rr-pass') === '1') { return; }
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    if (!box.querySelector('.warn')) { box.appendChild(el('div', 'warn', 'Válassz méretet!')); }
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+  }, true);
+
+  /* ---------- 4 savings ---------- */
+  function prices(node) {
+    var c = node.cloneNode(true), post = c.querySelectorAll('.product-price__postfix, .rr-save');
+    for (var i = 0; i < post.length; i++) { post[i].parentNode.removeChild(post[i]); }
+    return (c.textContent.match(/\d[\d.\s]*\s*Ft/g) || []).map(function (s) { return Number(s.replace(/\D/g, '')); }).filter(Boolean);
+  }
+  function savings() {
+    var boxes = document.querySelectorAll('.product-card__price:not([data-rr-save]), .product-cart-box .product-page-price:not([data-rr-save])');
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i], n = prices(b);
+      b.setAttribute('data-rr-save', '1');
+      if (n.length < 2) { continue; }
+      var hi = Math.max.apply(null, n), lo = Math.min.apply(null, n);
+      if (hi - lo < 50) { continue; }
+      b.appendChild(el('span', 'rr-save', 'Megtakarítás: ' + ft(hi - lo)));
+    }
+  }
+
+  /* ---------- product page: 2, 3, 6, 10 ---------- */
+  function productPrice() {
+    var m = document.querySelector('.product-cart-box meta[itemprop="price"]');
+    return m ? Number(m.getAttribute('content')) || 0 : 0;
+  }
+  function shipBar() {
+    var p = document.querySelector('.product-cart-box .product-page-price');
+    if (!p) { return; }
+    cartInfo(function (d) {
+      var price = productPrice(), sum = d.total + price, left = FREE - sum;
+      var box = p.querySelector('.rr-fs') || p.appendChild(el('div', 'rr-fs'));
+      var pct = Math.max(4, Math.min(100, Math.round(sum / FREE * 100)));
+      box.className = 'rr-fs' + (left <= 0 ? ' done' : '');
+      box.innerHTML = (left <= 0 ? '<b>Ezzel a termékkel ingyenes a szállítás!</b>'
+        : 'Még <b>' + ft(left) + '</b> és <b>ingyenes</b> a szállítás!') + '<div class="bar"><i style="width:' + pct + '%"></i></div>';
+    });
+  }
+  function bandLink() {
+    var h = document.querySelector('.product-page-middle h1, .product-page-top__row h1');
+    if (!h || document.querySelector('.rr-band')) { return; }
+    var band = h.textContent.split(' - ')[0].replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
+    if (band.length < 2 || band.length > 40 || band === h.textContent.trim() || /^\d+$/.test(band)) { return; }
+    var url = '/index.php?route=product/list&keyword=' + encodeURIComponent(band.toLowerCase());
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () {
+      var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
+      var n = m ? Number(m[1].replace(/\D/g, '')) : 0;
+      if (n < 2 || document.querySelector('.rr-band')) { return; }
+      var a = el('a', 'rr-band', 'Még több ' + esc(band) + ' termék (' + n + ') &rarr;');
+      a.href = url;
+      h.parentNode.insertBefore(a, h.nextSibling);
+    };
+    x.send();
+  }
+  function stickyBar() {
+    var add = document.querySelector('.product-cart-box #add_to_cart');
+    if (!add || document.querySelector('.rr-sticky')) { return; }
+    var img = document.querySelector('.product-image__main img'), h = document.querySelector('h1');
+    var bar = el('div', 'rr-sticky', '<img alt="" src="' + esc(img ? img.currentSrc || img.src : '') + '"><div class="t"><span>' +
+      esc(h ? h.textContent.trim() : '') + '</span><b>' + ft(productPrice()) + '</b></div><a href="#">Kosárba</a>');
+    document.body.appendChild(bar);
+    bar.querySelector('a').addEventListener('click', function (e) {
+      e.preventDefault();
+      var box = document.querySelector('.product-cart-box');
+      var sel = box && box.querySelector('select[name^="option["]');
+      if (sel && !sel.value) { sel.scrollIntoView({ block: 'center', behavior: 'smooth' }); try { sel.focus(); } catch (er) { /* */ } return; }
+      add.click();
+    });
+    var queued = false;
+    function check() {
+      queued = false;
+      var r = add.getBoundingClientRect();
+      var away = r.bottom < 60;  /* scrolled past the buy button */
+      bar.classList.toggle('show', phone() && away && r.height > 0);
+    }
+    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(check); } }, { passive: true });
+    window.addEventListener('resize', check);
+    check();
+  }
+  function sizeChart() {
+    var sel = document.querySelector('.product-cart-box select[name^="option["]');
+    if (!sel || document.querySelector('.rr-sg')) { return; }
+    var tables = document.querySelectorAll('.product-page-middle table, .product-page-top__row table');
+    var tab = null;
+    for (var i = tables.length - 1; i >= 0; i--) {
+      if (!tables[i].querySelector('table') && /Szélesség|Hossz|Mellbőség|Talphossz|Derék|Csípő/i.test(tables[i].textContent)) { tab = tables[i]; break; }
+    }
+    if (!tab) { return; }
+    var a = el('a', 'rr-sg', 'Mérettáblázat');
+    a.href = '#';
+    (sel.closest('.product-option__item') || sel.parentNode).appendChild(a);
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var name = (document.querySelector('h1') || {}).textContent || '';
+      var bg = el('div', 'rr-modal-bg', '<div class="rr-modal" role="dialog" aria-label="Mérettáblázat"><button type="button" class="x" aria-label="Bezárás">&times;</button>' +
+        '<h3>Mérettáblázat</h3><div style="color:#9cc7e3;font-size:13px">' + esc(name.trim()) + ' – centiméterben</div></div>');
+      bg.querySelector('.rr-modal').appendChild(tab.cloneNode(true));
+      function close() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } document.removeEventListener('keydown', key); }
+      function key(k) { if (k.key === 'Escape') { close(); } }
+      bg.addEventListener('click', function (k) { if (k.target === bg || k.target.classList.contains('x')) { close(); } });
+      document.addEventListener('keydown', key);
+      document.body.appendChild(bg);
+    });
+  }
+
+  /* ---------- 9 Back keeps the loaded list ---------- */
+  function listState() {
+    var grid = document.querySelector('.product-list .product-snapshot-vertical');
+    if (!grid || !ss) { return; }
+    grid.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.closest('.list_addtocart') || a.getAttribute('href') === '#') { return; }
+      var lm = document.querySelector('.rr-loadmore');
+      ss.setItem('rr-list', JSON.stringify({ url: location.href, n: lm ? Number(lm.getAttribute('data-loaded') || 0) : 0, y: window.scrollY }));
+    });
+    var saved = null;
+    try { saved = JSON.parse(ss.getItem('rr-list') || 'null'); } catch (e) { saved = null; }
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    if (!saved || saved.url !== location.href || (nav.type && nav.type !== 'back_forward')) { return; }
+    ss.removeItem('rr-list');
+    var left = saved.n;
+    (function step(tries) {
+      var btn = document.querySelector('.rr-loadmore-btn');
+      if (left <= 0 || !btn || btn.style.display === 'none') { window.scrollTo(0, saved.y); return; }
+      if (btn.disabled) { if (tries < 60) { setTimeout(function () { step(tries + 1); }, 200); } else { window.scrollTo(0, saved.y); } return; }
+      left -= 1;
+      btn.click();
+      setTimeout(function () { step(0); }, 250);
+    })(0);
+  }
+
+  /* ---------- 12 open / closed ---------- */
+  function openChip() {
+    var row = document.querySelector('.header-top-row');
+    var ul = row && row.querySelector('ul');
+    if (!ul) { return; }
+    var a = row.querySelector('.rr-open') || el('a', 'rr-open');
+    a.href = '/uzletunk';
+    if (!a.parentNode) { ul.parentNode.insertBefore(a, ul); ul.parentNode.style.display = 'flex'; ul.parentNode.style.alignItems = 'center'; ul.parentNode.style.justifyContent = 'flex-end'; }
+    var now = budapestNow(), h = HOURS[now.dow], closedDay = CLOSED_DATES.indexOf(now.ymd) >= 0;
+    var open = h && !closedDay && now.min >= h[0] * 60 && now.min < h[1] * 60;
+    var text;
+    if (open) { text = 'Bolt most nyitva · ma ' + h[1] + ':00-ig'; }
+    else if (h && !closedDay && now.min < h[0] * 60) { text = 'Bolt zárva · ma ' + h[0] + ':00-kor nyit'; }
+    else {
+      var names = ['vasárnap', 'hétfőn', 'kedden', 'szerdán', 'csütörtökön', 'pénteken', 'szombaton'];
+      for (var k = 1; k <= 7; k++) {
+        var d = (now.dow + k) % 7;
+        if (HOURS[d]) { text = 'Bolt zárva · ' + (k === 1 ? 'holnap' : names[d]) + ' ' + HOURS[d][0] + ':00-kor nyit'; break; }
+      }
+    }
+    a.className = 'rr-open ' + (open ? 'on' : 'off');
+    a.innerHTML = '<i></i>' + text;
+  }
+
+  /* ---------- 13 christmas bar ---------- */
+  function xmasBar() {
+    if (budapestNow().ymd > XMAS_UNTIL || document.querySelector('.rr-xmas')) { return; }
+    var head = document.querySelector('.header');
+    if (!head) { return; }
+    var bar = el('div', 'rr-xmas', phone() ? 'Rendeld meg időben a karácsonyi ajándékokat!'
+      : 'Karácsonyra készülsz? Rendeld meg időben az ajándékokat, hogy karácsonyra megérkezzenek!');
+    var top = head.closest('.section-wrapper') || head;
+    top.parentNode.insertBefore(bar, top);
+  }
+
+  /* ---------- 14 sabaton tile ---------- */
+  function sabatonTile() {
+    if (!isHome || budapestNow().ymd > SABATON.until || document.querySelector('.rr-gig')) { return; }
+    var target = document.querySelector('.module-special-wrapper');
+    if (!target) { return; }
+    if (!document.getElementById('rr-blackops')) {
+      var f = el('link'); f.id = 'rr-blackops'; f.rel = 'stylesheet';
+      f.href = 'https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap';
+      document.head.appendChild(f);
+    }
+    var url = '/index.php?route=product/list&keyword=' + SABATON.keyword;
+    var wrap = el('div', 'container');
+    wrap.innerHTML = '<div class="rr-gig"><div><h3>Sabaton koncert</h3><div class="d">' + SABATON.date + '<span>|</span>' + SABATON.place +
+      '</div></div><a href="' + url + '">Sabaton termékek &rarr;</a></div>';
+    target.parentNode.insertBefore(wrap, target);
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () {
+      var m = x.responseText.match(/(\d[\d.\s]*)\s*termék/);
+      if (m) { wrap.querySelector('a').innerHTML = 'Sabaton termékek (' + m[1].replace(/\D/g, '') + ') &rarr;'; }
+    };
+    x.send();
+  }
+
+  /* ---------- 16, 17 toasts (one at a time) ---------- */
+  function toast(html, accent) {
+    if (document.querySelector('.rr-toast')) { return; }
+    var t = el('div', 'rr-toast', '<button type="button" class="x" aria-label="Bezárás">&times;</button>' + html);
+    if (accent) { t.style.borderLeftColor = accent; }
+    var bottom = phone() && document.querySelector('.rr-bottomnav') ? 76 : 20;
+    var cookie = document.querySelector('.nanobar');
+    if (cookie && cookie.offsetHeight && getComputedStyle(cookie).display !== 'none') { bottom += cookie.offsetHeight; }
+    t.style.bottom = bottom + 'px';
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('show'); }, 30);
+    function close() { t.classList.remove('show'); setTimeout(function () { if (t.parentNode) { t.parentNode.removeChild(t); } }, 300); }
+    t.querySelector('.x').addEventListener('click', close);
+    setTimeout(close, 12000);
+  }
+  function toasts() {
+    if (isCart) { return; }
+    var internal = document.referrer && document.referrer.indexOf(location.host) >= 0;
+    if (ss && !ss.getItem('rr-cart-toast') && !internal) {
+      ss.setItem('rr-cart-toast', '1');
+      cartInfo(function (d) {
+        if (d.count > 0) {
+          toast('<b>A kosaradban ' + d.count + ' termék vár</b><div style="margin-top:6px;color:#9cc7e3">Összesen ' + ft(d.total) +
+            '</div><a class="go" href="/index.php?route=checkout/cart">Tovább a kosárhoz</a>');
+        } else { firstVisit(); }
+      });
+      return;
+    }
+    firstVisit();
+  }
+  function firstVisit() {
+    if (!ls || ls.getItem('rr-first-visit')) { return; }
+    ls.setItem('rr-first-visit', String(Date.now()));
+    setTimeout(function () {
+      toast('<b>Ingyenes személyes átvétel</b><div style="margin-top:6px;color:#9cc7e3">Budapesten, a boltunkban: 1146 Dózsa György út 19.<br>' +
+        'Hétfő–péntek 12–18, szombat 10–14</div>', '#7fc4ea');
+    }, 2500);
+  }
+
+  /* ---------- run ---------- */
+  ready(function () {
+    xmasBar();
+    openChip();
+    setInterval(openChip, 60000);
+    sabatonTile();
+    watchCards();
+    savings();
+    listState();
+    if (isProduct) { shipBar(); bandLink(); stickyBar(); sizeChart(); }
+    toasts();
+  });
+  document.addEventListener('cartChanged', function () { if (isProduct) { setTimeout(shipBar, 300); } });
+  if (window.MutationObserver) {
+    var tm = null;
+    new MutationObserver(function () {
+      clearTimeout(tm);
+      tm = setTimeout(function () { watchCards(); savings(); }, 250);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
 })();
