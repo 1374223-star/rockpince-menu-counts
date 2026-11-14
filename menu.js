@@ -2162,6 +2162,11 @@
     ' padding: clamp(14px, 1.1vw, 26px) clamp(18px, 1.4vw, 32px) !important; margin: 0 !important; align-items: center !important; gap: 18px; max-width: none !important; width: auto !important; }' +
     '.advantages-item__image, .product-advantages-item__image { height: clamp(42px, 2.6vw, 72px) !important; width: auto !important; }' +
     '.advantages-item__image-wrapper, .product-advantages-item__image-wrapper { margin: 0 !important; }' +
+    /* EU map icon (owner 2026-11-14 "too tiny"): its PNG comes padded into a 60x100 box, so it gets the
+       square original (swapped in below) and the same square size as the other two icons */
+    '.advantages-item__image[src*="a56ae8c1"], .product-advantages-item__image[src*="a56ae8c1"] { width: clamp(42px, 2.6vw, 72px) !important; object-fit: contain; transform: scale(1.4); }' +
+    /* SEO headline band (owner 2026-11-14 "this isnt in the middle"): the module's 36px bottom margin pushed the text up */
+    '.module.seoh1-module { margin-top: 0 !important; margin-bottom: 0 !important; } .seoh1-module h1 { margin: 0 !important; }' +
     '.advantages-item__title, .product-advantages-item__title { font-size: clamp(15px, 1.05vw, 26px) !important; margin: 0 0 4px !important; letter-spacing: .02em; }' +
     '.advantages-item__text, .product-advantages-item__text { font-size: clamp(13px, .8vw, 19px) !important; line-height: 1.4 !important; opacity: .9; }' +
     '@media (max-width: 767px) { .advantages-grid, .product-advantages-grid { grid-template-columns: 1fr !important; gap: 10px !important; }' +
@@ -2204,6 +2209,12 @@
   function apply() {
     var wraps = document.querySelectorAll('.social-links-wrapper');
     for (var i = 0; i < wraps.length; i++) { addTikTok(wraps[i]); }
+    /* EU map icon: the theme serves it padded into 60x100; use the square 300px copy of the same file */
+    var eu = document.querySelectorAll('img[src*="a56ae8c1-7bd3-4331-8f81-3250ffb03cdf"]');
+    for (var k = 0; k < eu.length; k++) {
+      eu[k].src = eu[k].src.replace(/\/cache\/w\d+h\d+(q\d+)?\//, '/cache/w300h300q100/');
+      eu[k].removeAttribute('srcset');
+    }
     /* copy at the top: next to the shop open/closed chip in the header row */
     var src = wraps[0], row = document.querySelector('.header-top-row');
     var ul = row && row.querySelector('ul');
