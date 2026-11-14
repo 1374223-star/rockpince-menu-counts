@@ -1518,7 +1518,7 @@
   var CLOSED_DATES = ['2026-12-24', '2026-12-25', '2026-12-26', '2027-01-01'];  /* shop closed: no "MOST NYITVA" */
   var XMAS_UNTIL = '2026-12-24';
   var SABATON = { until: '2027-05-01', date: '2027. MÁJUS 1.', place: 'MVM DOME, BUDAPEST', keyword: 'sabaton' };
-  var WEARABLE = /póló|polo|pulóver|pulcsi|kapucnis|hoodie|ing\b|ruha|szoknya|nadrág|short|kesztyű|zokni|\böv\b|gyűrű|karkötő|bakancs|cipő|csizma|\btop\b|felső|harisnya|leggings|kabát|dzseki|mellény|choker|nyakörv|hám|harness|sapka|dress|skirt|corset|fűző|body|trikó/i;
+  var WEARABLE = /póló|polo|pulóver|pulcsi|kapucnis|hoodie|\bing\b|ruha|szoknya|nadrág|short|kesztyű|zokni|\böv\b|gyűrű|karkötő|bakancs|cipő|csizma|\btop\b|felső|harisnya|leggings|kabát|dzseki|mellény|choker|nyakörv|hám|harness|sapka|dress|skirt|corset|fűző|body|trikó/i;
 
   var body = document.body || document.documentElement;
   var isProduct = /product-page-body/.test(body.className);
@@ -1678,7 +1678,7 @@
       if (btn) { if (v) { btn.setAttribute('data-rr-pass', '1'); } else { btn.removeAttribute('data-rr-pass'); } }
       var w = box.querySelector('.warn'); if (w) { w.parentNode.removeChild(w); }
     }
-    var short = data.opts.length <= 8 && data.opts.every(function (o) { return o.l.length <= 12; });
+    var short = data.opts.length === 1 || (data.opts.length <= 8 && data.opts.every(function (o) { return o.l.length <= 12; }));
     if (short) {
       var wrap = el('div', 'c');
       data.opts.forEach(function (o) {
@@ -1704,9 +1704,10 @@
   function loadSizes(card) {
     if (card.getAttribute('data-rr-sz')) { return; }
     card.setAttribute('data-rr-sz', '1');
-    var q = card.querySelector('.btn-quickview[data-src]');
-    if (!q) { return; }
-    var url = q.getAttribute('data-src'), id = (url.match(/product_id=(\d+)/) || [])[1];
+    var q = card.querySelector('.btn-quickview[data-src]'), add = card.querySelector('.button-add-to-cart[data-product-id]');
+    var id = q ? (q.getAttribute('data-src').match(/product_id=(\d+)/) || [])[1] : add && add.getAttribute('data-product-id');
+    if (!id) { return; }
+    var url = q ? q.getAttribute('data-src') : '/index.php?route=product/quickview&product_id=' + encodeURIComponent(id);
     if (id && sizeCache[id]) { renderSizes(card, sizeCache[id]); return; }
     var x = new XMLHttpRequest();
     x.open('GET', url, true);
@@ -1724,7 +1725,6 @@
   function watchCards() {
     var cards = document.querySelectorAll('.product-snapshot .product-card:not([data-rr-watch])');
     for (var i = 0; i < cards.length; i++) {
-      if (cards[i].closest('.slick-cloned')) { continue; }
       cards[i].setAttribute('data-rr-watch', '1');
       if (cardObserver) { cardObserver.observe(cards[i]); } else { loadSizes(cards[i]); }
     }
