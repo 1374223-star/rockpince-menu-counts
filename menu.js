@@ -1345,7 +1345,9 @@
     '}' +
     '@media (min-width: 992px) {' +
     ' .product-snapshot-vertical:not(.slick-slider) { display: grid !important;' +
-    '   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; }' +
+    '   grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }' +
+    /* owner 2026-11-14: "only 5 columns ... so the pics were bigger": 4 on small laptops, never more than 5 */
+    ' @media (min-width: 1200px) { .product-snapshot-vertical:not(.slick-slider) { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; } }' +
     ' .product-snapshot-vertical:not(.slick-slider) > .product-snapshot { max-width: none !important; width: auto !important; flex: none !important; }' +
     '}' +
     /* spacing */
@@ -1463,6 +1465,8 @@
   if (document.getElementById('rr-round4')) { return; }
   var css =
     '.rr-hide, .product-page-left .social-share-module, #socail-media { display: none !important; }' +
+    /* owner 2026-11-14: the "Kapható választék:" heading above the size picker is redundant */
+    '.product-options .product-option__title { display: none !important; }' +
     '.header input[type=text], .header input[type=search] { font-size: 16px !important; height: 52px !important; padding-left: 18px !important; }' +
     '.header input::placeholder { color: #9cc7e3 !important; opacity: 1 !important; text-transform: uppercase; letter-spacing: .03em; }' +
     '.headermenu-list .nav-link { font-size: 13px !important; }' +
