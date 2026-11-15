@@ -1563,6 +1563,8 @@
   var XMAS_UNTIL = '2026-12-24';
   var GIG_ASSETS = 'https://1374223-star.github.io/rockpince-menu-counts/assets/';
   var GIGS = [  /* shown until `until` (Budapest date); logo/art = GIG_ASSETS + key + '-logo.webp' / '-battle.webp' */
+    { key: 'accept', label: 'Accept', keyword: 'accept', until: '2026-12-06', date: '2026. december 6.', place: 'Barba Negra',
+      eyebrow: 'Half a Century of Metal<span class="x"> &middot; 50th Anniversary Tour</span>' },
     { key: 'manowar', label: 'Manowar', keyword: 'manowar', until: '2027-01-23', date: '2027. január 23.', place: 'Papp László Sportaréna',
       eyebrow: 'World Tour 2027<span class="x"> &middot; Fighting the World</span>' },
     { key: 'sabaton', label: 'Sabaton', keyword: 'sabaton', until: '2027-05-01', date: '2027. május 1.', place: 'MVM Dome',
@@ -1672,7 +1674,9 @@
     'border:1px solid rgba(var(--line),.55);border-radius:8px;color:var(--ink);' +
     'background:var(--bg0) radial-gradient(ellipse 60% 140% at 42% 50%,var(--bg1) 0%,var(--bg2) 48%,var(--bg0) 100%);' +
     'box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,222,150,.09),inset 0 0 60px rgba(0,0,0,.6),0 16px 44px rgba(0,0,0,.55)}' +
-    '.rr-gig.g-manowar{--gold:#edb95a;--ink:#f7e7c9;--bg0:#0b0604;--bg1:#4a2008;--bg2:#1d0d05;--plate:12,6,3;--line:235,165,70;--btn0:#ffe09a;--btn1:#e7ad42;--btn2:#a86314;--btnsh:#5c3008}' +
+    /* one gold for all tiles (owner 2026-11-15): borders, perforation, buttons and gold text come from .rr-gig; a band only tints its background */
+    '.rr-gig.g-manowar{--bg0:#0b0604;--bg1:#4a2008;--bg2:#1d0d05;--plate:12,6,3}' +
+    '.rr-gig.g-accept{--bg0:#06090e;--bg1:#1b2a3c;--bg2:#0c131d;--plate:6,9,14}' +
     '.rr-gig .art{position:absolute;inset:0;background-position:50% 38%;background-size:cover;background-repeat:no-repeat;opacity:.3}' +
     '.rr-gig .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),transparent 28%,transparent 72%,rgba(0,0,0,.42))}' +
     '.rr-gig .lt{display:contents}' +
@@ -1686,7 +1690,6 @@
     '.rr-gig h3{margin:6px 0 4px;font-family:Cinzel,"Times New Roman",serif;font-weight:900;font-size:26px;line-height:1.05;letter-spacing:.04em;text-transform:uppercase;' +
     'background:linear-gradient(180deg,#fbeec2 0%,#e9cc7e 42%,#b8903f 70%,#e2c173 100%);-webkit-background-clip:text;background-clip:text;color:transparent;' +
     'filter:drop-shadow(0 2px 0 #1a1206) drop-shadow(0 6px 14px rgba(0,0,0,.6))}' +
-    '.rr-gig.g-manowar h3{background:linear-gradient(180deg,#fff0c8 0%,#f3c86e 42%,#c27a1e 70%,#f1c468 100%);-webkit-background-clip:text;background-clip:text}' +
     '.rr-gig .d{font-family:Cinzel,"Times New Roman",serif;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#f3e9cf}' +
     '.rr-gig .d span{color:var(--gold);margin:0 7px}' +
     '.rr-gig .m{margin-top:9px;font-size:13px;font-weight:600;letter-spacing:.04em;color:rgba(239,227,194,.72);white-space:nowrap}' +
@@ -2046,7 +2049,7 @@
     top.parentNode.insertBefore(bar, top);
   }
 
-  /* ---------- 14 concert tiles (Manowar, Sabaton): side by side on wide screens, each retires after its date ---------- */
+  /* ---------- 14 concert tiles (Accept, Manowar, Sabaton): full-width rows, buttons aligned, each retires after its date ---------- */
   function sabatonTile() {
     if (!isHome || document.querySelector('.rr-gigs')) { return; }
     var today = budapestNow().ymd;
