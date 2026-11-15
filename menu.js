@@ -1706,6 +1706,18 @@
     '.rr-gig .btn i{font-style:normal;font-size:1.25em;line-height:0}' +
     '.rr-gig .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}' +
     '.rr-gig .s2{font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(239,227,194,.62);white-space:nowrap}' +
+    /* phones: tight card (owner 2026-11-15): logo trimmed to a band, no eyebrow, no perforation, no subtitle, one-line headline */
+    '@container gig (max-width:599px){' +
+    '.rr-gig{padding:0 0 14px}' +
+    '.rr-gig .logo{width:100%;max-width:440px;aspect-ratio:900/300;object-fit:cover;object-position:50% var(--ly,0%)}' +
+    '.rr-gig.g-bfmv{--ly:42%}.rr-gig.g-sabaton{--ly:6%}' +
+    '.rr-gig .txt{margin-top:-4px}.rr-gig .txt:before{top:-12px;bottom:-30px}' +
+    '.rr-gig .eye,.rr-gig .s2{display:none}' +
+    '.rr-gig h3{font-size:clamp(18px,6.6cqw,26px);white-space:nowrap;margin:0 0 4px}' +
+    '.rr-gig .d{font-size:clamp(11.5px,3.6cqw,14px);letter-spacing:.1em;line-height:1.45}.rr-gig .d span{margin:0 5px}' +
+    '.rr-gig .stub{margin:12px 14px 0;padding:0;border-top:0;gap:0}' +
+    '.rr-gig .btn{padding:13px 18px;font-size:clamp(12.5px,4cqw,15px)}' +
+    '}' +
     '@container gig (min-width:600px){' +
     '.rr-gig{flex-direction:row;align-items:center;min-height:206px;padding:0;--stub:330px}' +
     '.rr-gig .art{left:0;right:var(--stub);background-position:right center;background-size:auto 100%;opacity:.8}' +
