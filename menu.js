@@ -154,14 +154,19 @@
     element.appendChild(count);
     element.setAttribute('data-rr-count-applied', '1');
   }
+  /* perf (owner 2026-11-15, older phones lagged): links already checked are skipped on later passes;
+     the link identities and the still-unknown links are kept between passes. */
+  var hrefIds = {}, pendingLinks = [];
   function update() {
     var anchors = document.getElementsByTagName('a');
     var i, link, resolved, headings, currentId, urlKey;
-    var hrefIds = {}, unresolved = [];
+    var unresolved = pendingLinks;
     /* Once a nested desktop link is safely identified, the mobile/flat copy
        with exactly the same host and path can inherit that identity. */
     for (i = 0; i < anchors.length; i += 1) {
       link = anchors[i];
+      if (link.__rrSeen) { continue; }
+      link.__rrSeen = true;
       if (!knownHost(link.hostname)) { continue; }
       resolved = resolve(link);
       urlKey = '$' + link.hostname.toLowerCase() + String(link.pathname || '');
@@ -175,12 +180,14 @@
         decorate(link, resolved, resolved === categoryId(link));
       } else { unresolved.push(link); }
     }
+    pendingLinks = [];
     for (i = 0; i < unresolved.length; i += 1) {
       link = unresolved[i];
+      if (!link.isConnected && link.isConnected !== undefined) { continue; }
       urlKey = '$' + link.hostname.toLowerCase() + String(link.pathname || '');
       if (Object.prototype.hasOwnProperty.call(hrefIds, urlKey) && hrefIds[urlKey]) {
         decorate(link, hrefIds[urlKey]);
-      }
+      } else if (!Object.prototype.hasOwnProperty.call(hrefIds, urlKey)) { pendingLinks.push(link); }
     }
     currentId = categoryId(window.location);
     headings = document.getElementsByTagName('h1');
@@ -235,7 +242,7 @@
       scheduled = false; update();
       try { liveTotal(); } catch (e) { /* ignore */ }
       try { fixMobileMenu(); } catch (e) { /* ignore */ }
-    }, 80);
+    }, 200);
   }
   /* Self-updating 3-column dropdowns (DISZTÁRGY, KIEGÉSZÍTŐK), built from the live category
      tree in the counts file: only switched-on folders, Hungarian A-Z, current names and links.
@@ -412,8 +419,11 @@
       var observer = new Observer(function (mutations) {
         var i;
         for (i = 0; i < mutations.length; i += 1) {
-          if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
-            scheduleUpdate(); return;
+          var added = mutations[i].addedNodes, k;
+          for (k = 0; added && k < added.length; k += 1) {
+            if (added[k].nodeType === 1 && (added[k].tagName === 'A' || added[k].getElementsByTagName('a').length)) {
+              scheduleUpdate(); return;
+            }
           }
         }
       });
@@ -1093,7 +1103,8 @@
     badge.style.setProperty('transform', shown ? 'translateY(-' + lift + ')' : '');
     badge.style.setProperty('transition', 'transform .2s');
   }
-  setInterval(adjust, 700);
+  setInterval(adjust, 2000);
+  document.addEventListener('click', function () { setTimeout(adjust, 350); }, true);
   window.addEventListener('resize', adjust);
 })();
 
@@ -1178,7 +1189,7 @@
   /* basket count: mirror the number shown on the header basket icon */
   function count() {
     var t = document.querySelector('.cart-dropdown-toggle');
-    var n = t ? ((t.innerText || '').match(/\d+/) || [''])[0] : '';
+    var n = t ? ((t.textContent || '').match(/\d+/) || [''])[0] : '';
     var b = document.querySelector('.rr-bn-count');
     if (b) { b.textContent = n; b.style.display = n && n !== '0' ? '' : 'none'; }  /* empty basket: no dot */
   }
@@ -2203,13 +2214,14 @@
     '.rr-lights { position: absolute; left: 0; right: 0; top: 0; height: 14px; z-index: 4; pointer-events: none; }' +
     '.rr-lights svg { position: absolute; left: 0; top: 0; width: 100%; height: 8px; }' +
     '.rr-bulb { position: absolute; top: 3px; width: 6px; height: 9px; border-radius: 45% 45% 50% 50% / 40% 40% 60% 60%;' +
-    ' animation: rrtwinkle 2.6s ease-in-out infinite; }' +
+    ' animation: rrtwinkle 2.6s ease-in-out infinite; will-change: opacity; }' +
+    '.rr-xmas.rr-off .rr-bulb { animation-play-state: paused; }' +
     '.rr-bulb::before { content: ""; position: absolute; left: 1px; top: -2px; width: 4px; height: 3px; background: #2a2a2a; border-radius: 1px; }' +
     '.rr-bulb.c0 { background: #ff4b4b; box-shadow: 0 0 6px 2px rgba(255,75,75,.75); }' +
     '.rr-bulb.c1 { background: #4dff88; box-shadow: 0 0 6px 2px rgba(77,255,136,.7); }' +
     '.rr-bulb.c2 { background: #ffd34d; box-shadow: 0 0 6px 2px rgba(255,211,77,.75); }' +
     '.rr-bulb.c3 { background: #7fd4ff; box-shadow: 0 0 6px 2px rgba(127,212,255,.75); }' +
-    '@keyframes rrtwinkle { 0%, 100% { opacity: 1; filter: brightness(1.15); } 50% { opacity: .45; filter: brightness(.7); } }' +
+    '@keyframes rrtwinkle { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }' +
     '@media (prefers-reduced-motion: reduce) { .rr-bulb { animation: none; } }';
   var style = document.createElement('style');
   style.id = 'rr-round6';
@@ -2419,7 +2431,8 @@
     }
     function frame(t) {
       if (!running) { return; }
-      var dt = Math.min(0.05, (t - (last || t)) / 1000); last = t;
+      if (last && t - last < 30) { requestAnimationFrame(frame); return; }  /* ~30 fps is plenty for snow */
+      var dt = Math.min(0.08, (t - (last || t)) / 1000); last = t;
       ctx.clearRect(0, 0, W, H);
       for (var i = 0; i < flakes.length; i++) {
         var f = flakes[i];
@@ -2436,7 +2449,7 @@
     window.addEventListener('resize', size);
     document.addEventListener('visibilitychange', resume);
     if (window.IntersectionObserver) {
-      new IntersectionObserver(function (e) { visible = e[0].isIntersecting; resume(); }).observe(bar);
+      new IntersectionObserver(function (e) { visible = e[0].isIntersecting; bar.classList.toggle('rr-off', !visible); resume(); }).observe(bar);
     }
     requestAnimationFrame(frame);
   }
@@ -2446,8 +2459,9 @@
     if (!bar) { if (tries++ < 40) { setTimeout(wait, 150); } return; }
     if (bar.getAttribute('data-rr-deco')) { return; }
     bar.setAttribute('data-rr-deco', '1');
-    lights(bar);
-    if (!reduce) { snow(bar); }
+    /* perf: decorate after the page has loaded, so it does not slow the first paint on older phones */
+    function go() { setTimeout(function () { lights(bar); if (!reduce) { snow(bar); } }, 300); }
+    if (document.readyState === 'complete') { go(); } else { window.addEventListener('load', go); }
   })();
 })();
 
@@ -2604,4 +2618,121 @@
     }
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
+
+/* Newsletter 10% coupon pop-up (owner 2026-11-15). Signs people up through the shop's own newsletter
+   form; the order-tracker Apps Script (NewsletterCoupon.js) then emails a single-use 10% code from
+   info@ragnarock.hu within about 10 minutes, first order only, one code per email address.
+   Shows: PC when the mouse leaves through the top of the window; phones/tablets after 40 s on the
+   second page viewed. Never on cart or checkout. Once per 30 days, never again after signing up.
+   Test: add #rr-nl to any URL to open it straight away. */
+(function () {
+  'use strict';
+  if (window.__rrNlPop) { return; }
+  window.__rrNlPop = true;
+  var path = location.pathname + location.search;
+  if (/checkout|kosar|route=account|success/i.test(path)) { return; }
+  var KEY = 'rr-nl-pop', DAY = 864e5;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  var force = location.hash === '#rr-nl';
+  var st = {};
+  try { st = JSON.parse(get(KEY) || '{}') || {}; } catch (e) { st = {}; }
+  if (!force && (st.done || (st.shown && Date.now() - st.shown < 30 * DAY))) { return; }
+  st.views = (st.views || 0) + 1;
+  if (!force) { set(KEY, JSON.stringify(st)); }
+
+  var css =
+    '.rr-nl-bg{position:fixed;inset:0;background:rgba(2,8,16,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s}' +
+    '.rr-nl-bg.show{opacity:1}' +
+    '.rr-nl{position:relative;width:100%;max-width:440px;background:linear-gradient(180deg,#0e2236,#07121e);border:1px solid rgba(229,36,33,.55);border-radius:10px;padding:30px 26px 22px;color:#e8eef4;box-shadow:0 20px 60px rgba(0,0,0,.6);font-family:inherit;text-align:center}' +
+    '.rr-nl .x{position:absolute;top:8px;right:10px;background:none;border:0;color:#9fb3c6;font-size:28px;line-height:1;cursor:pointer;padding:4px 8px}' +
+    '.rr-nl .big{font-size:54px;font-weight:900;color:#e52421;line-height:1;letter-spacing:1px}' +
+    '.rr-nl h3{margin:6px 0 10px;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff}' +
+    '.rr-nl p{margin:0 0 16px;font-size:14px;line-height:1.5;color:#c4d2df}' +
+    '.rr-nl input[type=text],.rr-nl input[type=email]{width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px 14px;border-radius:6px;border:1px solid #2b4a66;background:#0a1826;color:#fff;font-size:15px}' +
+    '.rr-nl input:focus{outline:none;border-color:#7fc4ea}' +
+    '.rr-nl label{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.4;color:#9fb3c6;margin:4px 0 14px;cursor:pointer;text-align:left}' +
+    '.rr-nl label input{margin-top:2px;flex:none}' +
+    '.rr-nl button.go{width:100%;padding:14px;border:0;border-radius:6px;background:#e52421;color:#fff;font-weight:800;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}' +
+    '.rr-nl button.go:disabled{opacity:.6;cursor:default}' +
+    '.rr-nl .err{color:#ff8a80;font-size:13px;min-height:18px;margin:-4px 0 8px}' +
+    '.rr-nl .fine{font-size:11px;color:#7f93a6;margin:12px 0 0}' +
+    '.rr-nl .ok h3{color:#7fe0a0}';
+
+  function open() {
+    if (document.querySelector('.rr-nl-bg')) { return; }
+    st.shown = Date.now(); set(KEY, JSON.stringify(st));
+    if (!document.getElementById('rr-nl-css')) {
+      var s = document.createElement('style'); s.id = 'rr-nl-css'; s.appendChild(document.createTextNode(css));
+      document.head.appendChild(s);
+    }
+    var bg = document.createElement('div');
+    bg.className = 'rr-nl-bg';
+    bg.innerHTML = '<div class="rr-nl" role="dialog" aria-modal="true" aria-label="Hírlevél kupon">' +
+      '<button type="button" class="x" aria-label="Bezárás">&times;</button>' +
+      '<div class="body"><div class="big">-10%</div><h3>Az első rendelésedből</h3>' +
+      '<p>Iratkozz fel a hírlevelünkre, és emailben elküldjük az egyszer használható kuponkódodat.</p>' +
+      '<form novalidate><input type="text" name="fn" placeholder="Keresztnév" autocomplete="given-name">' +
+      '<input type="email" name="em" placeholder="E-mail cím" autocomplete="email" required>' +
+      '<label><input type="checkbox" name="ok"> Hozzájárulok ahhoz, hogy a Ragnarock - webáruház a nevemet és e-mail címemet hírlevelezési céllal kezelje és a részemre gazdasági reklámot is tartalmazó email hírleveleket küldjön.</label>' +
+      '<div class="err"></div><button type="submit" class="go">Kérem a kupont</button></form>' +
+      '<div class="fine">A kupon az első rendelésre érvényes, 30 napig. Leiratkozni bármikor lehet.</div></div></div>';
+    document.body.appendChild(bg);
+    setTimeout(function () { bg.classList.add('show'); }, 20);
+    function close() { bg.classList.remove('show'); setTimeout(function () { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 250); }
+    bg.querySelector('.x').addEventListener('click', close);
+    bg.addEventListener('click', function (e) { if (e.target === bg) { close(); } });
+    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
+    var f = bg.querySelector('form'), err = bg.querySelector('.err'), btn = bg.querySelector('.go');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var em = f.em.value.trim(), fn = f.fn.value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(em)) { err.textContent = 'Adj meg egy érvényes e-mail címet.'; return; }
+      if (!f.ok.checked) { err.textContent = 'A feliratkozáshoz pipáld be a hozzájárulást.'; return; }
+      err.textContent = ''; btn.disabled = true; btn.textContent = 'Küldés…';
+      var post = function (url, body) {
+        return fetch(url, { method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' }, body: body });
+      };
+      post('/index.php?route=module/newsletter_subscribe/checkMail', 'value=' + encodeURIComponent(em))
+        .then(function (r) { return r.text(); })
+        .then(function (free) {
+          if (parseInt(free, 10) === 0) { throw new Error('inuse'); }
+          var q = ['subscriber_firstname=', 'subscriber_lastname=' + encodeURIComponent(fn),
+            'subscriber_email=' + encodeURIComponent(em), 'subscriber_policy=1', 're-email=', 'status=1', 'language_id=1'];
+          return post('/index.php?route=module/newsletter_subscribe/subscribe', q.join('&'));
+        })
+        .then(function () {
+          st.done = Date.now(); set(KEY, JSON.stringify(st));
+          bg.querySelector('.body').innerHTML = '<div class="ok"><div class="big">-10%</div><h3>Köszönjük, feliratkoztál!</h3>' +
+            '<p>Néhány percen belül megérkezik a kuponkódod erre a címre: <b></b>. Ha nem látod, nézd meg a Promóciók vagy a Spam mappát is.</p>' +
+            '<button type="button" class="go">Vásárlás folytatása</button></div>';
+          bg.querySelector('.ok b').textContent = em;
+          bg.querySelector('.ok .go').addEventListener('click', close);
+        })
+        .catch(function (x) {
+          btn.disabled = false; btn.textContent = 'Kérem a kupont';
+          if (x && x.message === 'inuse') {
+            st.done = Date.now(); set(KEY, JSON.stringify(st));
+            err.textContent = 'Ezzel a címmel már feliratkoztál a hírlevelünkre.';
+          } else { err.textContent = 'Valami hiba történt, próbáld újra pár perc múlva.'; }
+        });
+    });
+  }
+
+  if (force) { setTimeout(open, 600); return; }
+  var AUTO = false;  /* false while the coupon emails are in TEST mode: only #rr-nl opens it */
+  if (!AUTO) { return; }
+  var touch = window.matchMedia && matchMedia('(hover: none)').matches;
+  if (touch) {
+    if (st.views >= 2) { setTimeout(open, 40000); }
+  } else {
+    var armedAt = Date.now() + 5000;
+    document.addEventListener('mouseout', function leave(e) {
+      if (e.relatedTarget || e.clientY > 8 || Date.now() < armedAt) { return; }
+      document.removeEventListener('mouseout', leave);
+      open();
+    });
+  }
 })();
