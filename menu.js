@@ -3222,7 +3222,28 @@
     '#js-mobile-nav a.rr-mm-top{display:flex!important;align-items:center;font-size:20px!important;font-weight:700!important;text-transform:uppercase}' +
     '#js-mobile-nav a.rr-mm-top .rr-mm-t{background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}' +
     '#js-mobile-nav a.rr-mm-top.rr-cat-red .rr-mm-t{background:' + RED + ';-webkit-background-clip:text;background-clip:text}' +
-    '#js-mobile-nav a.rr-mm-top .rr-caticon{width:24px!important;height:24px!important;margin-right:10px}';
+    '#js-mobile-nav a.rr-mm-top .rr-caticon{width:24px!important;height:24px!important;margin-right:10px}' +
+    /* owner 2026-11-15 ("really cool"): the site's navy glow instead of flat blue, a faint skull-hand at the bottom,
+       thin light-blue separators, a darker account bar. No grain texture (that one made phones repaint on scroll). */
+    '#js-mobile-nav,#js-mobile-nav .mm-panels,#js-mobile-nav .mm-panel{background:radial-gradient(ellipse 120% 55% at 50% 12%,#0e4d78 0%,#07304f 42%,#031627 78%,#010811 100%)!important}' +
+    '#js-mobile-nav .mm-panel:after{content:"";position:absolute;left:50%;bottom:40px;width:260px;height:260px;translate:-50% 0;pointer-events:none;opacity:.08;' +
+    'background:url("https://1374223-star.github.io/rockpince-menu-counts/assets/skull-hand-watermark.webp") center/contain no-repeat}' +
+    '#js-mobile-nav .mm-listitem{border-color:rgba(127,196,234,.14)!important}' +
+    '#js-mobile-nav a.rr-mm-top{border-bottom:1px solid rgba(127,196,234,.14)}' +
+    /* no separator under the last item of a section: the theme's own divider is already there (no double lines) */
+    '#js-mobile-nav li:has(+ li.informations-mobile-menu-item-separator):after{display:none!important}' +
+    '#js-mobile-nav li:has(+ li.informations-mobile-menu-item-separator) > a.rr-mm-top,' +
+    '#js-mobile-nav li:has(+ li.informations-mobile-menu-item-separator) > .mm-listitem__text{border-bottom:0!important}' +
+    '#js-mobile-nav .mm-navbars--top,#js-mobile-nav .mm-navbars_top,#js-mobile-nav [class*=navbar]:first-child{background:rgba(1,8,17,.55)!important}' +
+    /* top row (Belépés / Regisztráció / wishlist / close) in the same look; the white close box becomes a chrome-blue X */
+    /* the whole top row is one dark band (its inner box starts 15px in, so the full-width parent is coloured) */
+    ':has(> .login-and-exit-line-inner),.login-and-exit-line-inner{background:#020d18!important}' +
+    ':has(> .login-and-exit-line-inner){border-bottom:1px solid rgba(127,196,234,.2)!important}' +
+    '.hamburger-login-box,.hamburger-login-box-wrapper{background:transparent!important;border:0!important}' +
+    '.hamburger-login-box .btn-link{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:600!important;letter-spacing:.04em!important;font-size:16px!important;color:#e3f1fa!important}' +
+    '.hamburger-login-box svg{color:#cfe9f8!important}' +
+    '.close-menu-button-wrapper{background:transparent!important;border-left:1px solid rgba(127,196,234,.2)!important}' +
+    '.close-menu-button-wrapper svg,.close-menu-button-wrapper svg *{color:#cfe9f8!important;fill:currentColor}';
   function icons() {
     var map = {};
     var top = document.querySelectorAll('.module-category-wrapper ul.sf-menu > li > a.nav-link');
@@ -3252,6 +3273,14 @@
       icon.style.setProperty('--m', m);
       a.appendChild(icon); a.appendChild(t);
     }
+    /* owner 2026-11-15: shorter label on phones so it fits one line (desktop bar keeps the full name) */
+    var all = nav.querySelectorAll('a.mm-listitem__text, .mm-navbar__title, .mm-navbar__title span');
+    for (var j = 0; j < all.length; j++) {
+      var w = document.createTreeWalker(all[j], NodeFilter.SHOW_TEXT, null), n;
+      while ((n = w.nextNode())) {
+        if (/zenekaros és egyéb ruhák/i.test(n.nodeValue)) { n.nodeValue = n.nodeValue.replace(/zenekaros és egyéb ruhák/i, 'ZENEKAROS RUHÁK'); }
+      }
+    }
     return true;
   }
   var tries = 0;
@@ -3262,4 +3291,15 @@
     if (t) { setTimeout(apply, 60); setTimeout(apply, 400); }
   }, true);
   setTimeout(apply, 2500); setTimeout(apply, 6000);
+})();
+
+/* Product cards (owner 2026-11-15): faint lines above and below the price block, running edge to edge of the card,
+   so the card reads as picture + name / price / size + Kosárba. */
+(function () {
+  'use strict';
+  if (document.getElementById('rr-card-lines')) { return; }
+  var css = '.product-card .product-card__body > .product-card__price{border-top:1px solid rgba(10,40,64,.13);border-bottom:1px solid rgba(10,40,64,.13);' +
+    'margin-left:-12px!important;margin-right:-12px!important;padding:10px 12px!important}';
+  var s = document.createElement('style'); s.id = 'rr-card-lines'; s.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(s);
 })();
