@@ -1567,6 +1567,8 @@
       eyebrow: 'Half a Century of Metal<span class="x"> &middot; 50th Anniversary Tour</span>' },
     { key: 'manowar', label: 'Manowar', keyword: 'manowar', until: '2027-01-23', date: '2027. január 23.', place: 'Papp László Sportaréna',
       eyebrow: 'World Tour 2027<span class="x"> &middot; Fighting the World</span>' },
+    { key: 'bfmv', label: 'Bullet For My Valentine', btn: 'BFMV', keyword: 'bullet for my valentine', until: '2027-02-15', date: '2027. február 15.',
+      place: 'Budapest Aréna', eyebrow: 'Social Apocalypse 2027 &middot; + Pendulum<span class="x"> Live</span>' },
     { key: 'sabaton', label: 'Sabaton', keyword: 'sabaton', until: '2027-05-01', date: '2027. május 1.', place: 'MVM Dome',
       eyebrow: 'The Legendary Tour<span class="x"> &middot; Part 2 &middot; Europe 2027</span>' }
   ];
@@ -1677,6 +1679,9 @@
     /* one gold for all tiles (owner 2026-11-15): borders, perforation, buttons and gold text come from .rr-gig; a band only tints its background */
     '.rr-gig.g-manowar{--bg0:#0b0604;--bg1:#4a2008;--bg2:#1d0d05;--plate:12,6,3}' +
     '.rr-gig.g-accept{--bg0:#06090e;--bg1:#1b2a3c;--bg2:#0c131d;--plate:6,9,14}' +
+    '.rr-gig.g-bfmv{--bg0:#070708;--bg1:#27272b;--bg2:#111113;--plate:7,7,8}' +
+    /* phones: keep the text backing off the Pendulum logo at the bottom of the panel */
+    '@container gig (max-width:599px){.rr-gig.g-bfmv .txt:before{top:-14px}}' +
     '.rr-gig .art{position:absolute;inset:0;background-position:50% 38%;background-size:cover;background-repeat:no-repeat;opacity:.3}' +
     '.rr-gig .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),transparent 28%,transparent 72%,rgba(0,0,0,.42))}' +
     '.rr-gig .lt{display:contents}' +
@@ -2049,7 +2054,7 @@
     top.parentNode.insertBefore(bar, top);
   }
 
-  /* ---------- 14 concert tiles (Accept, Manowar, Sabaton): full-width rows, buttons aligned, each retires after its date ---------- */
+  /* ---------- 14 concert tiles (Accept, Manowar, BFMV + Pendulum, Sabaton): full-width rows, buttons aligned, each retires after its date ---------- */
   function sabatonTile() {
     if (!isHome || document.querySelector('.rr-gigs')) { return; }
     var today = budapestNow().ymd;
@@ -2066,18 +2071,18 @@
     var grid = el('div', 'rr-gigs');
     wrap.appendChild(grid);
     gigs.forEach(function (g) {
-      var url = '/index.php?route=product/list&keyword=' + g.keyword;
+      var url = '/index.php?route=product/list&keyword=' + encodeURIComponent(g.keyword);
       var w = el('div', 'rr-gigwrap');
       w.innerHTML = '<div class="rr-gig g-' + g.key + '"><div class="art" style="background-image:url(' + GIG_ASSETS + g.key + '-battle.webp)"></div><div class="shade"></div>' +
         '<div class="lt"><img class="logo" src="' + GIG_ASSETS + g.key + '-logo.webp" alt="' + g.label + '">' +
         '<div class="txt"><div class="eye">' + g.eyebrow + '</div><h3>Koncert Budapesten</h3>' +
         '<div class="d"><b>' + g.date + '</b><span>&middot;</span>' + g.place + '</div>' +
         '<div class="m">Pólók, pulóverek és kiegészítők &ndash; készülj a koncertre a boltunkból</div></div></div>' +
-        '<div class="stub"><a class="btn" href="' + url + '">' + g.label + ' termékek <i>&rarr;</i></a>' +
+        '<div class="stub"><a class="btn" href="' + url + '">' + (g.btn || g.label) + ' termékek <i>&rarr;</i></a>' +
         '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
       grid.appendChild(w);
       searchCount(url, function (n) {  /* cached 1 h per visitor: searches are slow on the shop */
-        if (n) { w.querySelector('.btn').innerHTML = g.label + ' termékek (' + n + ') <i>&rarr;</i>'; }
+        if (n) { w.querySelector('.btn').innerHTML = (g.btn || g.label) + ' termékek (' + n + ') <i>&rarr;</i>'; }
       });
     });
     target.parentNode.insertBefore(wrap, target);
