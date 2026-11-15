@@ -2698,24 +2698,43 @@
   var css =
     '.rr-nl-bg{position:fixed;inset:0;background:rgba(2,8,16,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s}' +
     '.rr-nl-bg.show{opacity:1}' +
-    '.rr-nl{position:relative;width:100%;max-width:440px;background:linear-gradient(180deg,#0e2236,#07121e);border:1px solid rgba(229,36,33,.55);border-radius:10px;padding:30px 26px 22px;color:#e8eef4;box-shadow:0 20px 60px rgba(0,0,0,.6);font-family:inherit;text-align:center}' +
+    /* owner 2026-11-15: RagnaRock look - grain + navy glow like the site background, light blue border, chrome-blue lettering */
+    '.rr-nl{position:relative;width:100%;max-width:440px;background:#4f8fbf;border-radius:10px;padding:30px 26px 22px;color:#e8eef4;font-family:inherit;text-align:center;' +
+    'overflow:hidden;isolation:isolate;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 28px rgba(127,196,234,.28),0 20px 60px rgba(0,0,0,.6)}' +
+    /* light running around the border (owner 2026-11-15): a rotating glint behind the box, the box face covers all but a 1.5px rim.
+       Only transform is animated, so the graphics chip does it without repainting. */
+    '.rr-nl:before{content:"";position:absolute;left:50%;top:50%;width:1100px;height:1100px;translate:-50% -50%;z-index:-2;will-change:rotate;' +
+    'background:conic-gradient(from 0deg,rgba(127,196,234,.35) 0deg,rgba(127,196,234,.35) 250deg,#d8f1ff 300deg,#ffffff 315deg,#9fd6f7 330deg,rgba(127,196,234,.35) 360deg);' +
+    'animation:rrnlspin 4.5s linear infinite}' +
+    '.rr-nl:after{content:"";position:absolute;inset:1.5px;border-radius:9px;z-index:-1;background:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27220%27 height=%27220%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27turbulence%27 baseFrequency=%27.8%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3CfeColorMatrix values=%270 0 0 0 .35 0 0 0 0 .62 0 0 0 0 .85 0 0 0 -2.2 1.05%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27 opacity=%27.07%27/%3E%3C/svg%3E\"),radial-gradient(ellipse 90% 70% at 50% 20%,#0e4d78 0%,#07304f 45%,#031627 80%,#010811 100%)}' +
+    '@keyframes rrnlspin{to{rotate:360deg}}' +
+    '@media (prefers-reduced-motion: reduce){.rr-nl:before{animation:none}}' +
     '.rr-nl .x{position:absolute;top:8px;right:10px;background:none;border:0;color:#9fb3c6;font-size:28px;line-height:1;cursor:pointer;padding:4px 8px}' +
-    '.rr-nl .big{font-size:54px;font-weight:900;color:#e52421;line-height:1;letter-spacing:1px}' +
-    '.rr-nl h3{margin:6px 0 10px;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff}' +
+    '.rr-nl .big{font-family:"New Rocker",Georgia,serif;font-size:80px;line-height:.95;letter-spacing:1px;background:linear-gradient(180deg,#f6fcff 0%,#bedef2 42%,#8cb8d8 50%,#96c0de 56%,#def0fb 80%,#96c0de 100%);' +
+    '-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #031220) drop-shadow(0 0 1px #031220) drop-shadow(0 6px 14px rgba(0,0,0,.55))}' +
+    '.rr-nl h3{margin:8px 0 12px;font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#e3f1fa}' +
     '.rr-nl p{margin:0 0 16px;font-size:14px;line-height:1.5;color:#c4d2df}' +
     '.rr-nl input[type=text],.rr-nl input[type=email]{width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px 14px;border-radius:6px;border:1px solid #2b4a66;background:#0a1826;color:#fff;font-size:15px}' +
     '.rr-nl input:focus{outline:none;border-color:#7fc4ea}' +
     '.rr-nl label{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.4;color:#9fb3c6;margin:4px 0 14px;cursor:pointer;text-align:left}' +
     '.rr-nl label input{margin-top:2px;flex:none}' +
-    '.rr-nl button.go{width:100%;padding:14px;border:0;border-radius:6px;background:#e52421;color:#fff;font-weight:800;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}' +
+    /* the one warm accent (owner 2026-11-15: "it's all blue"): the shop red on the button, white text */
+    '.rr-nl button.go{width:100%;padding:14px;border:1px solid rgba(255,140,130,.45);border-radius:6px;background:linear-gradient(180deg,#f0453f 0%,#e52421 50%,#b81a17 100%);' +
+    'color:#fff;font-weight:800;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-shadow:0 1px 1px rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.3)}' +
+    '.rr-nl button.go:hover{filter:brightness(1.08)}' +
     '.rr-nl button.go:disabled{opacity:.6;cursor:default}' +
     '.rr-nl .err{color:#ff8a80;font-size:13px;min-height:18px;margin:-4px 0 8px}' +
     '.rr-nl .fine{font-size:11px;color:#7f93a6;margin:12px 0 0}' +
-    '.rr-nl .ok h3{color:#7fe0a0}';
+    '.rr-nl .ok h3{color:#e3f1fa}';
 
   function open() {
     if (document.querySelector('.rr-nl-bg')) { return; }
     st.shown = Date.now(); set(KEY, JSON.stringify(st));
+    if (!document.getElementById('rr-nl-font')) {
+      var fl = document.createElement('link'); fl.id = 'rr-nl-font'; fl.rel = 'stylesheet';
+      fl.href = 'https://fonts.googleapis.com/css2?family=New+Rocker&display=swap';
+      document.head.appendChild(fl);
+    }
     if (!document.getElementById('rr-nl-css')) {
       var s = document.createElement('style'); s.id = 'rr-nl-css'; s.appendChild(document.createTextNode(css));
       document.head.appendChild(s);
@@ -2775,7 +2794,7 @@
   }
 
   if (force) { setTimeout(open, 600); return; }
-  var AUTO = false;  /* false while the coupon emails are in TEST mode: only #rr-nl opens it */
+  var AUTO = true;  /* owner 2026-11-15: coupon emails live, pop-up on (false: only #rr-nl opens it) */
   if (!AUTO) { return; }
   var touch = window.matchMedia && matchMedia('(hover: none)').matches;
   if (touch) {
@@ -2943,4 +2962,60 @@
     x.send();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
+
+/* Category bar look (owner 2026-11-15): Barlow Condensed in the bright chrome blue of the logos, larger, and the
+   icons in the same chrome (each icon's shape used as a stencil, full-size originals so they stay sharp).
+   ÚJDONSÁG / AKCIÓ keeps the shop red. Desktop category bar only. */
+(function () {
+  'use strict';
+  if (window.__rrCatLook) { return; }
+  window.__rrCatLook = true;
+  var CHROME = 'linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%)';
+  var RED = 'linear-gradient(180deg,#ff8a84 0%,#f04a43 45%,#d92420 55%,#ff6a63 100%)';
+  var A = 'html body .module-category-wrapper li.module-list > a.nav-link';
+  var css =
+    A + ',' + A + ' .rr-category-count{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;' +
+    'font-size:clamp(16px,1.27vw,25px)!important;letter-spacing:.03em!important;text-transform:uppercase!important;line-height:1.1!important;' +
+    'background:' + CHROME + '!important;-webkit-background-clip:text!important;background-clip:text!important;' +
+    'color:transparent!important;-webkit-text-fill-color:transparent!important}' +
+    A + '{filter:drop-shadow(0 1px 0 #031220) drop-shadow(0 0 1px rgba(3,18,32,.8));align-items:center!important}' +
+    A + ' .rr-category-count{opacity:.8!important}' +
+    A + ':hover{filter:drop-shadow(0 1px 0 #031220) drop-shadow(0 0 6px rgba(150,210,245,.75))}' +
+    A + '.rr-cat-red,' + A + '.rr-cat-red .rr-category-count{background:' + RED + '!important;-webkit-background-clip:text!important;background-clip:text!important}' +
+    '.rr-caticon{display:inline-block;flex:none;width:clamp(22px,1.6vw,28px);height:clamp(22px,1.6vw,28px);margin-right:7px;' +
+    '-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;background:' + CHROME + '}' +
+    '.rr-cat-red .rr-caticon{background:' + RED + '}';
+  /* stencils must come from a host that allows it (the shop's image server does not): copies next to menu.js */
+  var ICONS = 'https://1374223-star.github.io/rockpince-menu-counts/assets/caticons/';
+  function full(src) {
+    var m = /\/design\/([^/?]+?)(\.webp)?(\?|$)/.exec(String(src));
+    return m ? ICONS + m[1] : src;
+  }
+  function apply() {
+    var links = document.querySelectorAll('.module-category-wrapper li.module-list > a.nav-link');
+    if (!links.length) { return false; }
+    if (!document.getElementById('rr-catlook-font')) {
+      var f = document.createElement('link'); f.id = 'rr-catlook-font'; f.rel = 'stylesheet';
+      f.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&display=swap';
+      document.head.appendChild(f);
+      var s = document.createElement('style'); s.id = 'rr-catlook'; s.appendChild(document.createTextNode(css));
+      document.head.appendChild(s);
+    }
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      if (/rgb\(229,\s*36,\s*33\)/.test(getComputedStyle(a).color) || /akci/i.test(a.textContent)) { a.classList.add('rr-cat-red'); }
+      var img = a.querySelector('img');
+      if (!img || a.querySelector('.rr-caticon')) { continue; }
+      var ic = document.createElement('span');
+      ic.className = 'rr-caticon';
+      ic.setAttribute('aria-hidden', 'true');
+      ic.style.setProperty('--m', 'url("' + full(img.currentSrc || img.src) + '")');
+      img.parentNode.insertBefore(ic, img);
+      img.style.display = 'none';
+    }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!apply() && tries++ < 40) { setTimeout(wait, 150); } })();
 })();
