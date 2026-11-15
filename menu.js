@@ -2766,13 +2766,13 @@
     bg.className = 'rr-nl-bg';
     bg.innerHTML = '<div class="rr-nl" role="dialog" aria-modal="true" aria-label="Hírlevél kupon">' +
       '<button type="button" class="x" aria-label="Bezárás">&times;</button>' +
-      '<div class="body"><div class="big">-10%</div><h3>Az első rendelésedből</h3>' +
+      '<div class="body"><div class="big">-10%</div><h3>A következő rendelésedből</h3>' +
       '<p>Iratkozz fel a hírlevelünkre, és emailben elküldjük az egyszer használható kuponkódodat.</p>' +
       '<form novalidate><input type="text" name="fn" placeholder="Keresztnév" autocomplete="given-name">' +
       '<input type="email" name="em" placeholder="E-mail cím" autocomplete="email" required>' +
       '<label><input type="checkbox" name="ok"> Hozzájárulok ahhoz, hogy a Ragnarock - webáruház a nevemet és e-mail címemet hírlevelezési céllal kezelje és a részemre gazdasági reklámot is tartalmazó email hírleveleket küldjön.</label>' +
       '<div class="err"></div><button type="submit" class="go">Kérem a kupont</button></form>' +
-      '<div class="fine">A kupon az első rendelésre érvényes, 30 napig. Leiratkozni bármikor lehet.</div></div></div>';
+      '<div class="fine">Egyszer használható kupon, 30 napig érvényes. Leiratkozni bármikor lehet.</div></div></div>';
     document.body.appendChild(bg);
     setTimeout(function () { bg.classList.add('show'); }, 20);
     function close() { bg.classList.remove('show'); setTimeout(function () { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 250); }
@@ -3384,7 +3384,7 @@
     var head = box.querySelector('.module-head'), title = box.querySelector('.module-head-title');
     var big = document.createElement('div'); big.className = 'rr-nls-big'; big.textContent = '-10%';
     if (head) { head.insertBefore(big, head.firstChild); }
-    if (title) { title.textContent = 'Az első rendelésedből'; }
+    if (title) { title.textContent = 'A következő rendelésedből'; }
     var pre = box.querySelector('.newsletter-pretext');
     if (pre) { pre.textContent = 'Iratkozz fel a hírlevelünkre, és e-mailben elküldjük az egyszer használható 10%-os kuponkódodat. Elsőként értesülsz az újdonságokról és az akciókról is.'; }
     var btn = box.querySelector('.subscribe-button .btn');
@@ -3392,7 +3392,7 @@
     var b = box.querySelector('.subscribe-button');
     if (b && !box.querySelector('.rr-nls-fine')) {
       var f = document.createElement('div'); f.className = 'rr-nls-fine';
-      f.textContent = 'A kupon az első rendelésre érvényes, 30 napig. Leiratkozni bármikor lehet.';
+      f.textContent = 'Egyszer használható kupon, 30 napig érvényes. Leiratkozni bármikor lehet.';
       b.parentNode.appendChild(f);
     }
     return true;
@@ -3431,7 +3431,7 @@
     h.style.display = 'none';
     var c = document.createElement('div'); c.className = 'rr-thx';
     c.innerHTML = '<div class="big">-10%</div><h2>Köszönjük, feliratkoztál!</h2>' +
-      '<p>Ha még nem vásároltál nálunk, néhány percen belül megérkezik e-mailben az egyszer használható 10%-os kuponkódod. ' +
+      '<p>Egy percen belül megérkezik e-mailben az egyszer használható 10%-os kuponkódod. ' +
       'Ha nem látod, nézd meg a Promóciók vagy a Spam mappát is.</p>' +
       '<div class="row"><a class="b b1" data-rr-count-applied="1" href="/ujdonsagok_akciok-15427/ujdonsagok2-18914">Újdonságok megnézése</a>' +
       '<a class="b b2" data-rr-count-applied="1" href="/">Vissza a főoldalra</a></div>';
