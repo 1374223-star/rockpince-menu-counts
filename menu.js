@@ -1776,6 +1776,29 @@
     '@container gig (min-width:1500px){' +
     '.rr-gig .m{display:block}.rr-gig .txt{max-width:620px;padding-right:60px}' +
     '}' +
+    /* concert tiles: plain type (owner 2026-11-15): Barlow Condensed, solid colours, no gold-gradient lettering */
+    '.rr-gig .eye,.rr-gig h3,.rr-gig .d,.rr-gig .btn{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}' +
+    '.rr-gig .eye{font-weight:600;font-size:15px;letter-spacing:.06em;opacity:1}' +
+    '.rr-gig h3{font-weight:800;font-size:34px;line-height:.98;letter-spacing:.01em;background:none;-webkit-background-clip:border-box;background-clip:border-box;' +
+    'color:#fff;filter:none;text-shadow:0 2px 0 rgba(0,0,0,.55),0 4px 16px rgba(0,0,0,.5)}' +
+    '.rr-gig .d{font-weight:700;font-size:19px;line-height:1.25;letter-spacing:.03em;color:#fff}.rr-gig .d b{font-weight:700;color:var(--gold)}' +
+    '.rr-gig .d span{display:inline-block;width:2px;height:.85em;margin:0 10px;vertical-align:-.06em;background:var(--gold);color:transparent;overflow:hidden;opacity:.8}' +
+    '.rr-gig .btn{font-weight:700;font-size:20px;letter-spacing:.04em;gap:10px}' +
+    '.rr-gig .btn i{font-size:1.1em}' +
+    '@container gig (max-width:599px){' +
+    '.rr-gig h3{font-size:clamp(24px,7.6cqw,32px);margin:0 0 2px}' +
+    '.rr-gig .d{font-size:clamp(15px,4.8cqw,19px);letter-spacing:.03em}.rr-gig .d span{margin:0 8px}' +
+    '.rr-gig .btn{font-size:clamp(17px,5.2cqw,20px);padding:12px 18px}' +
+    '}' +
+    '@container gig (min-width:600px){' +
+    '.rr-gig .eye{font-size:14px}.rr-gig h3{font-size:28px}.rr-gig .d{font-size:17px}' +
+    '.rr-gig .btn{font-size:18px;padding:13px 22px}' +
+    '}' +
+    '@container gig (min-width:1000px){' +
+    '.rr-gig .eye{font-size:clamp(14px,1cqw,18px)}.rr-gig h3{font-size:clamp(32px,2.9cqw,52px);margin:4px 0 4px}' +
+    '.rr-gig .txt{max-width:470px}.rr-gig .d{font-size:clamp(17px,1.4cqw,24px)}.rr-gig .d span{margin:0 12px}' +
+    '.rr-gig .btn{font-size:clamp(19px,1.45cqw,25px);padding:16px 30px}' +
+    '}' +
     /* 16, 17 toasts */
     '.rr-toast{position:fixed;z-index:99990;right:20px;bottom:20px;width:min(340px,calc(100vw - 32px));background:#0b2236;border:1px solid rgba(127,196,234,.35);' +
     'border-left:4px solid #e52421;border-radius:8px;padding:14px 38px 14px 16px;color:#e9f2f9;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:14px;' +
@@ -2103,9 +2126,9 @@
     if (!gigs.length) { return; }
     var target = document.querySelector('.module-special-wrapper');
     if (!target) { return; }
-    if (!document.getElementById('rr-cinzel')) {
-      var f = el('link'); f.id = 'rr-cinzel'; f.rel = 'stylesheet';
-      f.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap';
+    if (!document.getElementById('rr-gig-font')) {
+      var f = el('link'); f.id = 'rr-gig-font'; f.rel = 'stylesheet';
+      f.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap';
       document.head.appendChild(f);
     }
     var wrap = el('div', 'container');
