@@ -3326,3 +3326,77 @@
   var s = document.createElement('style'); s.id = 'rr-card-lines'; s.appendChild(document.createTextNode(css));
   (document.head || document.documentElement).appendChild(s);
 })();
+
+/* Home newsletter section (owner 2026-11-15): looks like the coupon pop-up and says what you get - the 10% code for the
+   first order. Only first name + email (the shop form does not require the surname; the coupon email uses the first
+   name). The shop's own form, validation and submit stay untouched; this only restyles and relabels it. */
+(function () {
+  'use strict';
+  if (window.__rrNlSection) { return; }
+  window.__rrNlSection = true;
+  var CHROME = 'linear-gradient(180deg,#f6fcff 0%,#bedef2 42%,#8cb8d8 50%,#96c0de 56%,#def0fb 80%,#96c0de 100%)';
+  var W = '#newsletter_subscribe';
+  var css =
+    W + '{max-width:760px!important;margin:30px auto!important;padding:30px 34px 24px!important;border-radius:12px;position:relative;isolation:isolate;overflow:hidden;text-align:center;' +
+    'background:radial-gradient(ellipse 90% 70% at 50% 15%,#0e4d78 0%,#07304f 45%,#031627 80%,#010811 100%)!important;' +
+    'border:1px solid rgba(127,196,234,.75);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 28px rgba(127,196,234,.25),0 20px 60px rgba(0,0,0,.55)}' +
+    W + ' .rr-nls-big{font-family:"New Rocker",Georgia,serif;font-size:76px;line-height:.95;letter-spacing:1px;background:' + CHROME + ';' +
+    '-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #031220) drop-shadow(0 0 1px #031220) drop-shadow(0 6px 14px rgba(0,0,0,.55))}' +
+    W + ' .module-head-title{font-size:21px!important;letter-spacing:.06em!important;margin:6px 0 8px!important;color:#e3f1fa!important}' +
+    W + ' .newsletter-pretext{color:#c4d2df!important;font-size:14.5px!important;line-height:1.55!important;max-width:560px;margin:0 auto 16px!important}' +
+    W + ' form{display:flex!important;flex-direction:column;align-items:stretch}' +
+    W + ' .subscribe-box{order:1;display:flex!important;flex-direction:row!important;gap:10px!important;justify-content:center;flex-wrap:nowrap}' +
+    W + ' .subscribe-box__item{flex:1 1 0!important;min-width:0;height:auto!important;max-width:none!important;margin:0!important;padding:0!important}' +
+    W + ' .subscribe-policy{order:2}' + W + ' .subscribe-button{order:3;width:100%!important;max-width:none!important;display:block!important;flex:none!important}' + W + ' .rr-nls-fine{order:4}' +
+    W + ' .subscribe-box__item:has(#subscriber-firstname){display:none!important}' +
+    W + ' .form-control{background:#0a1826!important;border:1px solid #2b4a66!important;border-radius:6px!important;color:#fff!important;height:46px!important;font-size:15px!important}' +
+    W + ' .form-control:focus{border-color:#7fc4ea!important;box-shadow:none!important}' +
+    W + ' .subscribe-policy{margin:12px auto 0!important;max-width:620px;text-align:left}' +
+    W + ' .subscribe-policy__label{font-size:11.5px!important;line-height:1.45!important;color:#9fb3c6!important}' +
+    W + ' .subscribe-button{margin-top:14px!important}' +
+    W + ' .subscribe-button .btn{width:100%!important;max-width:none!important;display:block!important;padding:14px!important;border:1px solid rgba(255,140,130,.45)!important;border-radius:6px!important;' +
+    'background:linear-gradient(180deg,#f0453f 0%,#e52421 50%,#b81a17 100%)!important;color:#fff!important;font-weight:800!important;font-size:15px!important;' +
+    'letter-spacing:1px!important;text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.3)}' +
+    W + ' .subscribe-button .btn:hover{filter:brightness(1.08)}' + W + ' .subscribe-button .btn,' + W + ' .subscribe-button .btn *{text-decoration:none!important;border-bottom:0!important}' +
+    W + ' .rr-nls-fine{font-size:11.5px;color:#7f93a6;margin:10px 0 0}' +
+    W + ' .newsletter-posttext,' + W + ' .module-body > p:not([class]){display:none!important}' +
+    /* owner: the big skull picture half-hidden behind the card looked odd - faint skull-hand watermarks instead */
+    '.module-newsletter_subscribe-wrapper{background-image:none!important;position:relative;overflow:hidden}' +
+    '.module-newsletter_subscribe-wrapper:before,.module-newsletter_subscribe-wrapper:after{content:"";position:absolute;top:50%;width:min(30vw,420px);aspect-ratio:1;pointer-events:none;z-index:0;' +
+    'background:url("https://1374223-star.github.io/rockpince-menu-counts/assets/skull-hand-watermark.webp") center/contain no-repeat;opacity:.12}' +
+    '.module-newsletter_subscribe-wrapper:before{left:calc(50% - 380px - min(30vw,420px));transform:translateY(-50%) rotate(-10deg)}' +
+    '.module-newsletter_subscribe-wrapper:after{right:calc(50% - 380px - min(30vw,420px));transform:translateY(-50%) scaleX(-1) rotate(-10deg)}' +
+    '.module-newsletter_subscribe-wrapper > *{position:relative;z-index:1}' +
+    '@media (max-width:991px){.module-newsletter_subscribe-wrapper:before,.module-newsletter_subscribe-wrapper:after{display:none}' +
+    W + ':after{content:"";position:absolute;left:50%;top:50%;width:300px;height:300px;translate:-50% -50%;z-index:-1;pointer-events:none;opacity:.07;' +
+    'background:url("https://1374223-star.github.io/rockpince-menu-counts/assets/skull-hand-watermark.webp") center/contain no-repeat}}' +
+    '@media (max-width:767px){' + W + '{margin:20px 12px!important;padding:24px 16px 18px!important}' + W + ' .subscribe-box{flex-direction:column!important;gap:10px!important}' +
+    W + ' .subscribe-box__item{flex:none!important}' + W + ' .rr-nls-big{font-size:60px}' + W + ' .module-head-title{font-size:18px!important}}';
+  function apply() {
+    var box = document.querySelector(W);
+    if (!box) { return !document.querySelector('.module-newsletter_subscribe-wrapper') ? false : true; }
+    if (box.querySelector('.rr-nls-big')) { return true; }
+    if (!document.getElementById('rr-nl-font')) {
+      var fl = document.createElement('link'); fl.id = 'rr-nl-font'; fl.rel = 'stylesheet';
+      fl.href = 'https://fonts.googleapis.com/css2?family=New+Rocker&display=swap'; document.head.appendChild(fl);
+    }
+    var st = document.createElement('style'); st.id = 'rr-nl-section'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    var head = box.querySelector('.module-head'), title = box.querySelector('.module-head-title');
+    var big = document.createElement('div'); big.className = 'rr-nls-big'; big.textContent = '-10%';
+    if (head) { head.insertBefore(big, head.firstChild); }
+    if (title) { title.textContent = 'Az első rendelésedből'; }
+    var pre = box.querySelector('.newsletter-pretext');
+    if (pre) { pre.textContent = 'Iratkozz fel a hírlevelünkre, és e-mailben elküldjük az egyszer használható 10%-os kuponkódodat. Elsőként értesülsz az újdonságokról és az akciókról is.'; }
+    var btn = box.querySelector('.subscribe-button .btn');
+    if (btn) { btn.textContent = 'Kérem a kupont'; }
+    var b = box.querySelector('.subscribe-button');
+    if (b && !box.querySelector('.rr-nls-fine')) {
+      var f = document.createElement('div'); f.className = 'rr-nls-fine';
+      f.textContent = 'A kupon az első rendelésre érvényes, 30 napig. Leiratkozni bármikor lehet.';
+      b.parentNode.appendChild(f);
+    }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!apply() && tries++ < 40) { setTimeout(wait, 200); } })();
+})();
