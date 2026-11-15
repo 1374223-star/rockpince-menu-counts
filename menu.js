@@ -1170,7 +1170,7 @@
     home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
-    cart: '<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
+    cart: '<path d="M2 4.5h2.7l2.6 11.6h11.6l2.5-8.1H6"/><circle cx="9.5" cy="19.6" r="1.5"/><circle cx="17.2" cy="19.6" r="1.5"/>'  /* cart, like the header (2026-11-15) */
   };
   function svg(name) {
     return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" ' +
@@ -2976,16 +2976,19 @@
   var A = 'html body .module-category-wrapper li.module-list > a.nav-link';
   var css =
     A + ',' + A + ' .rr-category-count{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;' +
-    'font-size:clamp(16px,1.27vw,25px)!important;letter-spacing:.03em!important;text-transform:uppercase!important;line-height:1.1!important;' +
+    'font-size:clamp(12.5px,1.27vw,25px)!important;letter-spacing:.03em!important;text-transform:uppercase!important;line-height:1.1!important;' +
     'background:' + CHROME + '!important;-webkit-background-clip:text!important;background-clip:text!important;' +
     'color:transparent!important;-webkit-text-fill-color:transparent!important}' +
     A + '{filter:drop-shadow(0 1px 0 #031220) drop-shadow(0 0 1px rgba(3,18,32,.8));align-items:center!important}' +
     A + ' .rr-category-count{opacity:.8!important}' +
     A + ':hover{filter:drop-shadow(0 1px 0 #031220) drop-shadow(0 0 6px rgba(150,210,245,.75))}' +
     A + '.rr-cat-red,' + A + '.rr-cat-red .rr-category-count{background:' + RED + '!important;-webkit-background-clip:text!important;background-clip:text!important}' +
-    '.rr-caticon{display:inline-block;flex:none;width:clamp(22px,1.6vw,28px);height:clamp(22px,1.6vw,28px);margin-right:7px;' +
+    '.rr-caticon{display:inline-block;flex:none;width:clamp(18px,1.6vw,28px);height:clamp(18px,1.6vw,28px);margin-right:6px;' +
     '-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;background:' + CHROME + '}' +
-    '.rr-cat-red .rr-caticon{background:' + RED + '}';
+    '.rr-cat-red .rr-caticon{background:' + RED + '}' +
+    '.module-category-wrapper .sf-menu ul a,.module-category-wrapper .subtree-dropdown a,.module-category-wrapper .js-subtree-dropdown a{' +
+    'font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:600!important;letter-spacing:.03em!important;font-size:16px!important}' +
+    '.module-category-wrapper .subtree-dropdown a .rr-category-count,.module-category-wrapper .sf-menu ul a .rr-category-count{font-size:1em!important}';
   /* stencils must come from a host that allows it (the shop's image server does not): copies next to menu.js */
   var ICONS = 'https://1374223-star.github.io/rockpince-menu-counts/assets/caticons/';
   function full(src) {
@@ -3018,4 +3021,245 @@
   }
   var tries = 0;
   (function wait() { if (!apply() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();
+
+/* Header rows in one rhythm (owner 2026-11-15): the top bar (status, socials, links) and the band-logo strip get the
+   same height, the same dark band and the same thin edges, so they frame the logo/search row between them.
+   The shop email sits in the middle of the top bar. Desktop only (the phone header has no top bar). */
+(function () {
+  'use strict';
+  if (window.__rrHeadRows) { return; }
+  window.__rrHeadRows = true;
+  var EMAIL = 'info@ragnarock.hu', H = 50;
+  var BAND = 'linear-gradient(180deg,rgba(3,16,28,.92),rgba(2,10,20,.96))';
+  var EDGE = '1px solid rgba(127,196,234,.16)';
+  var css =
+    '@media (min-width:992px){' +
+    '.header-top{height:' + H + 'px!important;min-height:' + H + 'px!important;background:' + BAND + '!important;border-top:' + EDGE + ';border-bottom:' + EDGE + '}' +
+    '.header-top-row{height:100%!important}' +
+    '.rr-bands{height:' + H + 'px!important;border-top:' + EDGE + '!important;border-bottom:' + EDGE + '!important;background:' + BAND + '!important}' +
+    '.rr-blogo img{width:calc(var(--w) * .86px)!important}' +
+    '.rr-mailtop{display:inline-flex;align-items:center;gap:8px;margin:0 auto;padding:5px 14px;border:1px solid rgba(127,196,234,.35);border-radius:16px;' +
+    'color:#e6f3fb!important;font-size:13px;letter-spacing:.02em;text-decoration:none!important;white-space:nowrap;transition:border-color .15s,background .15s}' +
+    '.rr-mailtop:hover{border-color:rgba(160,214,244,.8);background:rgba(127,196,234,.1)}' +
+    '.rr-mailtop svg{width:16px;height:16px;flex:none}' +
+    '}' +
+    '@media (max-width:1199px){.rr-mailtop{display:none!important}}';
+  function apply() {
+    var row = document.querySelector('.header-top-row');
+    if (!row) { return false; }
+    if (!document.getElementById('rr-headrows')) {
+      var s = document.createElement('style'); s.id = 'rr-headrows'; s.appendChild(document.createTextNode(css));
+      document.head.appendChild(s);
+    }
+    if (!row.querySelector('.rr-mailtop')) {
+      var a = document.createElement('a');
+      a.className = 'rr-mailtop'; a.href = 'mailto:' + EMAIL; a.title = 'Írj nekünk e-mailt';
+      a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg><span>' + EMAIL + '</span>';
+      var social = row.querySelector('.rr-social-top'), list = row.querySelector('.headermenu-list');
+      row.insertBefore(a, list || null);
+      if (!social && !list) { row.appendChild(a); }
+    }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!apply() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();
+
+/* Header round 2 (owner 2026-11-15):
+   - category dropdowns open at once: the theme's "mouse must slow down" check is off and the fade is near-instant
+     (a short delay stays only for closing, so a dropdown does not vanish when the mouse slips off for a moment);
+     the growing underline under hovered categories is gone
+   - basket button: a shopping cart drawn in the chrome blue
+   - header logo without the RockPince wordmark, and the same logo as caps on both ends of the band strip */
+(function () {
+  'use strict';
+  if (window.__rrHead2) { return; }
+  window.__rrHead2 = true;
+  var BRAND = 'https://1374223-star.github.io/rockpince-menu-counts/assets/brand/';
+  var css =
+    '.module-category-wrapper a.nav-link:before,.module-category-wrapper a.nav-link:after{display:none!important}' +
+    '.rr-cart-ic{width:30px;height:30px;display:block}' +
+    '@media (min-width:992px){a.header-logo img{width:clamp(150px,11.5vw,230px)!important;height:auto!important;max-width:none!important}' +
+    'a.header-logo{flex:none!important}}' +
+    /* small laptops (992-1279px): a compact top bar so the links stay on one line */
+    '@media (min-width:992px) and (max-width:1279px){.headermenu-list .nav-link{font-size:11.5px!important;padding-left:7px!important;padding-right:7px!important;white-space:nowrap}' +
+    '.rr-social-top{display:none!important}.rr-open{font-size:11px!important;padding:4px 10px!important;white-space:nowrap}' +
+    '.header-middle-row{gap:12px}}' +
+    /* phones/tablets: logo capped in height and centred between the menu and basket buttons */
+    '@media (max-width:991px){a.header-logo img{max-height:84px;width:auto!important;margin:0 auto}' +
+    '.header-middle-row a.header-logo{flex:1 1 auto!important;display:flex!important;justify-content:center!important;align-items:center}}' +
+    /* home heading in the category-bar font; much smaller on phones (owner: too distracting) */
+    '.seoh1-module h1{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;letter-spacing:.04em!important;text-transform:uppercase;' +
+    'font-size:clamp(17px,1.6vw,30px)!important;line-height:1.15!important;background:linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%);' +
+    '-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 #031220)}' +
+    '@media (max-width:767px){.seoh1-module h1{font-size:17px!important;margin:4px 0!important}}';
+  var CART = '<svg class="rr-cart-ic" viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="rrcartg" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#cfe9f8"/><stop offset=".55" stop-color="#8fc3e6"/><stop offset="1" stop-color="#d9effb"/></linearGradient></defs>' +
+    '<g stroke="url(#rrcartg)" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M2.5 4.5h3.2l3 13.5h13.6l2.9-9.5H7"/><circle cx="11" cy="22.6" r="1.8"/><circle cx="20" cy="22.6" r="1.8"/></g></svg>';
+  function style() {
+    if (document.getElementById('rr-head2')) { return; }
+    var s = document.createElement('style'); s.id = 'rr-head2'; s.appendChild(document.createTextNode(css));
+    document.head.appendChild(s);
+  }
+  function menu() {
+    var $ = window.jQuery, ul = document.querySelector('.module-category-wrapper ul.sf-menu');
+    if (!$ || !ul || !$.fn.superfish || ul.getAttribute('data-rr-fast')) { return !!ul; }
+    var o = $(ul).data('sfOptions');
+    if (!o) { return false; }
+    var keep = {};
+    for (var k in o) { if (Object.prototype.hasOwnProperty.call(o, k) && typeof o[k] !== 'object' && typeof o[k] !== 'function') { keep[k] = o[k]; } }
+    ['onInit', 'onBeforeShow', 'onShow', 'onHide', 'onBeforeHide', 'onIdle', 'onDestroy', 'onHandleTouch', 'animation', 'animationOut'].forEach(function (k) { if (o[k]) { keep[k] = o[k]; } });
+    keep.disableHI = true; keep.speed = 60; keep.speedOut = 0; keep.delay = 250;
+    try { $(ul).superfish('destroy'); $(ul).superfish(keep); ul.setAttribute('data-rr-fast', '1'); } catch (e) { /* theme menu stays as it was */ }
+    return true;
+  }
+  function cart() {
+    var t = document.querySelector('.cart-dropdown-toggle');
+    if (!t || t.querySelector('.rr-cart-ic')) { return !!t; }
+    var old = t.querySelector('svg');
+    if (old) { var d = document.createElement('div'); d.innerHTML = CART; old.parentNode.replaceChild(d.firstChild, old); }
+    return true;
+  }
+  function logos() {
+    var imgs = document.querySelectorAll('a.header-logo img');
+    for (var i = 0; i < imgs.length; i++) {
+      var im = imgs[i], src = im.currentSrc || im.src || '';
+      if (im.getAttribute('data-rr-logo')) { continue; }
+      if (/ragnarock-rockpince-logo/.test(src)) { im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset'); im.src = BRAND + 'ragnarock_logo.png'; im.style.height = 'auto';
+      }
+      else if (/ragna-rock-logo-mobil/.test(src)) { im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset'); im.src = BRAND + 'ragnarock_logo_mobil.png'; im.style.width = 'auto'; }
+    }
+    return imgs.length > 0;
+  }
+  var tries = 0;
+  (function wait() {
+    style();
+    var a = menu(), b = cart(), c = logos();
+    if (!(a && b && c) && tries++ < 60) { setTimeout(wait, 200); }
+  })();
+})();
+
+/* Concert section skulls (owner 2026-11-15): the skull-hand watermarks from the product pages, one in each empty
+   side area beside the concert tiles on the home page. Only on screens wide enough to have empty sides. */
+(function () {
+  'use strict';
+  if (window.__rrGigSkulls) { return; }
+  window.__rrGigSkulls = true;
+  var SK = "url('https://1374223-star.github.io/rockpince-menu-counts/assets/skull-hand-watermark.webp')";
+  var css = '@media (min-width:1700px){' +
+    '.container:has(> .rr-gigs){position:relative}' +
+    '.container:has(> .rr-gigs):before,.container:has(> .rr-gigs):after{content:"";position:absolute;top:50%;pointer-events:none;z-index:0;' +
+    'width:min(calc((100vw - 100%) / 2 - 30px),640px);aspect-ratio:1;background:' + SK + ' center/contain no-repeat;opacity:.13}' +
+    '.container:has(> .rr-gigs):before{right:calc(100% + 15px);transform:translateY(-50%) rotate(-10deg)}' +
+    '.container:has(> .rr-gigs):after{left:calc(100% + 15px);transform:translateY(-50%) scaleX(-1) rotate(-10deg)}' +
+    '.container > .rr-gigs{position:relative;z-index:1}}';
+  var s = document.createElement('style'); s.id = 'rr-gig-skulls'; s.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(s);
+})();
+
+/* Home banner on phones (owner 2026-11-15): no thumbnail chooser under the banner, just a left and a right arrow on
+   the banner itself. The arrows click the (hidden) thumbnails, so the theme's own slider keeps doing the work. */
+(function () {
+  'use strict';
+  if (window.__rrBannerArrows) { return; }
+  window.__rrBannerArrows = true;
+  var css = '@media (max-width:767px){' +
+    '#thumbnail-carousel{position:absolute!important;left:0;width:100%;height:0!important;overflow:hidden!important;opacity:0;pointer-events:none;margin:0!important;padding:0!important}' +
+    '.rr-bn-arrows{position:absolute;inset:0;pointer-events:none;z-index:5}' +
+    '.rr-bn-arr{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:1px solid rgba(160,214,244,.5);opacity:.85;' +
+    'background:rgba(2,12,22,.55);color:#e3f3fc;display:flex;align-items:center;justify-content:center;pointer-events:auto;padding:0}' +
+    '.rr-bn-arr svg{width:15px;height:15px}.rr-bn-arr.p{left:3px}.rr-bn-arr.n{right:3px}' +
+    '.rr-bn-arr:active{background:rgba(127,196,234,.3)}}' +
+    '@media (min-width:768px){.rr-bn-arrows{display:none}' +
+    /* PC: every banner in the chooser, smaller, lower and further left (owner 2026-11-15; the theme showed 4 at a time) */
+    '.slider-thumbnails-wrapper{left:60px!important;bottom:16px!important;max-width:none!important;width:auto!important}' +
+    '.js-splide-banner-thumbnails,#thumbnail-carousel{width:auto!important}' +
+    '#thumbnail-carousel .splide__track{overflow:visible!important}' +
+    '#thumbnail-carousel .splide__list{transform:none!important}' +
+    '#thumbnail-carousel .splide__slide{width:96px!important;margin-right:8px!important;opacity:.75;transition:opacity .15s}' +
+    '#thumbnail-carousel .splide__slide.is-active,#thumbnail-carousel .splide__slide:hover{opacity:1}' +
+    '#thumbnail-carousel .splide__slide img{width:100%!important;height:auto!important}}';
+  function go(dir) {
+    var slides = document.querySelectorAll('#thumbnail-carousel .splide__slide:not(.splide__slide--clone)');
+    if (!slides.length) { return; }
+    var cur = 0;
+    for (var i = 0; i < slides.length; i++) { if (slides[i].classList.contains('is-active')) { cur = i; break; } }
+    var next = (cur + dir + slides.length) % slides.length;
+    slides[next].click();
+  }
+  function build() {
+    var main = document.getElementById('main-carousel'), thumbs = document.getElementById('thumbnail-carousel');
+    if (!main || !thumbs) { return !!document.querySelector('.home-body') ? false : true; }
+    if (main.querySelector('.rr-bn-arrows')) { return true; }
+    var s = document.createElement('style'); s.id = 'rr-bn-arrows'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+    if (getComputedStyle(main).position === 'static') { main.style.position = 'relative'; }
+    var box = document.createElement('div'); box.className = 'rr-bn-arrows';
+    box.innerHTML = '<button type="button" class="rr-bn-arr p" aria-label="Előző"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>' +
+      '<button type="button" class="rr-bn-arr n" aria-label="Következő"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>';
+    main.appendChild(box);
+    box.querySelector('.p').addEventListener('click', function (e) { e.preventDefault(); go(-1); });
+    box.querySelector('.n').addEventListener('click', function (e) { e.preventDefault(); go(1); });
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 200); } })();
+})();
+
+/* Phone category menu in the same look (owner 2026-11-15): Barlow Condensed everywhere, the six main categories in
+   chrome blue with their chrome icons (ÚJDONSÁG / AKCIÓ in red), matched to the desktop bar by link address. */
+(function () {
+  'use strict';
+  if (window.__rrMmLook) { return; }
+  window.__rrMmLook = true;
+  var CHROME = 'linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%)';
+  var RED = 'linear-gradient(180deg,#ff8a84 0%,#f04a43 45%,#d92420 55%,#ff6a63 100%)';
+  var css =
+    '#js-mobile-nav .mm-listitem__text,#js-mobile-nav .mm-navbar__title{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:600!important;' +
+    'letter-spacing:.03em!important;font-size:17px!important}' +
+    '#js-mobile-nav a.rr-mm-top{display:flex!important;align-items:center;font-size:20px!important;font-weight:700!important;text-transform:uppercase}' +
+    '#js-mobile-nav a.rr-mm-top .rr-mm-t{background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}' +
+    '#js-mobile-nav a.rr-mm-top.rr-cat-red .rr-mm-t{background:' + RED + ';-webkit-background-clip:text;background-clip:text}' +
+    '#js-mobile-nav a.rr-mm-top .rr-caticon{width:24px!important;height:24px!important;margin-right:10px}';
+  function icons() {
+    var map = {};
+    var top = document.querySelectorAll('.module-category-wrapper ul.sf-menu > li > a.nav-link');
+    for (var i = 0; i < top.length; i++) {
+      var ic = top[i].querySelector('.rr-caticon');
+      if (ic) { map[top[i].getAttribute('href')] = ic.style.getPropertyValue('--m'); }
+    }
+    return map;
+  }
+  function apply() {
+    var nav = document.getElementById('js-mobile-nav');
+    var map = icons();
+    if (!nav || !Object.keys(map).length) { return false; }
+    if (!document.getElementById('rr-mmlook')) {
+      var s = document.createElement('style'); s.id = 'rr-mmlook'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+    }
+    var links = nav.querySelectorAll('a.mm-listitem__text');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i], m = map[a.getAttribute('href')];
+      if (!m || a.classList.contains('rr-mm-top')) { continue; }
+      a.classList.add('rr-mm-top');
+      if (/akci/i.test(a.textContent)) { a.classList.add('rr-cat-red'); }
+      /* wrap the text so only the words get the chrome fill (the count span stays inside) */
+      var t = document.createElement('span'); t.className = 'rr-mm-t';
+      while (a.firstChild) { t.appendChild(a.firstChild); }
+      var icon = document.createElement('span'); icon.className = 'rr-caticon'; icon.setAttribute('aria-hidden', 'true');
+      icon.style.setProperty('--m', m);
+      a.appendChild(icon); a.appendChild(t);
+    }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!apply() && tries++ < 50) { setTimeout(wait, 250); } })();
+  /* the phone menu rebuilds its links when it is set up / opened: style again whenever it opens */
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('.rr-bn-menu, .js-mobile-menu-toggle, [href="#js-mobile-nav"], .mm-listitem__btn, .mm-btn') : null;
+    if (t) { setTimeout(apply, 60); setTimeout(apply, 400); }
+  }, true);
+  setTimeout(apply, 2500); setTimeout(apply, 6000);
 })();
