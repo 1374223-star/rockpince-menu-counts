@@ -1759,9 +1759,10 @@
   }
   /* product counts of a search (Sabaton tile, band link): searches are slow on the shop, so remember 24 h */
   function searchCount(url, done) {
-    var key = 'rr-cnt:' + url, hit = null;
+    /* owner 2026-11-15: a 24 h cache showed yesterday's counts; 1 h now, new key drops the old cached numbers */
+    var key = 'rr-cnt2:' + url, hit = null;
     try { hit = JSON.parse((ls && ls.getItem(key)) || 'null'); } catch (e) { hit = null; }
-    if (hit && Date.now() - hit.t < 24 * 3600 * 1000) { done(hit.n); return; }
+    if (hit && Date.now() - hit.t < 3600 * 1000) { done(hit.n); return; }
     var x = new XMLHttpRequest();
     x.open('GET', url, true);
     x.onload = function () {
@@ -2072,7 +2073,7 @@
         '<div class="stub"><a class="btn" href="' + url + '">' + g.label + ' termékek <i>&rarr;</i></a>' +
         '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
       grid.appendChild(w);
-      searchCount(url, function (n) {  /* cached 24 h: searches are slow on the shop */
+      searchCount(url, function (n) {  /* cached 1 h per visitor: searches are slow on the shop */
         if (n) { w.querySelector('.btn').innerHTML = g.label + ' termékek (' + n + ') <i>&rarr;</i>'; }
       });
     });
