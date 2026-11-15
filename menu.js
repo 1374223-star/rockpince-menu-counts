@@ -3400,3 +3400,44 @@
   var tries = 0;
   (function wait() { if (!apply() && tries++ < 40) { setTimeout(wait, 200); } })();
 })();
+
+/* Newsletter thank-you page (owner 2026-11-15: "looks weird, then nothing happens"): the shop shows only a heading.
+   Now a card in the coupon pop-up style says what happens next and offers a way on. */
+(function () {
+  'use strict';
+  if (!/newsletter_subscribe\/thankyou_page/.test(location.search) || window.__rrNlThanks) { return; }
+  window.__rrNlThanks = true;
+  var CHROME = 'linear-gradient(180deg,#f6fcff 0%,#bedef2 42%,#8cb8d8 50%,#96c0de 56%,#def0fb 80%,#96c0de 100%)';
+  var css =
+    '.rr-thx{max-width:620px;margin:16px auto 60px!important;padding:34px 30px 28px;border-radius:12px;text-align:center;color:#e8eef4;' +
+    'background:radial-gradient(ellipse 90% 70% at 50% 15%,#0e4d78 0%,#07304f 45%,#031627 80%,#010811 100%);border:1px solid rgba(127,196,234,.75);' +
+    'box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 28px rgba(127,196,234,.25),0 20px 60px rgba(0,0,0,.55)}' +
+    '.rr-thx .big{font-family:"New Rocker",Georgia,serif;font-size:80px;line-height:.95;background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;' +
+    'color:transparent;filter:drop-shadow(0 2px 0 #031220) drop-shadow(0 6px 14px rgba(0,0,0,.55))}' +
+    '.rr-thx h2{margin:8px 0 12px;font-size:22px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#e3f1fa}' +
+    '.rr-thx p{margin:0 auto 22px;max-width:480px;font-size:15px;line-height:1.6;color:#c4d2df}' +
+    '.rr-thx .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}' +
+    '.rr-thx a.b{flex:1 1 200px;max-width:260px;min-height:54px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px 18px;border-radius:6px;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none!important}' +
+    '.rr-thx a.b1{background:linear-gradient(180deg,#f0453f 0%,#e52421 50%,#b81a17 100%);color:#fff!important;border:1px solid rgba(255,140,130,.45)}' +
+    '.rr-thx a.b2{background:transparent;color:#e3f1fa!important;border:1px solid rgba(127,196,234,.6)}' +
+    '.rr-thx a.b:hover{filter:brightness(1.1)}' +
+    '.page-head-title{text-align:center}';
+  function build() {
+    var h = document.querySelector('h1.page-head-title');
+    if (!h) { return false; }
+    if (document.querySelector('.rr-thx')) { return true; }
+    var f = document.createElement('link'); f.rel = 'stylesheet'; f.href = 'https://fonts.googleapis.com/css2?family=New+Rocker&display=swap'; document.head.appendChild(f);
+    var s = document.createElement('style'); s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+    h.style.display = 'none';
+    var c = document.createElement('div'); c.className = 'rr-thx';
+    c.innerHTML = '<div class="big">-10%</div><h2>Köszönjük, feliratkoztál!</h2>' +
+      '<p>Ha még nem vásároltál nálunk, néhány percen belül megérkezik e-mailben az egyszer használható 10%-os kuponkódod. ' +
+      'Ha nem látod, nézd meg a Promóciók vagy a Spam mappát is.</p>' +
+      '<div class="row"><a class="b b1" data-rr-count-applied="1" href="/ujdonsagok_akciok-15427/ujdonsagok2-18914">Újdonságok megnézése</a>' +
+      '<a class="b b2" data-rr-count-applied="1" href="/">Vissza a főoldalra</a></div>';
+    h.parentNode.insertBefore(c, h.nextSibling);
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();
