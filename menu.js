@@ -2803,7 +2803,7 @@
   window.__rrBands = true;
   if (/checkout|kosar|cart/i.test(location.pathname + location.search)) { return; }
   var BASE = 'https://1374223-star.github.io/rockpince-menu-counts/assets/bands/';
-  var SHOW = 36, SPEED = 32;  /* logos per visit, px per second */
+  var SHOW = 80, SPEED = 32;  /* logos per visit (owner 2026-11-15: was 36), px per second */
   var css =
     '.rr-bands{position:relative;height:58px;overflow:hidden;background:linear-gradient(180deg,rgba(3,16,28,.92),rgba(2,10,20,.96));' +
     'border-top:1px solid rgba(127,196,234,.14);border-bottom:1px solid rgba(127,196,234,.14)}' +
@@ -2814,12 +2814,16 @@
     '.rr-bands-vp.drag{cursor:grabbing}' +
     '.rr-bands-track{display:flex;align-items:center;height:100%;width:max-content;will-change:transform;' +
     'animation:rrbands var(--dur,120s) linear infinite}' +
-    '.rr-bands:hover .rr-bands-track,.rr-bands.paused .rr-bands-track,.rr-bands.off .rr-bands-track{animation-play-state:paused}' +
+    /* hover pause only with a real mouse: on phones the browser keeps the strip "hovered" after a touch, so it never restarted */
+    '.rr-bands.paused .rr-bands-track,.rr-bands.off .rr-bands-track{animation-play-state:paused}' +
+    '@media (hover:hover) and (pointer:fine){.rr-bands:hover .rr-bands-track{animation-play-state:paused}' +
+    '.rr-blogo:hover img{filter:drop-shadow(0 0 5px rgba(140,205,245,.85)) drop-shadow(0 0 12px rgba(90,170,230,.45))}}' +
     '@keyframes rrbands{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}' +
     /* owner 2026-11-15: no visible buttons - the logo itself is the link, tight around it */
     '.rr-blogo{flex:none;display:block;margin-right:28px;opacity:.88;transition:opacity .15s,transform .15s}' +
     '.rr-blogo img{display:block;width:calc(var(--w) * 1px);height:auto;pointer-events:none;-webkit-user-drag:none}' +
     '.rr-blogo:hover{opacity:1;transform:scale(1.06)}' +
+    '.rr-blogo:active img{filter:drop-shadow(0 0 5px rgba(140,205,245,.85))}' +
     '.rr-bands.paused:after{content:"\\275A\\275A";width:auto;right:10px;top:50%;bottom:auto;transform:translateY(-50%);font-size:11px;letter-spacing:-2px;' +
     'color:rgba(160,214,244,.8);background:none}' +
     '.rr-bands-spacer{height:0}' +
