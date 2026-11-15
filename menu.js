@@ -580,10 +580,25 @@
   var GLOW = 'radial-gradient(ellipse 70% 55% at 50% 35%, #0e4d78 0%, #07304f 40%, #031627 75%, #010811 100%)';
   var KNOT = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='22' viewBox='0 0 240 22'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%237fc4ea' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%237fc4ea'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='1' x2='0'%3E%3Cstop offset='0' stop-color='%237fc4ea' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%237fc4ea'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M4 11H100' stroke='url(%23l)' stroke-width='1.5'/%3E%3Cpath d='M140 11H236' stroke='url(%23r)' stroke-width='1.5'/%3E%3Cg fill='none' stroke='%237fc4ea' stroke-width='1.6'%3E%3Cpath d='M120 1A10 10 0 0 1 128.7 16A10 10 0 0 1 120 1Z'/%3E%3Cpath d='M128.7 16A10 10 0 0 1 111.3 16A10 10 0 0 1 128.7 16Z'/%3E%3Cpath d='M111.3 16A10 10 0 0 1 120 1A10 10 0 0 1 111.3 16Z'/%3E%3Ccircle cx='120' cy='11' r='6.2'/%3E%3C/g%3E%3Cpath d='M104 11l3-3 3 3-3 3zM130 11l3-3 3 3-3 3z' fill='%23e52421'/%3E%3C/svg%3E\")";
   var css =
-    'body, .layout-wrapper { background: ' + NOISE + ', ' + GLOW + ' !important; background-attachment: fixed, fixed !important; background-color: #020c18 !important; }' +
+    /* perf (owner 2026-11-15, older phones lagged on scroll): the grain + glow used background-attachment: fixed,
+       which repaints the whole screen on every scroll frame on phones. Now it sits on its own fixed layer that the
+       phone draws once and just keeps while the page scrolls over it. Looks the same. */
+    'html { background: #020c18 !important; }' +
+    'body, .layout-wrapper { background: transparent !important; }' +
+    'body::before { content: ""; position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;' +
+    ' background: ' + NOISE + ', ' + GLOW + '; transform: translateZ(0); }' +
     '.section-wrapper:has(.seoh1-module), .section-wrapper:has(.advantages-module), .module-dealofday-wrapper, .header-bottom {' +
     ' background: ' + NOISE + ', linear-gradient(180deg, rgba(4,28,46,.55), rgba(2,12,24,.75)) !important; }' +
     '.section-wrapper:has(.advantages-module) { border-top: 1px solid rgba(127,196,234,.15); border-bottom: 1px solid rgba(127,196,234,.15); }' +
+    /* perf (owner 2026-11-15): the theme slider's progress line under the thumbnails is resized every frame, which
+       repainted the whole page each frame. Phones: hidden. Desktop: boxed in, so only the line itself repaints. */
+    '.banner-progress__bar { contain: strict; will-change: transform; }' +
+    '.slide--nav { contain: layout paint; }' +
+    '@media (max-width: 991px), (hover: none) { .banner-progress__bar, .banner-progress { display: none !important; } }' +
+    /* phones: glow only, no grain texture (owner 2026-11-15) - cheaper to draw, the grain is hardly visible there */
+    '@media (max-width: 767px) { body::before { background: ' + GLOW + '; }' +
+    ' .section-wrapper:has(.seoh1-module), .section-wrapper:has(.advantages-module), .module-dealofday-wrapper, .header-bottom {' +
+    ' background: linear-gradient(180deg, rgba(4,28,46,.55), rgba(2,12,24,.75)) !important; } }' +
     '.module-dealofday-wrapper .module-body::after { background: linear-gradient(180deg, rgba(14,77,120,.28), rgba(3,22,39,.28)) !important; border: 1px solid rgba(127,196,234,.14); }' +
     '.home-body .main-content .module-head-title::after { content: ""; display: block; width: 240px; height: 22px; margin: 12px auto 0; background: ' + KNOT + ' center/contain no-repeat; }' +
     /* homepage: skulls either side of the Kiemelt termék block */
@@ -1525,11 +1540,10 @@
     ".partners__item:has(a[href*='www.shoprenter.hu']) { display: none !important; }" +
     '.rr-random-grid:empty { height: 360px; border-radius: 8px;' +
     ' background: repeating-linear-gradient(90deg, rgba(127,196,234,.10) 0 calc(16.666% - 18px), transparent calc(16.666% - 18px) 16.666%);' +
-    ' -webkit-mask: linear-gradient(90deg, #000 40%, rgba(0,0,0,.45) 50%, #000 60%) 0 0/300% 100%;' +
-    ' mask: linear-gradient(90deg, #000 40%, rgba(0,0,0,.45) 50%, #000 60%) 0 0/300% 100%; animation: rrshim 1.4s linear infinite; }' +
+    ' animation: rrshim 1.4s ease-in-out infinite alternate; }' +
     '@media (max-width: 767px) { .rr-random-grid:empty { height: 300px;' +
     ' background: repeating-linear-gradient(90deg, rgba(127,196,234,.10) 0 calc(50% - 8px), transparent calc(50% - 8px) 50%); } }' +
-    '@keyframes rrshim { to { -webkit-mask-position: -150% 0; mask-position: -150% 0; } }';
+    '@keyframes rrshim { from { opacity: 1; } to { opacity: .45; } }';
   var style = document.createElement('style');
   style.id = 'rr-round4';
   style.type = 'text/css';
@@ -1728,6 +1742,10 @@
     '.rr-gig .d{font-size:clamp(11.5px,3.6cqw,14px);letter-spacing:.1em;line-height:1.45}.rr-gig .d span{margin:0 5px}' +
     '.rr-gig .stub{margin:12px 14px 0;padding:0;border-top:0;gap:0}' +
     '.rr-gig .btn{padding:13px 18px;font-size:clamp(12.5px,4cqw,15px)}' +
+    /* perf on phones (owner 2026-11-15): no blurred shadows, each tile drawn once on its own */
+    '.rr-gig{box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,222,150,.09),0 6px 14px rgba(0,0,0,.45);contain:paint}' +
+    '.rr-gig h3{filter:drop-shadow(0 2px 0 #1a1206)}' +
+    '.rr-gig .btn{box-shadow:0 4px 0 var(--btnsh),inset 0 1px 0 rgba(255,255,255,.55)}' +
     '}' +
     '@container gig (min-width:600px){' +
     '.rr-gig{flex-direction:row;align-items:center;min-height:206px;padding:0;--stub:330px}' +
@@ -2214,15 +2232,17 @@
     '.rr-lights { position: absolute; left: 0; right: 0; top: 0; height: 14px; z-index: 4; pointer-events: none; }' +
     '.rr-lights svg { position: absolute; left: 0; top: 0; width: 100%; height: 8px; }' +
     '.rr-bulb { position: absolute; top: 3px; width: 6px; height: 9px; border-radius: 45% 45% 50% 50% / 40% 40% 60% 60%;' +
-    ' animation: rrtwinkle 2.6s ease-in-out infinite; will-change: opacity; }' +
-    '.rr-xmas.rr-off .rr-bulb { animation-play-state: paused; }' +
+    ' }' +
+    '.rr-bgrp { position: absolute; inset: 0; animation: rrtwinkle 2.6s ease-in-out infinite; will-change: opacity; }' +
+    '.rr-bgrp.g2 { animation-delay: -1.3s; }' +
+    '.rr-xmas.rr-off .rr-bgrp { animation-play-state: paused; }' +
     '.rr-bulb::before { content: ""; position: absolute; left: 1px; top: -2px; width: 4px; height: 3px; background: #2a2a2a; border-radius: 1px; }' +
     '.rr-bulb.c0 { background: #ff4b4b; box-shadow: 0 0 6px 2px rgba(255,75,75,.75); }' +
     '.rr-bulb.c1 { background: #4dff88; box-shadow: 0 0 6px 2px rgba(77,255,136,.7); }' +
     '.rr-bulb.c2 { background: #ffd34d; box-shadow: 0 0 6px 2px rgba(255,211,77,.75); }' +
     '.rr-bulb.c3 { background: #7fd4ff; box-shadow: 0 0 6px 2px rgba(127,212,255,.75); }' +
     '@keyframes rrtwinkle { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }' +
-    '@media (prefers-reduced-motion: reduce) { .rr-bulb { animation: none; } }';
+    '@media (prefers-reduced-motion: reduce) { .rr-bgrp { animation: none; } }';
   var style = document.createElement('style');
   style.id = 'rr-round6';
   style.appendChild(document.createTextNode(css));
@@ -2403,13 +2423,16 @@
     box.style.width = (n * step) + 'px';
     box.innerHTML = '<svg viewBox="0 0 ' + (n * step) + ' 8" preserveAspectRatio="none"><path d="' + path +
       '" fill="none" stroke="#1d2a1d" stroke-width="1.6"/></svg>';
+    /* perf (owner 2026-11-15): two groups that blink in turn (2 layers for the phone, not one per bulb) */
+    var groups = [document.createElement('div'), document.createElement('div')];
+    groups[0].className = 'rr-bgrp'; groups[1].className = 'rr-bgrp g2';
     for (var j = 0; j < n; j++) {
       var b = document.createElement('span');
       b.className = 'rr-bulb c' + (j % 4);
       b.style.left = (j * step + step / 2 - 3) + 'px';
-      b.style.animationDelay = (-Math.random() * 2.6).toFixed(2) + 's';
-      box.appendChild(b);
+      groups[j % 2].appendChild(b);
     }
+    box.appendChild(groups[0]); box.appendChild(groups[1]);
     bar.appendChild(box);
   }
   function snow(bar) {
@@ -2453,6 +2476,33 @@
     }
     requestAnimationFrame(frame);
   }
+  function cssSnow(bar) {
+    if (!document.getElementById('rr-snowcss')) {
+      var dot = function (x, y, r, a) { return 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,255,255,' + a + ') ' + r + 'px, transparent ' + (r + 0.6) + 'px)'; };
+      var near = [], far = [];
+      for (var i = 0; i < 14; i++) {
+        near.push(dot(Math.round(Math.random() * 180), Math.round(Math.random() * 120), (1.2 + Math.random() * 0.9).toFixed(1), (0.6 + Math.random() * 0.3).toFixed(2)));
+        far.push(dot(Math.round(Math.random() * 120), Math.round(Math.random() * 90), (0.6 + Math.random() * 0.5).toFixed(1), (0.3 + Math.random() * 0.25).toFixed(2)));
+      }
+      var st = document.createElement('style');
+      st.id = 'rr-snowcss';
+      st.textContent =
+        '.rr-snowl{position:absolute;left:0;right:0;top:-120px;height:calc(100% + 120px);z-index:2;pointer-events:none;will-change:transform;' +
+        'animation:rrsnow 7s linear infinite}' +
+        '.rr-snowl.n{background:' + near.join(',') + ';background-size:180px 120px}' +
+        '.rr-snowl.f{top:-90px;height:calc(100% + 90px);background:' + far.join(',') + ';background-size:120px 90px;animation-duration:11s}' +
+        '.rr-xmas.rr-off .rr-snowl{animation-play-state:paused}' +
+        '@keyframes rrsnow{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,120px,0)}}' +
+        '.rr-snowl.f{animation-name:rrsnowf}@keyframes rrsnowf{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,90px,0)}}';
+      document.head.appendChild(st);
+    }
+    var f = document.createElement('div'); f.className = 'rr-snowl f';
+    var n = document.createElement('div'); n.className = 'rr-snowl n';
+    bar.appendChild(f); bar.appendChild(n);
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (e) { bar.classList.toggle('rr-off', !e[0].isIntersecting); }).observe(bar);
+    }
+  }
   var tries = 0;
   (function wait() {
     var bar = document.querySelector('.rr-xmas');
@@ -2460,7 +2510,10 @@
     if (bar.getAttribute('data-rr-deco')) { return; }
     bar.setAttribute('data-rr-deco', '1');
     /* perf: decorate after the page has loaded, so it does not slow the first paint on older phones */
-    function go() { setTimeout(function () { lights(bar); if (!reduce) { snow(bar); } }, 300); }
+    /* phones/tablets (owner 2026-11-15, top of page lagged): the canvas snow made the phone repaint the whole top
+       of the page every frame. There the snow is two dotted layers slid by the graphics chip instead (no repaint). */
+    var light = (window.matchMedia && matchMedia('(hover: none), (max-width: 991px)').matches);
+    function go() { setTimeout(function () { lights(bar); if (!reduce) { if (light) { cssSnow(bar); } else { snow(bar); } } }, 300); }
     if (document.readyState === 'complete') { go(); } else { window.addEventListener('load', go); }
   })();
 })();
