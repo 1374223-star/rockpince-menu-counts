@@ -2789,3 +2789,154 @@
     });
   }
 })();
+
+/* Band logo strip (owner 2026-11-15): a row of band-logo buttons slowly sliding under the search bar, above the
+   category bar, on every page except cart/checkout. Logos: assets/bands/*.webp built by band-logos/make_logos.py
+   (393 bands, each has products). Each visit shows 36 at random (bands with more products come up more often).
+   PC: hovering stops it, the mouse can also drag it. Phone: drag left/right with a finger, a tap on an empty
+   gap stops / restarts it, a tap on a logo opens that band's search. Hidden once the page is scrolled (the header
+   stays stuck to the top), a spacer keeps the page from jumping. Smooth on old phones: the slide is a single
+   GPU-moved layer, no script runs while it slides. */
+(function () {
+  'use strict';
+  if (window.__rrBands) { return; }
+  window.__rrBands = true;
+  if (/checkout|kosar|cart/i.test(location.pathname + location.search)) { return; }
+  var BASE = 'https://1374223-star.github.io/rockpince-menu-counts/assets/bands/';
+  var SHOW = 36, SPEED = 32;  /* logos per visit, px per second */
+  var css =
+    '.rr-bands{position:relative;height:58px;overflow:hidden;background:linear-gradient(180deg,rgba(3,16,28,.92),rgba(2,10,20,.96));' +
+    'border-top:1px solid rgba(127,196,234,.14);border-bottom:1px solid rgba(127,196,234,.14)}' +
+    '.rr-bands:before,.rr-bands:after{content:"";position:absolute;top:0;bottom:0;width:48px;z-index:2;pointer-events:none}' +
+    '.rr-bands:before{left:0;background:linear-gradient(90deg,#020b16,rgba(2,11,22,0))}' +
+    '.rr-bands:after{right:0;background:linear-gradient(270deg,#020b16,rgba(2,11,22,0))}' +
+    '.rr-bands-vp{height:100%;overflow:hidden;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}' +
+    '.rr-bands-vp.drag{cursor:grabbing}' +
+    '.rr-bands-track{display:flex;align-items:center;height:100%;width:max-content;will-change:transform;' +
+    'animation:rrbands var(--dur,120s) linear infinite}' +
+    '.rr-bands:hover .rr-bands-track,.rr-bands.paused .rr-bands-track,.rr-bands.off .rr-bands-track{animation-play-state:paused}' +
+    '@keyframes rrbands{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}' +
+    /* owner 2026-11-15: no visible buttons - the logo itself is the link, tight around it */
+    '.rr-blogo{flex:none;display:block;margin-right:28px;opacity:.88;transition:opacity .15s,transform .15s}' +
+    '.rr-blogo img{display:block;width:calc(var(--w) * 1px);height:auto;pointer-events:none;-webkit-user-drag:none}' +
+    '.rr-blogo:hover{opacity:1;transform:scale(1.06)}' +
+    '.rr-bands.paused:after{content:"\\275A\\275A";width:auto;right:10px;top:50%;bottom:auto;transform:translateY(-50%);font-size:11px;letter-spacing:-2px;' +
+    'color:rgba(160,214,244,.8);background:none}' +
+    '.rr-bands-spacer{height:0}' +
+    '.header-sticky.headroom--not-top .rr-bands{display:none}' +
+    '@media (max-width:991px){.rr-bands{height:50px}.rr-blogo{margin-right:22px}.rr-blogo img{width:calc(var(--w) * .82px)}' +
+    '.rr-bands:before,.rr-bands:after{width:28px}}' +
+    '@media (prefers-reduced-motion: reduce){.rr-bands-track{animation:none}.rr-bands-vp{overflow-x:auto}}';
+
+  function pick(all) {
+    var pool = all.slice(), out = [];
+    while (out.length < SHOW && pool.length) {
+      var tot = 0, i;
+      for (i = 0; i < pool.length; i++) { tot += Math.sqrt(pool[i].c || 1) + 1; }
+      var r = Math.random() * tot;
+      for (i = 0; i < pool.length; i++) { r -= Math.sqrt(pool[i].c || 1) + 1; if (r <= 0) { break; } }
+      out.push(pool.splice(Math.min(i, pool.length - 1), 1)[0]);
+    }
+    return out;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function build(all) {
+    var header = document.querySelector('.section-wrapper.header-sticky .header') || document.querySelector('.header');
+    var sticky = document.querySelector('.section-wrapper.header-sticky');
+    if (!header || document.querySelector('.rr-bands')) { return; }
+    var st = document.createElement('style'); st.id = 'rr-bands-css'; st.appendChild(document.createTextNode(css));
+    document.head.appendChild(st);
+    var list = pick(all), html = '';
+    for (var k = 0; k < 2; k++) {  /* two copies: the slide loops seamlessly at -50% */
+      for (var i = 0; i < list.length; i++) {
+        var b = list[i];
+        html += '<a class="rr-blogo" draggable="false" href="/index.php?route=product/list&amp;keyword=' + encodeURIComponent(b.k.toLowerCase()) +
+          '" title="' + esc(b.n) + '"' + (k ? ' aria-hidden="true" tabindex="-1"' : '') + '><img src="' + BASE + b.s + '.webp" alt="' + esc(b.n) +
+          '" width="' + b.w + '" height="' + b.h + '" style="--w:' + b.w + '" loading="lazy" decoding="async" draggable="false"></a>';
+      }
+    }
+    var box = document.createElement('div');
+    box.className = 'rr-bands';
+    box.setAttribute('aria-label', 'Zenekarok');
+    box.innerHTML = '<div class="rr-bands-vp"><div class="rr-bands-track">' + html + '</div></div>';
+    var bottom = header.querySelector('.header-bottom');
+    if (bottom) { header.insertBefore(box, bottom); } else { header.appendChild(box); }
+    /* the strip hides once the page is scrolled; where the theme does not keep the header's height (phones),
+       a spacer takes its place so the page does not jump. Measured, so it is 0 where the theme already does it (PC). */
+    if (sticky && sticky.parentNode && window.MutationObserver) {
+      var sp = document.createElement('div'); sp.className = 'rr-bands-spacer';
+      sticky.parentNode.insertBefore(sp, sticky.nextSibling);
+      var full = 0;
+      var fit = function () {
+        if (/headroom--not-top/.test(sticky.className)) { sp.style.height = Math.max(0, full - sticky.offsetHeight) + 'px'; }
+        else { sp.style.height = '0'; full = sticky.offsetHeight; }
+      };
+      fit();
+      new MutationObserver(fit).observe(sticky, { attributes: true, attributeFilter: ['class'] });
+    }
+    var vp = box.querySelector('.rr-bands-vp'), track = box.querySelector('.rr-bands-track');
+    var half = 0, dur = 120;
+    function measure() {
+      half = track.scrollWidth / 2;
+      dur = Math.max(30, half / SPEED);
+      track.style.setProperty('--dur', dur.toFixed(1) + 's');
+    }
+    measure();
+    window.addEventListener('resize', function () { measure(); });
+
+    /* dragging: freeze the slide where it is, follow the finger/mouse, then let it carry on from there */
+    var down = false, moved = false, sx = 0, base = 0, x = 0, pid = null;
+    function current() {
+      var m = getComputedStyle(track).transform;
+      if (!m || m === 'none') { return 0; }
+      var v = m.match(/matrix(3d)?\(([^)]+)\)/);
+      if (!v) { return 0; }
+      var n = v[2].split(',').map(Number);
+      return v[1] ? n[12] : n[4];
+    }
+    function wrap(v) { if (!half) { return v; } while (v > 0) { v -= half; } while (v <= -half) { v += half; } return v; }
+    vp.addEventListener('pointerdown', function (e) {
+      if (e.button && e.button !== 0) { return; }
+      down = true; moved = false; sx = e.clientX; pid = e.pointerId;
+      base = current(); x = base;
+      track.style.animation = 'none';
+      track.style.transform = 'translate3d(' + base + 'px,0,0)';
+    });
+    vp.addEventListener('pointermove', function (e) {
+      if (!down || e.pointerId !== pid) { return; }
+      var dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) > 6) { moved = true; vp.classList.add('drag'); try { vp.setPointerCapture(pid); } catch (er) { /* */ } }
+      if (moved) { x = wrap(base + dx); track.style.transform = 'translate3d(' + x + 'px,0,0)'; }
+    });
+    function release(e) {
+      if (!down) { return; }
+      down = false; vp.classList.remove('drag');
+      var p = half ? -x / half : 0;
+      track.style.transform = '';
+      track.style.animation = '';
+      track.style.animationDelay = (-(p * dur)).toFixed(2) + 's';
+      /* a tap (no drag) on an empty gap stops / restarts the slide */
+      if (!moved && e && e.type === 'pointerup' && !(e.target.closest && e.target.closest('.rr-blogo'))) { box.classList.toggle('paused'); }
+    }
+    vp.addEventListener('pointerup', release);
+    vp.addEventListener('pointercancel', release);
+    vp.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    vp.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (en) { box.classList.toggle('off', !en[0].isIntersecting); }).observe(box);
+    }
+  }
+
+  function start() {
+    var x = new XMLHttpRequest();
+    x.open('GET', BASE + 'bands.json', true);
+    x.onload = function () {
+      var all = [];
+      try { all = JSON.parse(x.responseText); } catch (e) { return; }
+      if (all.length) { build(all); }
+    };
+    x.send();
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
