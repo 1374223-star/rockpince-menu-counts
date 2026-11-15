@@ -2772,7 +2772,7 @@
       '<input type="email" name="em" placeholder="E-mail cím" autocomplete="email" required>' +
       '<label><input type="checkbox" name="ok"> Hozzájárulok ahhoz, hogy a Ragnarock - webáruház a nevemet és e-mail címemet hírlevelezési céllal kezelje és a részemre gazdasági reklámot is tartalmazó email hírleveleket küldjön.</label>' +
       '<div class="err"></div><button type="submit" class="go">Kérem a kupont</button></form>' +
-      '<div class="fine">Egyszer használható kupon, 30 napig érvényes. Leiratkozni bármikor lehet.</div></div></div>';
+      '<div class="fine">Személyenként egy kupon jár, 30 napig érvényes. Ideiglenes vagy több e-mail címmel kért kuponokat érvénytelenítünk. Leiratkozni bármikor lehet.</div></div></div>';
     document.body.appendChild(bg);
     setTimeout(function () { bg.classList.add('show'); }, 20);
     function close() { bg.classList.remove('show'); setTimeout(function () { if (bg.parentNode) { bg.parentNode.removeChild(bg); } }, 250); }
@@ -3392,7 +3392,7 @@
     var b = box.querySelector('.subscribe-button');
     if (b && !box.querySelector('.rr-nls-fine')) {
       var f = document.createElement('div'); f.className = 'rr-nls-fine';
-      f.textContent = 'Egyszer használható kupon, 30 napig érvényes. Leiratkozni bármikor lehet.';
+      f.textContent = 'Személyenként egy kupon jár, 30 napig érvényes. Ideiglenes vagy több e-mail címmel kért kuponokat érvénytelenítünk. Leiratkozni bármikor lehet.';
       b.parentNode.appendChild(f);
     }
     return true;
