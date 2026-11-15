@@ -3454,3 +3454,86 @@
     '.information-page-body .breadcrumb-item.active{color:#c4d2df!important}';
   (document.head || document.documentElement).appendChild(st);
 })();
+
+/* Kapcsolat page (owner 2026-11-16): no skull banner; big e-mail and phone buttons with icons, shop card with
+   address, hours and route planning, social links, and the contact form restyled as a dark card. */
+(function () {
+  if (window.__rrContact) { return; }
+  window.__rrContact = true;
+  if (!document.body || !/\bcontact-page-body\b/.test(document.body.className)) { return; }
+  var IC = {
+    mail: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+    tel: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+  };
+  var F = '.contact-page-body .contact-content-form';
+  var css =
+    '.contact-page-body #contact-info{margin:0 0 26px}' +
+    '.rr-ct{max-width:1000px;margin:0 auto;color:#c4d2df;font-size:15px;line-height:1.6}' +
+    '.rr-ct .lead{text-align:center;margin:0 0 20px;color:#c4d2df}' +
+    '.rr-ct .btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 16px}' +
+    '.rr-ct .big{display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:12px;text-decoration:none!important;color:#fff!important;' +
+      'background:linear-gradient(180deg,#14659c,#0a3a5e);border:1px solid rgba(127,196,234,.6);box-shadow:0 0 18px rgba(80,170,230,.18);transition:box-shadow .2s,border-color .2s}' +
+    '.rr-ct .big:hover{border-color:#9fd6f7;box-shadow:0 0 26px rgba(120,200,250,.4)}' +
+    '.rr-ct .big .ic{flex:0 0 52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);color:#bfe6ff}' +
+    '.rr-ct .big small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9fd6f7}' +
+    '.rr-ct .big b{display:block;font-size:20px;font-weight:800;letter-spacing:.01em;color:#fff}' +
+    '.rr-ct .shop{display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:center;padding:18px 22px;border-radius:12px;background:#06243b;border:1px solid rgba(127,196,234,.35)}' +
+    '.rr-ct .shop .ln{display:flex;gap:10px;align-items:flex-start;color:#d6e2ec}' +
+    '.rr-ct .shop .ln svg{flex:0 0 auto;color:#9fd6f7;margin-top:1px}' +
+    '.rr-ct .shop h3{margin:0 0 6px;color:#fff;font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}' +
+    '.rr-ct .route{display:inline-block;padding:10px 18px;border-radius:8px;background:#e52421;color:#fff!important;font-weight:700;text-decoration:none!important;white-space:nowrap}' +
+    '.rr-ct .route:hover{background:#ff3a36}' +
+    '.rr-ct .soc{display:flex;gap:10px;justify-content:center;margin:16px 0 0}' +
+    '.rr-ct .soc a{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;border:1px solid rgba(127,196,234,.35);color:#d6e2ec!important;text-decoration:none!important;font-size:14px}' +
+    '.rr-ct .soc a:hover{border-color:#9fd6f7;color:#fff!important}' +
+    '.rr-ct h2{text-align:center;color:#fff;font-size:20px;text-transform:uppercase;letter-spacing:.06em;margin:30px 0 4px}' +
+    '.rr-ct .sub{text-align:center;color:#9fb3c6;margin:0}' +
+    F + '{max-width:1000px;margin:0 auto;padding:22px 24px 6px;border-radius:12px 12px 0 0;background:#06243b;border:1px solid rgba(127,196,234,.35);border-bottom:0}' +
+    '.contact-page-body .contact-buttons{max-width:1000px;margin:0 auto 30px;padding:0 24px 22px;border-radius:0 0 12px 12px;background:#06243b;border:1px solid rgba(127,196,234,.35);border-top:0}' +
+    F + ',' + F + ' *{color:#c4d2df}' +
+    F + ' label,' + F + ' .control-label,' + F + ' label *{color:#fff!important}' +
+    F + ' input[type=text],' + F + ' input[type=email],' + F + ' textarea{background:#031627!important;border:1px solid rgba(127,196,234,.35)!important;border-radius:8px!important;color:#fff!important}' +
+    F + ' input:focus,' + F + ' textarea:focus{border-color:#9fd6f7!important;box-shadow:0 0 0 2px rgba(127,196,234,.2)!important;outline:0}' +
+    F + ' a{color:#9fd6f7!important}' +
+    '.contact-page-body .contact-buttons .btn{background:#e52421!important;border-color:#e52421!important;color:#fff!important;border-radius:8px;padding:12px 30px;font-weight:700}' +
+    '.contact-page-body .contact-buttons .btn:hover{background:#ff3a36!important}' +
+    '@media (max-width:600px){.rr-ct .shop{grid-template-columns:1fr}.rr-ct .route{text-align:center}.rr-ct .big b{font-size:18px}' +
+      F + '{padding:18px 16px 4px}.contact-page-body .contact-buttons{padding:0 16px 18px}.rr-ct .soc{flex-wrap:wrap}}';
+  function socials() {
+    var out = [], seen = {};
+    var names = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' };
+    [].forEach.call(document.querySelectorAll('a[href*="facebook.com"],a[href*="instagram.com"],a[href*="tiktok.com"]'), function (a) {
+      var k = /facebook/.test(a.href) ? 'facebook' : /instagram/.test(a.href) ? 'instagram' : 'tiktok';
+      if (seen[k] || /sharer|share\?/.test(a.href)) { return; }
+      seen[k] = 1;
+      out.push('<a href="' + a.href + '" target="_blank" rel="noopener">' + names[k] + '</a>');
+    });
+    if (!seen.tiktok) { out.push('<a href="https://www.tiktok.com/@ragnarock.hu" target="_blank" rel="noopener">TikTok</a>'); }
+    return out.join('');
+  }
+  function build() {
+    var box = document.getElementById('contact-info');
+    if (!box) { return false; }
+    var st = document.createElement('style'); st.id = 'rr-contact'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    var maps = 'https://www.google.com/maps/search/' + encodeURIComponent('Dózsa György út 19, 1146 Budapest');
+    box.innerHTML =
+      '<div class="rr-ct">' +
+      '<p class="lead">Kérdésed van egy termékről, méretről vagy a rendelésedről? Írj vagy hívj, szívesen segítünk.</p>' +
+      '<div class="btns">' +
+        '<a class="big" href="mailto:info@ragnarock.hu"><span class="ic">' + IC.mail + '</span><span><small>E-mail</small><b>info@ragnarock.hu</b></span></a>' +
+        '<a class="big" href="tel:+36705882134"><span class="ic">' + IC.tel + '</span><span><small>Telefon</small><b>+36 70 588 2134</b></span></a>' +
+      '</div>' +
+      '<div class="shop"><div><h3>RagnaRock üzlet</h3>' +
+        '<div class="ln">' + IC.pin + '<span>1146 Budapest, Dózsa György út 19.</span></div>' +
+        '<div class="ln">' + IC.clock + '<span>Hétfő–péntek 12–18 · Szombat 10–14 · Vasárnap zárva</span></div></div>' +
+        '<a class="route" href="' + maps + '" target="_blank" rel="noopener">Útvonaltervezés</a></div>' +
+      '<div class="soc">' + socials() + '</div>' +
+      '<h2>Írj nekünk</h2><p class="sub">Általában egy munkanapon belül válaszolunk.</p>' +
+      '</div>';
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();
