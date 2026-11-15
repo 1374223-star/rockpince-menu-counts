@@ -3441,3 +3441,16 @@
   var tries = 0;
   (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
 })();
+
+/* Info pages (Szállítás, RagnaRock, Hűségprogram, Kapcsolat): light, readable title + breadcrumb on the dark theme */
+(function () {
+  if (window.__rrInfoText) { return; }
+  window.__rrInfoText = true;
+  var st = document.createElement('style');
+  st.textContent =
+    '.information-page-body h1, .information-page-body .page-head-title, .contact-page-body h1{color:#fff!important}' +
+    '.information-page-body .breadcrumb, .information-page-body .breadcrumb a, .information-page-body .breadcrumb-item,' +
+    '.contact-page-body .breadcrumb, .contact-page-body .breadcrumb a, .contact-page-body .breadcrumb-item{color:#9fb3c6!important}' +
+    '.information-page-body .breadcrumb-item.active{color:#c4d2df!important}';
+  (document.head || document.documentElement).appendChild(st);
+})();
