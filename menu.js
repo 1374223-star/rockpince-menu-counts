@@ -4447,8 +4447,14 @@
     [/\bband and other clothes\b/gi, 'Band merch & other clothing'],
     [/\bour business\b/gi, 'Our store'],
     [/\brock cellar\b/gi, 'RockPince'],
-    [/\brock basement\b/gi, 'RockPince']
+    [/\brock basement\b/gi, 'RockPince'],
+    [/\bblack beard\b/gi, 'Barba Negra']   /* the concert venue's name */
   ];
+  /* Hungarian text Google leaves as it is (lazy carousel cards, <option> labels), English only, exact matches */
+  var LEFT_EN = { 'MÉRET': 'SIZE', 'Méret': 'Size', 'méret': 'size', 'VILLÁMNÉZET': 'QUICK VIEW', 'Villámnézet': 'Quick view',
+    'Kívánságlistára teszem': 'Add to wishlist', 'KOSÁRBA': 'ADD TO CART', 'Kosárba': 'Add to cart', 'ÚJ TERMÉK': 'NEW', 'Új termék': 'New',
+    'Válassz méretet': 'Choose size', 'VÁLASSZ MÉRETET': 'CHOOSE SIZE', 'Méret választás': 'Choose size' };
+  var PH_EN = { 'Vezetéknév': 'Last name', 'Keresztnév': 'First name', 'E-mail cím': 'Email address', 'E-mail': 'Email', 'Jelszó': 'Password' };
   function lang() { return String(document.documentElement.lang || '').toLowerCase().split('-')[0]; }
   function active() { return /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className) && lang() && lang() !== 'hu'; }
   function keepCase(src, rep) {
@@ -4470,8 +4476,11 @@
         el.placeholder = SEARCH[lang()] || SEARCH.en;
       } else if (el.hasAttribute('data-rr-ph')) { el.placeholder = el.getAttribute('data-rr-ph'); el.removeAttribute('data-rr-ph'); }
     }
+    if (!on) {   /* the form fields renamed in English */
+      [].forEach.call(document.querySelectorAll('input[data-rr-ph]'), function (el) { el.placeholder = el.getAttribute('data-rr-ph'); el.removeAttribute('data-rr-ph'); });
+    }
   }
-  var timer = null, bodyObs = null, fixing = false;
+  var timer = null, bodyObs = null, fixing = false, swapped = [];
   function sweep() {
     timer = null;
     if (!active()) { return; }
@@ -4481,8 +4490,15 @@
     var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
     while ((n = w.nextNode())) {
       var v = n.nodeValue;
-      if (v && v.length > 2 && /[a-z]/i.test(v)) { var f = fixText(v); if (f !== v) { n.nodeValue = f; } }
+      if (!v || v.length < 3) { continue; }
+      var k = v.trim();
+      if (LEFT_EN[k]) { if (n.__rrOrig == null) { n.__rrOrig = v; swapped.push(n); } n.nodeValue = v.replace(k, LEFT_EN[k]); continue; }
+      if (/[a-z]/i.test(v)) { var f = fixText(v); if (f !== v) { n.nodeValue = f; } }
     }
+    [].forEach.call(document.querySelectorAll('input[placeholder]'), function (el) {
+      var o = el.getAttribute('data-rr-ph') != null ? el.getAttribute('data-rr-ph') : el.placeholder;
+      if (PH_EN[o]) { if (el.getAttribute('data-rr-ph') == null) { el.setAttribute('data-rr-ph', o); } el.placeholder = PH_EN[o]; }
+    });
     var t = fixText(document.title); if (t !== document.title) { document.title = t; }
     fixing = false;
   }
@@ -4497,6 +4513,8 @@
     } else {
       if (bodyObs) { bodyObs.disconnect(); bodyObs = null; }
       placeholders(false);
+      swapped.forEach(function (n) { if (n.__rrOrig != null) { n.nodeValue = n.__rrOrig; n.__rrOrig = null; } });   /* Google only restores what it translated */
+      swapped = [];
     }
   }
   if (window.MutationObserver) {
