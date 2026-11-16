@@ -4070,3 +4070,28 @@
   x.send();
   (function wait() { if (!(all && all.length && build(all)) && tries++ < 60) { setTimeout(wait, 250); } })();
 })();
+
+/* Footer (owner 2026-11-16): the public e-mail is info@ragnarock.hu (the shop's system address stays as it is in the
+   admin, because order e-mails use it), and the PayPal logo goes: PayPal is no longer offered. */
+(function () {
+  if (window.__rrFooter) { return; }
+  window.__rrFooter = true;
+  var OLD = 'info@rockpince.hu', NEW = 'info@ragnarock.hu';
+  var st = document.createElement('style'); st.id = 'rr-footer';
+  st.textContent = '.partner__link[href*="paypal"],.partner:has(.partner__link[href*="paypal"]){display:none!important}';
+  (document.head || document.documentElement).appendChild(st);
+  function fix() {
+    var f = document.querySelector('footer');
+    if (!f) { return false; }
+    [].forEach.call(f.querySelectorAll('a[href^="mailto:"]'), function (a) {
+      if (a.getAttribute('href').indexOf(OLD) >= 0) { a.setAttribute('href', 'mailto:' + NEW); }
+      if (a.textContent.indexOf(OLD) >= 0) { a.textContent = a.textContent.split(OLD).join(NEW); }
+    });
+    [].forEach.call(f.querySelectorAll('.partner__link[href*="paypal"]'), function (a) {
+      var p = a.closest('.partner, li, .col, [class*="partner-item"]'); (p && p !== f ? p : a).style.display = 'none';
+    });
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!fix() && tries++ < 40) { setTimeout(wait, 250); } })();
+})();
