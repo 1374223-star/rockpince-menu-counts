@@ -5114,6 +5114,18 @@
   window.__rrTtEvents = true;
   var MAP = { view_item: 'ViewContent', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'CompletePayment' };
   var sent = {};
+  /* Meta InitiateCheckout from code (owner OK 2026-11-16). The Events Manager button rule "tovább pénztárba" sent it with
+     1.18 HUF (it read the net "1.181 Ft"); that rule is deleted and this sends the gross basket value once per checkout.
+     Meta's own consent handling (fbq consent revoke/grant) still applies. */
+  function metaCheckout(p, items) {
+    var qty = 0, n = 0;
+    for (var k = 0; k < items.length; k++) { qty += Number(items[k].quantity || 1); }
+    var data = { value: Number(p.value || 0), currency: p.currency || 'HUF', num_items: qty };
+    (function wait() {
+      if (typeof window.fbq === 'function') { try { window.fbq('track', 'InitiateCheckout', data); } catch (x) {} }
+      else if (n++ < 40) { setTimeout(wait, 250); }
+    })();
+  }
   function forward(e) {
     if (!e || typeof e !== 'object') { return; }
     var name = e[0] === 'event' ? e[1] : null, p = e[0] === 'event' ? e[2] : null;
@@ -5125,6 +5137,7 @@
     var key = name + '|' + (p.transaction_id || '') + '|' + items.map(function (i) { return i.item_id + 'x' + Number(i.quantity || 1); }).join(',') + '|' + Number(p.value || 0);
     if (name !== 'add_to_cart' && sent[key]) { return; }
     sent[key] = 1;
+    if (name === 'begin_checkout') { metaCheckout(p, items); }
     var data = {
       contents: items.map(function (i) { return { content_id: String(i.item_id || ''), content_type: 'product', content_name: i.item_name || '', quantity: Number(i.quantity || 1), price: Number(i.price || 0) }; }),
       value: Number(p.value || 0), currency: p.currency || 'HUF'
