@@ -151,6 +151,23 @@
     var count = document.createElement('span');
     count.className = 'rr-category-count';
     count.textContent = ' [' + data[id][1] + ']';
+    if (String(element.tagName).toUpperCase() === 'H1' && element.parentNode) {
+      /* SEO (owner 2026-11-17): the count stays visible right after the heading but outside the <h1>, so the heading
+         Google reads is just the category name; same font, same line */
+      var cs = getComputedStyle(element), row = document.createElement('div');
+      row.className = 'rr-h1row';
+      row.style.cssText = 'display:flex;flex-wrap:wrap;align-items:baseline;column-gap:.28em;margin:' + cs.marginTop + ' 0 ' + cs.marginBottom;
+      element.parentNode.insertBefore(row, element);
+      row.appendChild(element);
+      element.style.setProperty('margin', '0', 'important');
+      count.className = 'rr-category-count rr-h1-count';
+      count.setAttribute('aria-hidden', 'true');
+      ['fontSize', 'fontWeight', 'fontFamily', 'color', 'letterSpacing', 'textTransform', 'lineHeight'].forEach(function (k) { count.style[k] = cs[k]; });
+      count.textContent = '[' + data[id][1] + ']';
+      row.appendChild(count);
+      element.setAttribute('data-rr-count-applied', '1');
+      return;
+    }
     element.appendChild(count);
     element.setAttribute('data-rr-count-applied', '1');
   }
@@ -1306,7 +1323,7 @@
     var url = next.getAttribute('href');
     function count() {
       var shown = g.querySelectorAll('.product-snapshot').length;
-      var total = ((document.querySelector('h1') || {}).textContent || '').match(/\[(\d+)\]/);
+      var total = ((document.querySelector('.rr-h1-count') || document.querySelector('h1') || {}).textContent || '').match(/\[(\d+)\]/);
       info.textContent = shown + (total ? ' / ' + total[1] : '') + ' termék';
     }
     count();
@@ -4717,4 +4734,93 @@
   }
   var tries = 0;
   (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();
+
+/* SEO (owner 2026-11-17). Google reads the rendered page, so these additions count:
+   - home: store details (address, opening hours, phone, map point, socials) and the site search box, as JSON-LD;
+   - product pages: brand, shipping cost and return policy added to the shop's own Product / Offer markup.
+     Brand = a known brand in the product name, otherwise "Viking" (owner: RagnaRock is never shown as a brand).
+     Shipping: GLS 1 850 Ft, free from 30 000 Ft. Returns: 14 days by GLS exchange parcel, free when it is our fault
+     (broken / wrong item), 1 500 Ft when it is the buyer's (wrong size);
+   - product photos without a description get the product name as alt text;
+   - page 2+ of a category: "noindex, follow" instead of "noindex, nofollow", so Google still follows the products. */
+(function () {
+  if (window.__rrSeo) { return; }
+  window.__rrSeo = true;
+  var SITE = 'https://www.rockpince.hu/';
+  var body = document.body ? document.body.className : '';
+  function ld(obj, id) {
+    if (document.getElementById(id)) { return; }
+    var s = document.createElement('script'); s.type = 'application/ld+json'; s.id = id; s.textContent = JSON.stringify(obj);
+    (document.head || document.documentElement).appendChild(s);
+  }
+  function meta(parent, prop, content) { var m = document.createElement('meta'); m.setAttribute('itemprop', prop); m.setAttribute('content', content); parent.appendChild(m); return m; }
+  function link(parent, prop, href) { var l = document.createElement('link'); l.setAttribute('itemprop', prop); l.setAttribute('href', href); parent.appendChild(l); return l; }
+  function scope(parent, prop, type) { var d = document.createElement('div'); d.setAttribute('itemprop', prop); d.setAttribute('itemscope', ''); d.setAttribute('itemtype', 'https://schema.org/' + type); d.hidden = true; parent.appendChild(d); return d; }
+
+  /* ---------- home: the store + the site search box ---------- */
+  if (/home-body/.test(body) || location.pathname === '/' || location.pathname === '/index.php' && !location.search) {
+    ld({ '@context': 'https://schema.org', '@type': 'ClothingStore', '@id': SITE + '#store',
+      name: 'RagnaRock Rock & Metal Shop', alternateName: ['RagnaRock', 'Rockpince'], url: SITE,
+      logo: 'https://1374223-star.github.io/rockpince-menu-counts/assets/mail/logo.png',
+      image: ['https://1374223-star.github.io/rockpince-menu-counts/assets/shop/uzletunk_bolt_2026.webp'],
+      description: 'Magyarország legnagyobb rock és alternatív ruházati webshopja és boltja: zenekaros pólók, pulóverek, bakancsok, kiegészítők és dísztárgyak Budapesten.',
+      telephone: '+36705882134', email: 'info@ragnarock.hu', priceRange: '990–150 000 Ft', currenciesAccepted: 'HUF',
+      address: { '@type': 'PostalAddress', streetAddress: 'Dózsa György út 19.', addressLocality: 'Budapest', postalCode: '1146', addressRegion: 'Budapest', addressCountry: 'HU' },
+      geo: { '@type': 'GeoCoordinates', latitude: 47.50566, longitude: 19.08687 },
+      hasMap: 'https://www.google.com/maps?q=47.50566,19.08687',
+      openingHoursSpecification: [
+        { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '12:00', closes: '18:00' },
+        { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Saturday', opens: '10:00', closes: '14:00' }],
+      sameAs: ['https://www.facebook.com/Rockpincehu-192771484084237', 'https://www.instagram.com/ragnarock.hu/', 'https://www.tiktok.com/@ragnarock.hu'] }, 'rr-ld-store');
+    ld({ '@context': 'https://schema.org', '@type': 'WebSite', '@id': SITE + '#website', url: SITE, name: 'RagnaRock', inLanguage: 'hu',
+      publisher: { '@id': SITE + '#store' },
+      potentialAction: { '@type': 'SearchAction', target: { '@type': 'EntryPoint', urlTemplate: SITE + 'index.php?route=product/list&keyword={search_term_string}' },
+        'query-input': 'required name=search_term_string' } }, 'rr-ld-website');
+  }
+
+  /* ---------- page 2+ of a listing: keep it out of the index, but let Google follow the products ---------- */
+  var page = /[?&]page=(\d+)/.exec(location.search);
+  if (page && Number(page[1]) > 1) {
+    var rm = document.querySelector('meta[name="robots"]');
+    if (rm && /nofollow/i.test(rm.content)) { rm.setAttribute('content', 'noindex, follow'); }
+  }
+
+  /* ---------- product page ---------- */
+  if (!/product-page-body/.test(body)) { return; }
+  var BRANDS = ['New Rock', 'Spiral', 'Alchemy', 'Nemesis Now', 'Killstar', 'Brandit', 'Punk Rave', 'Dark In Love', 'Banned', 'Restyle',
+    'Pentagramme', 'Steelground', 'Mil-Tec', 'Rock Rebel', 'Kreepsville', 'Jawbreaker', 'Hell Bunny', 'Poizen', 'Vixxsin', 'Rockabella',
+    'Demonia', 'Altercore', 'Heartless', 'Necessary Evil', 'Too Fast', 'Sourpuss', 'Loungefly', 'Funko'];
+  var tries = 0;
+  (function run() {
+    var prod = document.querySelector('[itemtype$="schema.org/Product"]'), h1 = document.querySelector('h1');
+    if (!prod || !h1) { if (tries++ < 30) { setTimeout(run, 300); } return; }
+    var name = h1.textContent.replace(/\s+/g, ' ').trim();
+    if (!prod.querySelector('[itemprop="brand"]')) {
+      var lower = name.toLowerCase(), brand = 'Viking';
+      for (var i = 0; i < BRANDS.length; i++) { if (lower.indexOf(BRANDS[i].toLowerCase()) >= 0) { brand = BRANDS[i]; break; } }
+      if (brand === 'Viking' && /\bphantom\b/.test(lower)) { brand = 'Brandit'; }   /* Phantom boots are Brandit's */
+      meta(scope(prod, 'brand', 'Brand'), 'name', brand);
+    }
+    [].forEach.call(prod.querySelectorAll('[itemprop="offers"]'), function (offer) {
+      if (offer.querySelector('[itemprop="shippingDetails"]')) { return; }
+      var priceEl = offer.querySelector('[itemprop="price"]'), price = priceEl ? Number(priceEl.getAttribute('content')) : 0;
+      var sd = scope(offer, 'shippingDetails', 'OfferShippingDetails');
+      var rate = scope(sd, 'shippingRate', 'MonetaryAmount'); meta(rate, 'value', price >= 30000 ? '0' : '1850'); meta(rate, 'currency', 'HUF');
+      meta(scope(sd, 'shippingDestination', 'DefinedRegion'), 'addressCountry', 'HU');
+      var rp = scope(offer, 'hasMerchantReturnPolicy', 'MerchantReturnPolicy');
+      meta(rp, 'applicableCountry', 'HU');
+      link(rp, 'returnPolicyCategory', 'https://schema.org/MerchantReturnFiniteReturnWindow');
+      meta(rp, 'merchantReturnDays', '14');
+      link(rp, 'returnMethod', 'https://schema.org/ReturnByMail');
+      link(rp, 'itemDefectReturnFees', 'https://schema.org/FreeReturn');
+      link(rp, 'customerRemorseReturnFees', 'https://schema.org/ReturnShippingFees');
+      var fee = scope(rp, 'customerRemorseReturnShippingFeesAmount', 'MonetaryAmount'); meta(fee, 'value', '1500'); meta(fee, 'currency', 'HUF');
+    });
+    /* photos without a description: the product name (Google Images reads the alt text) */
+    var pics = document.querySelectorAll('#product-image img, .product-image__main img, .product-image-thumbnails img');
+    [].forEach.call(pics, function (im, k) {
+      if (!(im.getAttribute('alt') || '').trim()) { im.setAttribute('alt', name + (k ? ' – ' + (k + 1) + '. kép' : '')); }
+    });
+  })();
 })();
