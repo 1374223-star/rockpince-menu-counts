@@ -3153,6 +3153,17 @@
   }
   function logos() {
     var imgs = document.querySelectorAll('a.header-logo img');
+    /* owner 2026-11-17: the home page keeps the old RagnaRock + RockPince duo logo for now (phone and desktop) */
+    if (document.body && /home-body/.test(document.body.className)) {
+      if (!document.getElementById('rr-duologo')) {
+        var ds = document.createElement('style'); ds.id = 'rr-duologo';
+        ds.textContent = '@media (min-width:992px){.home-body a.header-logo img{width:auto!important;height:auto!important;max-height:96px!important;max-width:150px!important}}' +
+          /* phone: narrow enough to stay clear of the Mjölnir button beside the menu button */
+          '@media (max-width:991px){.home-body a.header-logo img{max-width:min(196px,50vw)!important;width:auto!important;height:auto!important;max-height:84px!important}}';
+        document.head.appendChild(ds);
+      }
+      return imgs.length > 0;
+    }
     for (var i = 0; i < imgs.length; i++) {
       var im = imgs[i], src = im.currentSrc || im.src || '';
       if (im.getAttribute('data-rr-logo')) { continue; }
