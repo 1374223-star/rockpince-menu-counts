@@ -2207,8 +2207,12 @@
     var t = el('div', 'rr-toast', '<button type="button" class="x" aria-label="Bezárás">&times;</button>' + html);
     if (accent) { t.style.borderLeftColor = accent; }
     var bottom = phone() && document.querySelector('.rr-bottomnav') ? 76 : 20;
-    var cookie = document.querySelector('.nanobar');
-    if (cookie && cookie.offsetHeight && getComputedStyle(cookie).display !== 'none') { bottom += cookie.offsetHeight; }
+    /* sit above the visible cookie bar (the first .nanobar is the hidden free-shipping bar; measuring that one put
+       the toast over the "Elfogadom" button, which blocks consent and with it the Meta/TikTok pixels) */
+    var bars = document.querySelectorAll('.nanobar, .nanobar-cookie-box');
+    for (var bi = 0; bi < bars.length; bi++) {
+      if (bars[bi].offsetHeight && getComputedStyle(bars[bi]).display !== 'none') { bottom = Math.max(bottom, bars[bi].offsetHeight + 12); }
+    }
     t.style.bottom = bottom + 'px';
     document.body.appendChild(t);
     setTimeout(function () { t.classList.add('show'); }, 30);
@@ -5116,7 +5120,9 @@
     if (!name && e.event && e.ecommerce) { name = e.event; p = e.ecommerce; }
     if (!MAP[name] || !p) { return; }
     var items = p.items || [];
-    var key = name + '|' + (p.transaction_id || '') + '|' + items.map(function (i) { return i.item_id + 'x' + (i.quantity || 1); }).join(',') + '|' + (p.value || '');
+    /* Shoprenter pushes begin_checkout and purchase twice (GTM object with value "1500.00", gtag call with 1500):
+       compare numbers, not strings, so each goes to TikTok once */
+    var key = name + '|' + (p.transaction_id || '') + '|' + items.map(function (i) { return i.item_id + 'x' + Number(i.quantity || 1); }).join(',') + '|' + Number(p.value || 0);
     if (name !== 'add_to_cart' && sent[key]) { return; }
     sent[key] = 1;
     var data = {
