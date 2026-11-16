@@ -4753,7 +4753,7 @@
 /* SEO (owner 2026-11-17). Google reads the rendered page, so these additions count:
    - home: store details (address, opening hours, phone, map point, socials) and the site search box, as JSON-LD;
    - product pages: brand, shipping cost and return policy added to the shop's own Product / Offer markup.
-     Brand = a known brand in the product name, otherwise "Viking" (owner: RagnaRock is never shown as a brand).
+     Brand = a known brand in the product name, otherwise none (owner: RagnaRock is never shown as a brand).
      Shipping: GLS 1 850 Ft, free from 30 000 Ft. Returns: 14 days by GLS exchange parcel, free when it is our fault
      (broken / wrong item), 1 500 Ft when it is the buyer's (wrong size);
    - product photos without a description get the product name as alt text;
@@ -4811,10 +4811,11 @@
     if (!prod || !h1) { if (tries++ < 30) { setTimeout(run, 300); } return; }
     var name = h1.textContent.replace(/\s+/g, ' ').trim();
     if (!prod.querySelector('[itemprop="brand"]')) {
-      var lower = name.toLowerCase(), brand = 'Viking';
+      /* owner 2026-11-16: no invented brand; only a brand actually named in the product title, else none */
+      var lower = name.toLowerCase(), brand = '';
       for (var i = 0; i < BRANDS.length; i++) { if (lower.indexOf(BRANDS[i].toLowerCase()) >= 0) { brand = BRANDS[i]; break; } }
-      if (brand === 'Viking' && /\bphantom\b/.test(lower)) { brand = 'Brandit'; }   /* Phantom boots are Brandit's */
-      meta(scope(prod, 'brand', 'Brand'), 'name', brand);
+      if (!brand && /\bphantom\b/.test(lower)) { brand = 'Brandit'; }   /* Phantom boots are Brandit's */
+      if (brand) { meta(scope(prod, 'brand', 'Brand'), 'name', brand); }
     }
     [].forEach.call(prod.querySelectorAll('[itemprop="offers"]'), function (offer) {
       if (offer.querySelector('[itemprop="shippingDetails"]')) { return; }
