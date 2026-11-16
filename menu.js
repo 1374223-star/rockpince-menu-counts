@@ -4134,6 +4134,10 @@
   var FREE = 30000, CART = '/index.php?route=checkout/cart';
   var css =
     '.header-middle-right-wrapper{overflow:visible!important}' +
+    /* the theme's own little cart hover box opened to the right, off the screen: the side panel replaces it */
+    '#js-cart .cart-dropdown > :not(.cart-dropdown-toggle),#js-cart .dropdown-menu{display:none!important}' +
+    /* the wishlist dropdown opens downwards, inside the screen, instead of to the right */
+    '#header-middle-wishlist .dropdown-menu{left:auto!important;right:0!important;top:calc(100% + 8px)!important;bottom:auto!important;transform:none!important;margin:0!important}' +
     '.header-middle-right-wrapper > .header-middle-right-box:first-child{border-radius:7px 0 0 7px}' +
     '.header-middle-right-wrapper > .header-middle-right-box:last-child{border-radius:0 7px 7px 0}' +
     '#js-cart .header-quantity-box{position:absolute!important;top:3px!important;right:5px!important;left:auto!important;min-width:18px;height:18px;line-height:18px;padding:0 4px;' +
