@@ -4010,7 +4010,9 @@
   var BASE = 'https://1374223-star.github.io/rockpince-menu-counts/assets/bands/', SHOW = 80, SPEED = 32;
   var css =
     '.rr-bands2{margin:0}' +
-    '.rr-bands2 .rr-bands-track{animation-direction:reverse!important}';
+    '.rr-bands2 .rr-bands-track{animation-direction:reverse!important}' +
+    /* owner: the same 24px gap above the banner as between the banner and this strip */
+    '.section-wrapper:has(+ .rr-bands2){margin-top:24px!important}';
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function pick(all, used) {
     var pool = all.filter(function (b) { return !used[b.s]; }), out = [];
