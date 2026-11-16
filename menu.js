@@ -1573,7 +1573,9 @@
   }
   function apply() {
     var inputs = document.querySelectorAll('.header input[type=text], .header input[type=search]');
-    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = 'Keresés';   /* owner 2026-11-16: just a faint dark-blue "Keresés" */ }
+    for (var i = 0; i < inputs.length; i++) {   /* owner 2026-11-16: just a faint dark-blue "Keresés" (English mode keeps "Search") */
+      if (!inputs[i].hasAttribute('data-rr-hu')) { inputs[i].placeholder = 'Keresés'; }
+    }
     if (!/product-page-body/.test(document.body ? document.body.className : '')) { return; }
     var rows = document.querySelectorAll('.product-parameters tr');
     for (var j = 0; j < rows.length; j++) {
@@ -4513,7 +4515,10 @@
     [/\bredemption\b/gi, 'Apply'],
     [/\bgross total\b/gi, 'Total'],
     [/^availability$/gi, 'Contact details'],
-    [/\bI buy as a company\b/gi, "I'm buying as a company"]
+    [/\bI buy as a company\b/gi, "I'm buying as a company"],
+    /* owner 2026-11-16: "ZENEKAROS" came back as "BANDED", "EGYÉB MINTÁS" as "OTHER PATTERNED" */
+    [/\bbanded\b/gi, 'Band merch'],
+    [/\bother patterned\b/gi, 'Other designs']
   ];
   /* "Még <b>X Ft</b> és <b>ingyenes</b> a szállítás!" comes back as "Even X and free the delivery!" in pieces */
   function fixShipLines() {
@@ -4704,7 +4709,7 @@
     '.rr-cur button{width:38px;height:34px;border:0;background:#06243b;color:#9fb3c6;font-weight:800;font-size:14px;cursor:pointer;padding:0}' +
     '.rr-cur button.on{background:linear-gradient(180deg,#14659c,#0a3a5e);color:#fff}' +
     '.rr-cur button + button{border-top:1px solid rgba(127,196,234,.35)}' +
-    '@media (max-width:991px){.rr-cur{top:auto;bottom:calc(var(--rr-bottomnav,64px) + 86px);transform:none}.rr-cur button{width:34px;height:30px;font-size:13px}}' +
+    '@media (max-width:991px){.rr-cur{top:auto;bottom:calc(var(--rr-bottomnav,64px) + 150px);transform:none}.rr-cur button{width:34px;height:30px;font-size:13px}}' +
     '.rr-cur-toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2147483600;max-width:min(92vw,420px);padding:11px 16px;border-radius:8px;' +
       'background:#06243b;border:1px solid rgba(127,196,234,.6);color:#e6f3fb;font:600 13px/1.4 Poppins,sans-serif;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5)}';
   function toast(t) {
@@ -4902,4 +4907,158 @@
     'html body .rr-bands .rr-blogo:hover img,html body .rr-bands .rr-blogo:active img{filter:none!important}' +
     '}';
   (document.head || document.documentElement).appendChild(st);
+})();
+
+/* Shop's own English mode (owner 2026-11-16: on phones without Google Translate, e.g. Brave, foreign visitors saw
+   every word in Hungarian). Foreign visitors (same test as the EUR prices: no Hungarian browser language and not on
+   Budapest time) get the shop's texts in English: menus, buttons, labels, category names, and the product type in
+   product names ("Unisex Póló" -> "Unisex T-shirt"). HU / EN buttons sit under Ft / € on the left edge and the choice
+   is remembered. Words come from assets/i18n/en.json (built by i18n/build_en.py from the category tree). Hungarian
+   visitors never see any of this. Only text is swapped; the original is kept and put back on switching to HU. */
+(function () {
+  if (window.__rrLang) { return; }
+  window.__rrLang = true;
+  var KEY = 'rr_lang';
+  function store(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function read() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']).join(',');
+  var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+  var foreign = !/(^|,)hu\b/i.test(langs) && tz !== 'Europe/Budapest';
+  var pref = read();
+  if (!foreign && !pref) { return; }
+  var mode = pref === 'EN' || pref === 'HU' ? pref : 'EN';
+  var DICT = null, PN = [], swapped = [];
+  var SKIP = 'script,style,textarea,noscript,.rr-cur,.rr-cur-toast,[contenteditable]';
+  var MON = { 'január': 'January', 'február': 'February', 'március': 'March', 'április': 'April', 'május': 'May', 'június': 'June',
+    'július': 'July', 'augusztus': 'August', 'szeptember': 'September', 'október': 'October', 'november': 'November', 'december': 'December' };
+  var RX = [
+    [/^(\d+\s*-\s*\d+) év$/i, function (m, a) { return a + ' years'; }],
+    [/^Megtakarítás:\s*(.+)$/i, function (m, a) { return keep(m, 'You save: ') + a; }],
+    [/^(\d+\s*-\s*\d+\s*\/\s*\d+)\s+termék$/i, function (m, a) { return a + ' products'; }],
+    [/^(\d+)\s+termék$/i, function (m, a) { return a + ' products'; }],
+    [/^(Válassz méretet)(\s*\(\d+\))$/i, function (m, a, c) { return keep(a, 'Choose size') + c; }],
+    [/^\(([\d .]+) Ft \+ ÁFA\)$/i, function (m, a) { return '(' + a + ' Ft + VAT)'; }],
+    [/^(.+) termékek$/i, function (m, a) { return a + keep(m, ' merch'); }],
+    [/^még több (.+) termék (\(\d+\).*)$/i, function (m, a, c) { return keep(m, 'More ') + a + keep(m, ' products ') + c; }],
+    [/^(.+) feletti vásárlás esetén csomagod ingyen kiszállítjuk!$/i, function (m, a) { return 'Free delivery on orders over ' + a + '!'; }],
+    [/^(.+) feletti vásárlás esetén( ingyenes)?$/i, function (m, a, f) { return (f ? 'Free on orders over ' : 'On orders over ') + a; }],
+    [/^ingyenes szállítás (.+) felett$/i, function (m, a) { return 'Free shipping over ' + a; }],
+    [/^még (.+) és ingyenes a szállítás!?$/i, function (m, a) { return keep(m, 'Only ') + a + keep(m, ' more for free shipping!'); }],
+    [/^·\s*([\d\s]+?)\s*Google-értékelés$/i, function (m, a) { return '· ' + a + ' Google reviews'; }],
+    [/^([\d,.]+)\s*·\s*([\d\s]+?)\s*Google-értékelés$/i, function (m, a, b) { return a.replace(',', '.') + ' · ' + b + ' Google reviews'; }],
+    [/^Szállítási határidő \(a készlettől függően\):\s*(.+?)\s*nap$/i, function (m, a) { return 'Delivery time (depending on stock): ' + a + ' days'; }],
+    [/^(\d{4})\. (január|február|március|április|május|június|július|augusztus|szeptember|október|november|december) (\d{1,2})\.(.*)$/i,
+      function (m, y, mo, d, rest) { return keep(m, d + ' ' + MON[mo.toLowerCase()] + ' ' + y) + rest; }]
+  ];
+  function keep(src, rep) { return src === src.toUpperCase() && /[A-ZÁÉÍÓÖŐÚÜŰ]/.test(src) ? rep.toUpperCase() : rep; }
+  function caseLike(src, rep) {
+    if (src === src.toUpperCase()) { return rep.toUpperCase(); }
+    if (src.charAt(0) === src.charAt(0).toUpperCase()) { return rep.replace(/(^|\s)([a-z])/g, function (m, s, c) { return s + c.toUpperCase(); }); }
+    return rep;
+  }
+  function pname(seg) {   /* translate the product type at the end of one " - " segment */
+    var low = seg.toLowerCase();
+    for (var i = 0; i < PN.length; i++) {
+      var k = PN[i][0];
+      if (low === k) { return caseLike(seg, PN[i][1]); }
+      if (k.length >= 5 && low.length > k.length && low.slice(-k.length) === k && /\s/.test(low.charAt(low.length - k.length - 1))) {
+        var head = seg.slice(0, seg.length - k.length);
+        return head + caseLike(seg.slice(-k.length), PN[i][1]);
+      }
+      if (k.length >= 5 && low.indexOf(k + ' ') === 0 && /^[A-Z0-9-]+$/i.test(seg.slice(k.length + 1))) {
+        return caseLike(seg.slice(0, k.length), PN[i][1]) + seg.slice(k.length);
+      }
+    }
+    return null;
+  }
+  function look(k) {
+    var t = DICT[k] || DICT[k.toLowerCase()];
+    if (!t) { return null; }
+    return k === k.toUpperCase() && /[A-ZÁÉÍÓÖŐÚÜŰ]/.test(k) ? t.toUpperCase() : t;
+  }
+  function tr(v) {
+    var k = v.replace(/\s+/g, ' ').trim();
+    if (!k || !/[a-záéíóöőúüű]/i.test(k)) { return null; }
+    var d = look(k); if (d) { return v.replace(v.trim(), d); }
+    var m = /^(.+?)(\s*[\[(]\d+[\])])$/.exec(k);
+    if (m && (d = look(m[1]))) { return v.replace(v.trim(), d + m[2]); }
+    for (var i = 0; i < RX.length; i++) { if (RX[i][0].test(k)) { return v.replace(v.trim(), k.replace(RX[i][0], RX[i][1])); } }
+    if (!/\s[-–]\s/.test(k) && k.length < 60) { var whole = pname(k); if (whole && whole !== k) { return v.replace(v.trim(), whole); } }
+    if (/\s[-–]\s/.test(k)) {   /* product names: "Band - Design - Type - SKU" */
+      var parts = k.split(/(\s[-–]\s)/), hit = false;
+      for (var j = 0; j < parts.length; j += 2) { var t = pname(parts[j]); if (t) { parts[j] = t; hit = true; } }
+      if (hit) { return v.replace(v.trim(), parts.join('')); }
+    }
+    return null;
+  }
+  var busy = false, timer = null;
+  function sweep() {
+    timer = null;
+    if (mode !== 'EN' || !DICT) { return; }
+    busy = true;
+    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) {
+      if (n.__rrHu != null && n.nodeValue === n.__rrEn) { continue; }
+      var p = n.parentElement; if (!p || p.closest(SKIP)) { continue; }
+      var t = tr(n.nodeValue);
+      if (t != null && t !== n.nodeValue) { if (n.__rrHu == null) { swapped.push(n); } n.__rrHu = n.nodeValue; n.nodeValue = t; n.__rrEn = t; }
+    }
+    [].forEach.call(document.querySelectorAll('input[placeholder]'), function (el) {
+      var o = el.hasAttribute('data-rr-hu') ? el.getAttribute('data-rr-hu') : el.placeholder.trim();
+      if (el.hasAttribute('data-rr-hu') && el.placeholder !== o) { return; }
+      var t = DICT[o] || DICT[o.toLowerCase()];
+      if (t) { el.setAttribute('data-rr-hu', o); el.placeholder = t; }
+    });
+    shipLine();
+    busy = false;
+  }
+  /* "Még <b>X</b> és <b>ingyenes</b> a szállítás!" is several text nodes */
+  function shipLine() {
+    [].forEach.call(document.querySelectorAll('b, strong'), function (b) {
+      var box = b.parentElement;
+      if (!box || box.__rrShipEn || (box.textContent || '').length > 160) { return; }
+      if (!/^\s*még\s[\s\S]*\sés\s[\s\S]*szállítás!?\s*$/i.test(box.textContent)) { return; }
+      var w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), n, MAP = { 'még': 'Only', 'és': 'more for', 'a szállítás!': 'shipping!', 'a szállítás': 'shipping', 'ingyenes': 'free', 'free': 'free' };
+      while ((n = w.nextNode())) {
+        var k = n.nodeValue.trim().toLowerCase();
+        if (MAP[k]) { var t = n.nodeValue.replace(n.nodeValue.trim(), keep(n.nodeValue.trim(), MAP[k])); if (n.__rrHu == null) { swapped.push(n); n.__rrHu = n.nodeValue; } n.nodeValue = t; n.__rrEn = t; }
+      }
+      box.__rrShipEn = true;
+    });
+  }
+  function later() { if (!busy && !timer) { timer = setTimeout(sweep, 400); } }
+  function restore() {
+    [].forEach.call(document.querySelectorAll('b, strong'), function (b) { if (b.parentElement) { b.parentElement.__rrShipEn = false; } });
+    swapped.forEach(function (n) { if (n.__rrHu != null) { if (n.nodeValue === n.__rrEn) { n.nodeValue = n.__rrHu; } n.__rrHu = null; n.__rrEn = null; } });
+    swapped = [];
+    [].forEach.call(document.querySelectorAll('input[data-rr-hu]'), function (el) { el.placeholder = el.getAttribute('data-rr-hu'); el.removeAttribute('data-rr-hu'); });
+  }
+  function set(m) {
+    if (m === mode) { return; }
+    mode = m; store(m);
+    if (m === 'EN') { sweep(); } else { restore(); }
+    paint();
+  }
+  function paint() {
+    [].forEach.call(document.querySelectorAll('.rr-cur button[data-l]'), function (b) { b.classList.toggle('on', b.getAttribute('data-l') === mode); });
+  }
+  function mount() {
+    var bar = document.querySelector('.rr-cur');
+    if (!bar) { return false; }
+    if (bar.querySelector('[data-l]')) { return true; }
+    var st = document.createElement('style'); st.id = 'rr-lang';
+    st.textContent = '.rr-cur button[data-l]{font-size:12px!important;letter-spacing:.02em}.rr-cur button[data-l="HU"]{border-top:3px solid rgba(127,196,234,.6)!important}';
+    document.head.appendChild(st);
+    bar.insertAdjacentHTML('beforeend', '<button type="button" data-l="HU" aria-label="Magyar">HU</button><button type="button" data-l="EN" aria-label="English">EN</button>');
+    bar.addEventListener('click', function (e) { var b = e.target.closest('button[data-l]'); if (b) { set(b.getAttribute('data-l')); } });
+    paint();
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!mount() && tries++ < 60) { setTimeout(wait, 250); } })();
+  fetch('https://1374223-star.github.io/rockpince-menu-counts/assets/i18n/en.json').then(function (r) { return r.json(); }).then(function (j) {
+    DICT = {}; Object.keys(j.exact || {}).forEach(function (k) { DICT[k] = j.exact[k]; DICT[k.toLowerCase()] = DICT[k.toLowerCase()] || j.exact[k]; }); PN = j.pname || [];
+    if (mode === 'EN') { sweep(); }
+    if (window.MutationObserver) { new MutationObserver(function () { if (mode === 'EN') { later(); } }).observe(document.body, { childList: true, subtree: true, characterData: true }); }
+  }).catch(function () {});
 })();
