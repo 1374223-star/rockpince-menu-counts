@@ -1556,7 +1556,7 @@
   }
   function apply() {
     var inputs = document.querySelectorAll('.header input[type=text], .header input[type=search]');
-    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = 'Keress zenekarra, termékre...'; }
+    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = '';   /* owner 2026-11-16: no placeholder text, too much noise */ }
     if (!/product-page-body/.test(document.body ? document.body.className : '')) { return; }
     var rows = document.querySelectorAll('.product-parameters tr');
     for (var j = 0; j < rows.length; j++) {
@@ -3548,37 +3548,37 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* Mjölnir easter egg (owner 2026-11-16, desktop only): a small hammer in the top bar; a click calls down a lightning
-   strike on the page (one bright flash, short shake), then electricity crawls along the screen edges for a few seconds.
-   Nothing runs until the click, and the canvas is removed afterwards. Reduced-motion users get no flash or shake. */
+/* Mjölnir easter egg v2 (owner 2026-11-16, desktop only): a Norse hammer in the chrome-blue of the logo lettering,
+   centred in the top bar. A click charges it (arcs gather round the hammer), then a branching lightning bolt strikes
+   the page with one flash, a shockwave ring, sparks and a synthesized thunder crack + rumble; afterwards electricity
+   runs along the screen edges for a few seconds. Nothing runs before the click; canvas and audio are dropped after.
+   Reduced-motion users get no flash, shake or shockwave. */
 (function () {
   if (window.__rrMjolnir) { return; }
   window.__rrMjolnir = true;
-  if (!window.matchMedia || !matchMedia('(hover:hover) and (pointer:fine) and (min-width:1024px)').matches) { return; }
+  if (!window.matchMedia || !matchMedia('(hover:hover) and (pointer:fine) and (min-width:1200px)').matches) { return; }
   var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var HAMMER = '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">' +
-    '<defs><linearGradient id="rrMjG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4fbff"/><stop offset=".5" stop-color="#9fd6f7"/><stop offset="1" stop-color="#5aa6d6"/></linearGradient></defs>' +
-    '<path d="M4 4h24l-2 9H6z" fill="url(#rrMjG)" stroke="#0a3a5e" stroke-width="1"/>' +
-    '<path d="M9 7h14" stroke="#0a3a5e" stroke-width="1" opacity=".6"/>' +
-    '<rect x="14" y="13" width="4" height="13" rx="1" fill="#6b4a2b" stroke="#2d1d10" stroke-width=".8"/>' +
-    '<path d="M14 16l4 2M14 19l4 2M14 22l4 2" stroke="#c9a46b" stroke-width="1"/>' +
-    '<circle cx="16" cy="28" r="2.2" fill="url(#rrMjG)" stroke="#0a3a5e" stroke-width=".8"/></svg>';
+  var HAMMER = '<img src="https://1374223-star.github.io/rockpince-menu-counts/assets/mjolnir.webp" width="32" height="44" alt="" draggable="false">';  /* owner's emblem in the lettering chrome */
   var css =
-    '.rr-mj{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin-left:10px;border-radius:50%;cursor:pointer;' +
-      'border:1px solid rgba(127,196,234,.45);background:radial-gradient(circle at 50% 40%,#14659c,#06243b);transition:box-shadow .2s,transform .2s;vertical-align:middle;padding:0}' +
-    '.rr-mj:hover{box-shadow:0 0 14px rgba(140,210,255,.8);transform:rotate(-14deg) scale(1.08)}' +
-    '.rr-mj.on{animation:rrMjSpin .5s ease-in-out}' +
-    '@keyframes rrMjSpin{0%{transform:rotate(0)}40%{transform:rotate(-40deg) scale(1.2)}100%{transform:rotate(0)}}' +
-    '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#ffffff 0%,#e6f6ff 35%,#9fd6f7 100%);opacity:0}' +
-    '.rr-mj-flash.go{animation:rrMjFlash .9s ease-out forwards}' +
-    '@keyframes rrMjFlash{0%{opacity:0}6%{opacity:1}18%{opacity:.95}100%{opacity:0}}' +
+    '.rr-mj{position:relative;z-index:5;width:46px;height:46px;margin-left:4px;padding:0;border:0;border-radius:50%;cursor:pointer;' +
+      'background:radial-gradient(circle,rgba(30,110,170,.45) 0%,rgba(6,36,59,0) 70%);display:flex;align-items:center;justify-content:center;transition:filter .25s}' +
+    '.rr-mj img{display:block;transition:transform .25s;filter:drop-shadow(0 0 3px rgba(127,208,255,.55))}' +
+    '.rr-mj:hover{filter:drop-shadow(0 0 8px rgba(140,210,255,.9))}' +
+    '.rr-mj:hover img{transform:rotate(-12deg) scale(1.1)}' +
+    '.rr-mj.charge img{animation:rrMjCharge .55s ease-in forwards}' +
+    '@keyframes rrMjCharge{0%{transform:rotate(0)}70%{transform:rotate(-38deg) scale(1.22)}100%{transform:rotate(22deg) scale(1.1)}}' +
+    '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;mix-blend-mode:screen;' +
+      'background:radial-gradient(circle at var(--x) var(--y),#ffffff 0%,#dff4ff 30%,#7fc4ea 100%);opacity:0}' +
+    '.rr-mj-flash.go{animation:rrMjFlash 1s ease-out forwards}' +
+    '@keyframes rrMjFlash{0%{opacity:0}5%{opacity:1}12%{opacity:.35}17%{opacity:.85}100%{opacity:0}}' +
     '.rr-mj-cv{position:fixed;inset:0;z-index:2147483647;pointer-events:none}' +
-    'html.rr-mj-shake body{animation:rrMjShake .45s cubic-bezier(.36,.07,.19,.97)}' +
-    '@keyframes rrMjShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-6px,2px)}40%,60%{transform:translate(6px,-1px)}}';
+    'html.rr-mj-shake body{animation:rrMjShake .5s cubic-bezier(.36,.07,.19,.97)}' +
+    '@keyframes rrMjShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-7px,3px)}40%,60%{transform:translate(7px,-2px)}}';
 
-  function bolt(x1, y1, x2, y2, rough) {          // jagged path by midpoint displacement
+  /* ---------- lightning geometry ---------- */
+  function bolt(x1, y1, x2, y2, rough) {
     var pts = [[x1, y1], [x2, y2]];
-    for (var d = Math.hypot(x2 - x1, y2 - y1) * rough; d > 3; d /= 2) {
+    for (var d = Math.hypot(x2 - x1, y2 - y1) * rough; d > 2.5; d /= 2) {
       var n = [pts[0]];
       for (var i = 1; i < pts.length; i++) {
         var a = pts[i - 1], b = pts[i];
@@ -3588,93 +3588,306 @@
     }
     return pts;
   }
-  function stroke(ctx, pts, w, glow, alpha) {
-    ctx.globalAlpha = alpha;
+  function tree(x1, y1, x2, y2, depth, out, w) {        // main channel plus recursive forks that thin out
+    var p = bolt(x1, y1, x2, y2, .32);
+    out.push({ p: p, w: w });
+    if (depth <= 0) { return out; }
+    var forks = 2 + Math.floor(Math.random() * 3);
+    for (var k = 0; k < forks; k++) {
+      var s = p[Math.floor(p.length * (.15 + Math.random() * .7))];
+      var ang = Math.atan2(y2 - y1, x2 - x1) + (Math.random() - .5) * 1.6;
+      var len = Math.hypot(x2 - x1, y2 - y1) * (.18 + Math.random() * .3);
+      tree(s[0], s[1], s[0] + Math.cos(ang) * len, s[1] + Math.sin(ang) * len, depth - 1, out, w * .5);
+    }
+    return out;
+  }
+  function draw(ctx, pts, w, a) {
     ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
     for (var i = 1; i < pts.length; i++) { ctx.lineTo(pts[i][0], pts[i][1]); }
-    ctx.shadowColor = '#7fd0ff'; ctx.shadowBlur = glow;
-    ctx.strokeStyle = 'rgba(150,215,255,.9)'; ctx.lineWidth = w * 2.4; ctx.stroke();
-    ctx.shadowBlur = 0; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = w; ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  function edgePoint(W, H) {                       // random point on the screen border
-    var t = Math.random() * 2 * (W + H);
-    if (t < W) { return [t, 2]; }
-    if (t < W + H) { return [W - 2, t - W]; }
-    if (t < 2 * W + H) { return [t - W - H, H - 2]; }
-    return [2, t - 2 * W - H];
+    ctx.globalAlpha = a * .35; ctx.strokeStyle = '#2f8fd8'; ctx.lineWidth = w * 7; ctx.stroke();     // outer haze
+    ctx.globalAlpha = a * .7;  ctx.strokeStyle = '#8fd4ff'; ctx.lineWidth = w * 2.6; ctx.stroke();   // glow
+    ctx.globalAlpha = a;       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = w; ctx.stroke();         // white core
   }
 
+  /* ---------- synthesized thunder (no sound files) ---------- */
+  function thunder() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { return; }
+    try {
+      var ac = new AC(), now = ac.currentTime, sr = ac.sampleRate;
+      var master = ac.createGain(); master.gain.value = .55; master.connect(ac.destination);
+      function noise(sec, brown) {
+        var b = ac.createBuffer(1, Math.floor(sr * sec), sr), d = b.getChannelData(0), last = 0;
+        for (var i = 0; i < d.length; i++) {
+          var w = Math.random() * 2 - 1;
+          if (brown) { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } else { d[i] = w; }
+        }
+        var s = ac.createBufferSource(); s.buffer = b; return s;
+      }
+      // 1) the crack: bright noise burst, very fast decay, with a second snap
+      [0, .07].forEach(function (t0, i) {
+        var n = noise(.35, false), hp = ac.createBiquadFilter(), g = ac.createGain();
+        hp.type = 'highpass'; hp.frequency.value = 1400;
+        g.gain.setValueAtTime(0, now + t0); g.gain.linearRampToValueAtTime(i ? .5 : .9, now + t0 + .004);
+        g.gain.exponentialRampToValueAtTime(.001, now + t0 + .28);
+        n.connect(hp); hp.connect(g); g.connect(master); n.start(now + t0); n.stop(now + t0 + .35);
+      });
+      // 2) the rumble: low brown noise rolling for ~3 s with a wobble
+      var r = noise(3.6, true), lp = ac.createBiquadFilter(), rg = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+      lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, now + .05); lp.frequency.exponentialRampToValueAtTime(140, now + 3.2);
+      rg.gain.setValueAtTime(0, now + .05); rg.gain.linearRampToValueAtTime(1, now + .25); rg.gain.exponentialRampToValueAtTime(.001, now + 3.5);
+      lfo.frequency.value = 5.5; lg.gain.value = .3; lfo.connect(lg); lg.connect(rg.gain);
+      r.connect(lp); lp.connect(rg); rg.connect(master); r.start(now + .05); lfo.start(now); r.stop(now + 3.6); lfo.stop(now + 3.6);
+      // 3) electric buzz under the crawling arcs
+      var o = ac.createOscillator(), bf = ac.createBiquadFilter(), og = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.value = 95; bf.type = 'bandpass'; bf.frequency.value = 1800; bf.Q.value = 1.5;
+      og.gain.setValueAtTime(0, now + .4); og.gain.linearRampToValueAtTime(.05, now + .6); og.gain.linearRampToValueAtTime(0, now + 4);
+      o.connect(bf); bf.connect(og); og.connect(master); o.start(now + .4); o.stop(now + 4.1);
+      setTimeout(function () { ac.close(); }, 4500);
+    } catch (e) { /* no sound, no problem */ }
+  }
+
+  /* ---------- the strike ---------- */
   var busy = false;
   function strike(btn) {
     if (busy) { return; }
     busy = true;
-    btn.classList.remove('on'); void btn.offsetWidth; btn.classList.add('on');
+    btn.classList.remove('charge'); void btn.offsetWidth; btn.classList.add('charge');
     var W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect();
-    var tx = W * (.35 + Math.random() * .3), ty = H * (.55 + Math.random() * .2);   // where the bolt hits
+    var hx = r.left + r.width / 2, hy = r.top + r.height / 2;
+    var tx = W * (.3 + Math.random() * .4), ty = H * (.55 + Math.random() * .25);
     var cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
     cv.className = 'rr-mj-cv'; cv.width = W * dpr; cv.height = H * dpr;
     document.body.appendChild(cv);
     var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (!calm) {
-      var fl = document.createElement('div'); fl.className = 'rr-mj-flash';
-      fl.style.setProperty('--x', tx + 'px'); fl.style.setProperty('--y', ty + 'px');
-      document.body.appendChild(fl); void fl.offsetWidth; fl.classList.add('go');
-      setTimeout(function () { fl.remove(); }, 1000);
-      document.documentElement.classList.add('rr-mj-shake');
-      setTimeout(function () { document.documentElement.classList.remove('rr-mj-shake'); }, 480);
+    var CHARGE = 520, sparks = [], strikes = [], crawlers = [];
+    var t0 = performance.now(), last = 0, DUR = 5200, struck = false;
+
+    function boom() {
+      struck = true;
+      thunder();
+      strikes.push({ segs: tree(hx, hy + 14, tx, ty, 3, [], 3.4), t: 0 });
+      setTimeout(function () { strikes.push({ segs: tree(hx, hy + 14, tx + (Math.random() - .5) * 120, ty + (Math.random() - .5) * 60, 2, [], 2.4), t: 0 }); }, 110);
+      for (var i = 0; i < 70; i++) {
+        var a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 7;
+        sparks.push({ x: tx, y: ty, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3, life: 1 });
+      }
+      for (var c = 0; c < 6; c++) { crawlers.push({ pos: Math.random() * 2 * (W + H), speed: (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 10) }); }
+      if (!calm) {
+        var fl = document.createElement('div'); fl.className = 'rr-mj-flash';
+        fl.style.setProperty('--x', tx + 'px'); fl.style.setProperty('--y', ty + 'px');
+        document.body.appendChild(fl); void fl.offsetWidth; fl.classList.add('go');
+        setTimeout(function () { fl.remove(); }, 1100);
+        document.documentElement.classList.add('rr-mj-shake');
+        setTimeout(function () { document.documentElement.classList.remove('rr-mj-shake'); }, 520);
+      }
     }
-    var main = bolt(r.left + r.width / 2, r.bottom, tx, ty, .35), forks = [];
-    for (var k = 0; k < 4; k++) {
-      var p = main[Math.floor(main.length * (.3 + Math.random() * .6))];
-      forks.push(bolt(p[0], p[1], p[0] + (Math.random() - .5) * 320, p[1] + 60 + Math.random() * 180, .45));
+    function edge(pos) {                                    // position along the screen border -> point
+      var P = 2 * (W + H); pos = ((pos % P) + P) % P;
+      if (pos < W) { return [pos, 3]; }
+      if (pos < W + H) { return [W - 3, pos - W]; }
+      if (pos < 2 * W + H) { return [W - (pos - W - H), H - 3]; }
+      return [3, H - (pos - 2 * W - H)];
     }
-    var t0 = performance.now(), last = 0, DUR = 4200;
+
     function frame(now) {
       var t = now - t0;
-      if (t > DUR) { cv.remove(); busy = false; return; }
-      if (now - last < 55) { requestAnimationFrame(frame); return; }   // ~18 fps: crackle, not strobe
+      if (t > DUR) { cv.remove(); busy = false; btn.classList.remove('charge'); return; }
+      if (now - last < 40) { requestAnimationFrame(frame); return; }      // ~25 fps keeps it crackly, not strobing
       last = now;
       ctx.clearRect(0, 0, W, H);
-      if (t < 650) {                                                   // the strike itself
-        var a = t < 120 ? 1 : 1 - (t - 120) / 530;
-        stroke(ctx, main, 3.2, 30, a);
-        forks.forEach(function (f) { stroke(ctx, f, 1.4, 16, a * .8); });
-        var g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 140);
-        g.addColorStop(0, 'rgba(220,245,255,' + .8 * a + ')'); g.addColorStop(1, 'rgba(120,200,255,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tx, ty, 140, 0, 7); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      var fade = t < 3800 ? 1 : 1 - (t - 3800) / 1400;
+
+      if (!struck && t >= CHARGE) { boom(); }
+      // charging / lingering arcs wrapped round the hammer
+      var ring = t < CHARGE ? .4 + t / CHARGE * .6 : fade * .8;
+      for (var j = 0; j < (t < CHARGE ? 5 : 3); j++) {
+        var a1 = Math.random() * 7, a2 = a1 + .8 + Math.random() * 1.5, rad = 22 + Math.random() * 14;
+        draw(ctx, bolt(hx + Math.cos(a1) * rad, hy + Math.sin(a1) * rad, hx + Math.cos(a2) * rad, hy + Math.sin(a2) * rad, .7), 1, ring);
       }
-      var fade = t < 3200 ? 1 : 1 - (t - 3200) / 1000;                  // electricity crawling round the edges
-      if (t > 250) {
-        var n = 3 + Math.floor(Math.random() * 3);
-        for (var i = 0; i < n; i++) {
-          var s = edgePoint(W, H), len = 80 + Math.random() * 220;
-          var ang = Math.random() * Math.PI * 2;
-          var e = [Math.min(W - 2, Math.max(2, s[0] + Math.cos(ang) * len)), Math.min(H - 2, Math.max(2, s[1] + Math.sin(ang) * len))];
-          if (s[1] <= 2 || s[1] >= H - 2) { e[1] = s[1] === 2 ? 2 + Math.random() * 30 : H - 2 - Math.random() * 30; }
-          else { e[0] = s[0] === 2 ? 2 + Math.random() * 30 : W - 2 - Math.random() * 30; }
-          stroke(ctx, bolt(s[0], s[1], e[0], e[1], .5), 1.2, 14, (.55 + Math.random() * .45) * fade);
-        }
-        for (var j = 0; j < 2; j++) {                                    // small sparks round the hammer
-          var cx = r.left + r.width / 2, cy = r.top + r.height / 2, aa = Math.random() * 7;
-          stroke(ctx, bolt(cx, cy, cx + Math.cos(aa) * 34, cy + Math.sin(aa) * 34, .6), 1, 10, .9 * fade);
+      if (t < CHARGE) {                                      // gathering glow
+        var gg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 70);
+        gg.addColorStop(0, 'rgba(160,220,255,' + .5 * t / CHARGE + ')'); gg.addColorStop(1, 'rgba(60,140,220,0)');
+        ctx.globalAlpha = 1; ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(hx, hy, 70, 0, 7); ctx.fill();
+      }
+      // main strikes: bright, then flicker out
+      strikes.forEach(function (s) {
+        s.t += 40;
+        var a = s.t < 90 ? 1 : Math.max(0, 1 - (s.t - 90) / 650) * (Math.random() < .25 ? .35 : 1);
+        if (a <= 0) { return; }
+        s.segs.forEach(function (g) { draw(ctx, g.p, g.w, a); });
+        var ig = ctx.createRadialGradient(tx, ty, 0, tx, ty, 180);
+        ig.addColorStop(0, 'rgba(230,248,255,' + .7 * a + ')'); ig.addColorStop(1, 'rgba(90,170,240,0)');
+        ctx.globalAlpha = 1; ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(tx, ty, 180, 0, 7); ctx.fill();
+      });
+      if (struck && !calm) {                                  // shockwave ring
+        var st = t - CHARGE;
+        if (st < 900) {
+          var rr = 20 + st * .9;
+          ctx.globalAlpha = (1 - st / 900) * .8; ctx.strokeStyle = '#9fd6f7'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(tx, ty, rr, 0, 7); ctx.stroke();
+          ctx.globalAlpha = (1 - st / 900) * .35; ctx.lineWidth = 14; ctx.stroke();
         }
       }
+      // sparks with gravity
+      sparks.forEach(function (p) {
+        if (p.life <= 0) { return; }
+        p.x += p.vx; p.y += p.vy; p.vy += .35; p.vx *= .98; p.life -= .03;
+        ctx.globalAlpha = Math.max(0, p.life); ctx.strokeStyle = '#dff4ff'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2); ctx.stroke();
+      });
+      // electricity running along the screen edges: each crawler moves and throws short arcs inward
+      if (struck) {
+        crawlers.forEach(function (c) {
+          c.pos += c.speed * 4;
+          var a = edge(c.pos), b = edge(c.pos - c.speed * 14);
+          draw(ctx, bolt(a[0], a[1], b[0], b[1], .45), 1.3, .9 * fade);
+          if (Math.random() < .35) {
+            var ang = Math.atan2(H / 2 - a[1], W / 2 - a[0]) + (Math.random() - .5) * 1.2, len = 30 + Math.random() * 70;
+            draw(ctx, bolt(a[0], a[1], a[0] + Math.cos(ang) * len, a[1] + Math.sin(ang) * len, .6), .8, .7 * fade);
+          }
+        });
+      }
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   }
 
   function mount() {
-    var tt = document.querySelector('.header a[href*="tiktok.com"], header a[href*="tiktok.com"], .header-top a[href*="tiktok.com"]');
-    if (!tt) { return false; }
+    var bar = document.querySelector('.header-top-row .rr-social-top');
+    if (!bar) { return false; }
     var st = document.createElement('style'); st.id = 'rr-mjolnir'; st.textContent = css; document.head.appendChild(st);
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'rr-mj'; b.title = 'Mjölnir'; b.setAttribute('aria-label', 'Mjölnir'); b.innerHTML = HAMMER;
     b.addEventListener('click', function (ev) { ev.preventDefault(); strike(b); });
-    tt.insertAdjacentElement('afterend', b);
+    bar.appendChild(b);
     return true;
   }
   var tries = 0;
   (function wait() { if (!mount() && tries++ < 40) { setTimeout(wait, 200); } })();
+})();
+
+/* Home page "Üzlet és átvevőhely" (owner 2026-11-16): full width, a dark live map hugging the left edge, the shop
+   details in the middle, and a collage of the new shop photos hugging the right edge. Phone: details, photos, map. */
+(function () {
+  if (window.__rrLocation) { return; }
+  window.__rrLocation = true;
+  var ASSET = 'https://1374223-star.github.io/rockpince-menu-counts/assets/shop/';
+  var MAP = 'https://www.google.com/maps?q=47.50566,19.08687&z=15&hl=hu&output=embed';
+  var ROUTE = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent('Dózsa György út 19, 1146 Budapest');
+  var css =
+    '.location-module.rr-loc-on{max-width:none!important;width:100%!important;padding:0!important}' +
+    '.location-module.rr-loc-on .module-body{padding:0!important}' +
+    '.section-wrapper:has(.rr-loc){overflow-x:clip}' +
+    '.rr-loc{width:100vw;margin-left:calc(50% - 50vw);display:grid;grid-template-columns:1fr minmax(380px,440px) 1fr;min-height:520px;align-items:stretch;' +
+      'border-top:1px solid rgba(127,196,234,.35);border-bottom:1px solid rgba(127,196,234,.35);box-shadow:0 0 30px rgba(40,130,200,.15)}' +
+    '.rr-loc .map{position:relative;overflow:hidden;background:#06243b}' +
+    '.rr-loc .map iframe{position:absolute;inset:0;width:100%;height:100%;border:0}' +
+    '.rr-loc .map:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset -18px 0 24px -14px rgba(3,18,32,.75)}' +
+    '.rr-loc .pics{position:relative;background:#06243b url(' + ASSET + 'fooldal_kollazs_2026.webp) center/cover no-repeat;display:block}' +
+    '.rr-loc .pics:after{content:"";position:absolute;inset:0;box-shadow:inset 40px 0 50px -20px rgba(3,18,32,.9);transition:background .25s}' +
+    '.rr-loc .pics:hover:after{background:rgba(90,170,240,.08)}' +
+    '.rr-loc .mid{display:flex;flex-direction:column;justify-content:center;gap:14px;padding:34px 32px;color:#c4d2df;font-size:15px;line-height:1.55;' +
+      'background:linear-gradient(180deg,#0b3a5e 0%,#06243b 55%,#041b2d 100%);border-left:1px solid rgba(127,196,234,.35);border-right:1px solid rgba(127,196,234,.35)}' +
+    '.rr-loc h3{margin:0;color:#fff;font-size:26px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;line-height:1.15}' +
+    '.rr-loc .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#9fd6f7}' +
+    '.rr-loc .addr{color:#fff;font-weight:700;font-size:17px}' +
+    '.rr-loc table{width:100%;border-collapse:collapse}' +
+    '.rr-loc td{padding:5px 0;border-top:1px solid rgba(127,196,234,.15)}' +
+    '.rr-loc tr:first-child td{border-top:0}' +
+    '.rr-loc td+td{text-align:right;color:#fff;font-weight:700}' +
+    '.rr-loc .closed{color:#ff6b66!important}' +
+    '.rr-loc .note{font-size:13px;color:#9fb3c6}' +
+    '.rr-loc .btns{display:flex;gap:10px;flex-wrap:wrap}' +
+    '.rr-loc .btns a{flex:1 1 140px;text-align:center;padding:11px 14px;border-radius:8px;font-weight:700;text-decoration:none!important}' +
+    '.rr-loc .b1{background:#e52421;color:#fff!important}.rr-loc .b1:hover{background:#ff3a36}' +
+    '.rr-loc .b2{border:1px solid rgba(127,196,234,.6);color:#d6e2ec!important}.rr-loc .b2:hover{border-color:#9fd6f7;color:#fff!important}' +
+    '@media (max-width:991px){.rr-loc{grid-template-columns:1fr;min-height:0}.rr-loc .mid{padding:26px 20px}.rr-loc .mid{order:1;border:0}' +
+      '.rr-loc .pics{order:2;height:0;padding-bottom:104%}.rr-loc .map{order:3;height:300px}' +
+      '.rr-loc .map:after,.rr-loc .pics:after{box-shadow:none}}';
+  function build() {
+    var mod = document.querySelector('.location-module');
+    if (!mod) { return false; }
+    var box = mod.querySelector('.location-wrapper-box');
+    if (!box) { return true; }
+    var st = document.createElement('style'); st.id = 'rr-location'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    mod.classList.add('rr-loc-on');
+    var wrap = document.createElement('div');
+    wrap.className = 'rr-loc';
+    wrap.innerHTML =
+      '<div class="map"><iframe src="' + MAP + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="RagnaRock üzlet a térképen"></iframe></div>' +
+      '<div class="mid">' +
+        '<div class="eyebrow">Budapest · XIV. kerület</div>' +
+        '<h3>Üzlet és átvevőhely</h3>' +
+        '<div class="addr">1146 Budapest, Dózsa György út 19.</div>' +
+        '<table><tr><td>Hétfő – péntek</td><td>12:00 – 18:00</td></tr><tr><td>Szombat</td><td>10:00 – 14:00</td></tr>' +
+          '<tr><td>Vasárnap</td><td class="closed">Zárva</td></tr></table>' +
+        '<div class="note">Webshopos rendelésedet itt ingyen átveheted.</div>' +
+        '<div class="btns"><a class="b1" href="' + ROUTE + '" target="_blank" rel="noopener">Útvonaltervezés</a>' +
+          '<a class="b2" href="/uzletunk">Az üzletről</a></div>' +
+      '</div>' +
+      '<a class="pics" href="/uzletunk" aria-label="Képek az üzletről"></a>';
+    box.replaceWith(wrap);
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 200); } })();
+})();
+
+/* Top bar layout (owner 2026-11-16), desktop: left = phone + e-mail, middle = social buttons + Mjölnir,
+   right = the five page links. The phone leaves the logo row; the "Bolt nyitva/zárva" chip leaves the top bar
+   and is shown in the home page "Üzlet és átvevőhely" card instead (kept in sync with the original chip). */
+(function () {
+  if (window.__rrTopBar3) { return; }
+  window.__rrTopBar3 = true;
+  var PHONE = '+36705882134', PHONE_TXT = '+36 70 588 2134';
+  var css =
+    '@media (min-width:1200px){' +
+      '.header-top-row{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:18px}' +
+      '.header-top-row .rr-open{display:none!important}' +
+      '.header-top-row > *{grid-row:1}' +
+      '.rr-tl{display:flex;align-items:center;gap:10px;justify-self:start;grid-column:1}' +
+      '.rr-tl .rr-mailtop{margin:0!important}' +
+      '.header-top-row .rr-social-top{grid-column:2;justify-self:center;display:flex!important;align-items:center;gap:10px}' +
+      '.header-top-row .headermenu-list{grid-column:3;justify-self:end;margin:0;display:flex!important;flex-wrap:nowrap;white-space:nowrap}' +
+      '.header-middle__phone{display:none!important}' +
+      '.rr-phonetop{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border:1px solid rgba(127,196,234,.35);border-radius:16px;' +
+        'color:#e6f3fb!important;font-size:13px;letter-spacing:.02em;text-decoration:none!important;white-space:nowrap;transition:border-color .15s,background .15s}' +
+      '.rr-phonetop:hover{border-color:rgba(160,214,244,.8);background:rgba(127,196,234,.1)}' +
+      '.rr-phonetop svg{width:16px;height:16px;flex:none}' +
+    '}' +
+    '@media (max-width:1199px){.rr-phonetop{display:none!important}}' +
+    '.rr-loc .rr-open{align-self:flex-start;margin:0!important}';
+  function build() {
+    var row = document.querySelector('.header-top-row');
+    var mail = row && row.querySelector('.rr-mailtop'), social = row && row.querySelector('.rr-social-top');
+    if (!row || !mail || !social) { return false; }
+    if (!document.getElementById('rr-topbar3')) {
+      var st = document.createElement('style'); st.id = 'rr-topbar3'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    }
+    if (!row.querySelector('.rr-tl')) {
+      var tl = document.createElement('div'); tl.className = 'rr-tl';
+      var ph = document.createElement('a'); ph.className = 'rr-phonetop'; ph.href = 'tel:' + PHONE; ph.title = 'Hívj minket';
+      ph.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>' +
+        '<span>' + PHONE_TXT + '</span>';
+      tl.appendChild(ph); tl.appendChild(mail);
+      row.insertBefore(tl, row.firstChild);
+      row.insertBefore(social, tl.nextSibling);
+    }
+    return true;
+  }
+  function syncChip() {                       // copy the live open/closed chip into the home location card
+    var src = document.querySelector('.header-top-row .rr-open'), mid = document.querySelector('.rr-loc .mid');
+    if (!src || !mid) { return; }
+    var c = mid.querySelector('.rr-open');
+    if (!c) { c = document.createElement('a'); mid.insertBefore(c, mid.firstChild); }
+    c.className = src.className; c.href = '/uzletunk'; c.innerHTML = src.innerHTML;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 50) { setTimeout(wait, 200); } })();
+  var n = 0;
+  (function chip() { syncChip(); if (n++ < 20) { setTimeout(chip, 1500); } else { setInterval(syncChip, 60000); } })();
 })();
