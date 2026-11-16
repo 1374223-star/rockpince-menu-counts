@@ -4645,6 +4645,7 @@
 (function () {
   if (window.__rrEur) { return; }
   window.__rrEur = true;
+  return;   /* owner 2026-11-16: switched off on rockpince.hu (99% Hungarian customers; EU shop planned on its own domain). Kept for reuse. */
   var RATE_URL = 'https://1374223-star.github.io/rockpince-menu-counts/assets/eur.json', FALLBACK = 365.6;
   var KEY = 'rr_cur', RKEY = 'rr_eur_rate';
   function store(k, v) { try { if (v == null) { localStorage.removeItem(k); } else { localStorage.setItem(k, v); } } catch (e) {} }
@@ -4919,6 +4920,7 @@
 (function () {
   if (window.__rrLang) { return; }
   window.__rrLang = true;
+  return;   /* owner 2026-11-16: switched off with the EUR prices; the EU shop gets its own English site. Kept for reuse. */
   var KEY = 'rr_lang';
   function store(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
   function read() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
