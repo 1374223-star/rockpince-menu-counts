@@ -3687,6 +3687,30 @@
     } catch (e) { /* no sound, no problem */ }
   }
 
+  /* ---------- phone buzz (owner 2026-11-17: "no vibration"): Android vibrates through navigator.vibrate. iPhones have
+     no web vibration at all, but toggling an iOS switch checkbox (<input type=checkbox switch>, iOS 17.4+) plays the
+     system haptic tick, so a hidden one is clicked in step with the flashes. ---------- */
+  var hapLabel = null;
+  function hapTick() {
+    try {
+      if (!hapLabel) {
+        hapLabel = document.createElement('label');
+        hapLabel.setAttribute('aria-hidden', 'true');
+        hapLabel.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0';
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.setAttribute('switch', ''); cb.tabIndex = -1;
+        hapLabel.appendChild(cb); document.body.appendChild(hapLabel);
+      }
+      hapLabel.click();
+    } catch (e) {}
+  }
+  function buzz() {
+    if (navigator.vibrate) {
+      try { if (navigator.vibrate([70, 50, 220, 90, 60, 70, 320, 160, 90, 120, 60, 220, 40, 90, 40])) { return; } } catch (e) {}
+    }
+    hapTick();   /* first tick inside the tap itself (iOS wants a user gesture), the rest follow the flashes */
+    [60, 140, 200, 300, 420, 560, 700, 900, 1150].forEach(function (t) { setTimeout(hapTick, t); });
+  }
+
   /* ---------- the storm: bolts strike all over the page, the page flashes white, then electricity races around ---------- */
   var busy = false;
   function strike(btn) {
@@ -3694,7 +3718,7 @@
     busy = true;
     btn.classList.remove('charge'); void btn.offsetWidth; btn.classList.add('charge');
     if (DESK) { thunder(); }
-    else if (navigator.vibrate) { try { navigator.vibrate([70, 50, 220, 90, 60, 70, 320, 160, 90, 120, 60, 220, 40, 90, 40]); } catch (e) {} }
+    else { buzz(); }
     var W = innerWidth, H = innerHeight;
     var cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
     cv.className = 'rr-mj-cv'; cv.width = W * dpr; cv.height = H * dpr;
@@ -3876,13 +3900,20 @@
   var PHONE = '+36705882134', PHONE_TXT = '+36 70 588 2134';
   var css =
     '@media (min-width:1200px){' +
-      '.header-top-row{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:18px}' +
+      /* owner 2026-11-17: blocks against both edges, the social block always the same distance from the two others */
+      '.header-top-row{display:grid!important;grid-template-columns:auto minmax(18px,1fr) auto minmax(18px,1fr) auto;align-items:center;column-gap:0}' +
       '.header-top-row .rr-open{display:none!important}' +
       '.header-top-row > *{grid-row:1}' +
       '.rr-tl{display:flex;align-items:center;gap:10px;justify-self:start;grid-column:1}' +
       '.rr-tl .rr-mailtop{margin:0!important}' +
-      '.header-top-row .rr-social-top{grid-column:2;justify-self:center;display:flex!important;align-items:center;gap:10px}' +
-      '.header-top-row .headermenu-list{grid-column:3;justify-self:end;margin:0;display:flex!important;flex-wrap:nowrap;white-space:nowrap}' +
+      '.header-top-row .rr-social-top{grid-column:3;justify-self:center;margin:0!important;display:flex!important;align-items:center;gap:10px}' +
+      '.header-top-row .headermenu-list{grid-column:5;justify-self:end;margin:0;display:flex!important;flex-wrap:nowrap;white-space:nowrap;gap:0}' +
+      /* the five page links closer together */
+      '.header-top-row .headermenu-list > li{margin:0!important;padding:0!important}' +
+      '.header-top-row .headermenu-list .nav-link{padding-left:9px!important;padding-right:9px!important}' +
+      '.header-top-row .headermenu-list{padding:0!important}' +
+      '.header-top-row .headermenu-list > li:first-child .nav-link{padding-left:0!important}' +
+      '.header-top-row .headermenu-list > li:last-child .nav-link{padding-right:0!important}' +
       '.header-middle__phone{display:none!important}' +
       '.rr-phonetop{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border:1px solid rgba(127,196,234,.35);border-radius:16px;' +
         'color:#e6f3fb!important;font-size:13px;letter-spacing:.02em;text-decoration:none!important;white-space:nowrap;transition:border-color .15s,background .15s}' +
