@@ -5062,3 +5062,37 @@
     if (window.MutationObserver) { new MutationObserver(function () { if (mode === 'EN') { later(); } }).observe(document.body, { childList: true, subtree: true, characterData: true }); }
   }).catch(function () {});
 })();
+
+/* TikTok pixel shop events (owner 2026-11-16: TikTok ad spent 25.6k Ft on Nov 9-16 with 0 conversions). The shop's
+   TikTok pixel only sent page views, so the ad group optimising for "Add to Cart" never got a signal. The shop
+   already tells Google about product views, add-to-carts, checkout and purchases (gtag events in dataLayer);
+   this copies each one to TikTok once: view_item -> ViewContent, add_to_cart -> AddToCart,
+   begin_checkout -> InitiateCheckout, purchase -> CompletePayment. content_id = the product SKU, the same id the
+   TikTok catalogue feed uses, so the catalogue carousel can learn which products sell. */
+(function () {
+  if (window.__rrTtEvents) { return; }
+  window.__rrTtEvents = true;
+  var MAP = { view_item: 'ViewContent', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'CompletePayment' };
+  var sent = {};
+  function forward(e) {
+    if (!e || typeof e !== 'object') { return; }
+    var name = e[0] === 'event' ? e[1] : null, p = e[0] === 'event' ? e[2] : null;
+    if (!name && e.event && e.ecommerce) { name = e.event; p = e.ecommerce; }
+    if (!MAP[name] || !p) { return; }
+    var items = p.items || [];
+    var key = name + '|' + (p.transaction_id || '') + '|' + items.map(function (i) { return i.item_id + 'x' + (i.quantity || 1); }).join(',') + '|' + (p.value || '');
+    if (name !== 'add_to_cart' && sent[key]) { return; }
+    sent[key] = 1;
+    var data = {
+      contents: items.map(function (i) { return { content_id: String(i.item_id || ''), content_type: 'product', content_name: i.item_name || '', quantity: Number(i.quantity || 1), price: Number(i.price || 0) }; }),
+      value: Number(p.value || 0), currency: p.currency || 'HUF'
+    };
+    var opt = p.transaction_id ? { event_id: 'order_' + p.transaction_id } : undefined;
+    var go = function () { try { window.ttq.track(MAP[name], data, opt); } catch (x) {} };
+    if (window.ttq && window.ttq.track) { go(); } else { var n = 0; (function wait() { if (window.ttq && window.ttq.track) { go(); } else if (n++ < 40) { setTimeout(wait, 250); } })(); }
+  }
+  var dl = window.dataLayer = window.dataLayer || [];
+  for (var i = 0; i < dl.length; i++) { forward(dl[i]); }
+  var push = dl.push;
+  dl.push = function () { for (var j = 0; j < arguments.length; j++) { forward(arguments[j]); } return push.apply(dl, arguments); };
+})();
