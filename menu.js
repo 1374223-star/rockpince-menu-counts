@@ -1776,6 +1776,8 @@
     '@container gig (min-width:1500px){' +
     '.rr-gig .m{display:block}.rr-gig .txt{max-width:620px;padding-right:60px}' +
     '}' +
+    /* concert tiles, less text (owner 2026-11-16): one-line headline and date line */
+    '.rr-gig h3{white-space:nowrap}@container gig (min-width:600px){.rr-gig .d{white-space:nowrap}}' +
     /* concert tiles: plain type (owner 2026-11-15): Barlow Condensed, solid colours, no gold-gradient lettering */
     '.rr-gig .eye,.rr-gig h3,.rr-gig .d,.rr-gig .btn{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}' +
     '.rr-gig .eye{font-weight:600;font-size:15px;letter-spacing:.06em;opacity:1}' +
@@ -2139,15 +2141,10 @@
       var w = el('div', 'rr-gigwrap');
       w.innerHTML = '<div class="rr-gig g-' + g.key + '"><div class="art" style="background-image:url(' + GIG_ASSETS + g.key + '-battle.webp)"></div><div class="shade"></div>' +
         '<div class="lt"><img class="logo" src="' + GIG_ASSETS + g.key + '-logo.webp" alt="' + g.label + '">' +
-        '<div class="txt"><div class="eye">' + g.eyebrow + '</div><h3>Koncert Budapesten</h3>' +
-        '<div class="d"><b>' + g.date + '</b><span>&middot;</span>' + g.place + '</div>' +
-        '<div class="m">Pólók, pulóverek és kiegészítők &ndash; készülj a koncertre a boltunkból</div></div></div>' +
-        '<div class="stub"><a class="btn" href="' + url + '">' + (g.btn || g.label) + ' termékek <i>&rarr;</i></a>' +
-        '<div class="s2">Pólók &middot; Pulóverek &middot; Kiegészítők</div></div></div>';
+        '<div class="txt"><h3>Budapesti Koncert</h3>' +
+        '<div class="d"><b>' + g.date + '</b><span>&middot;</span>' + g.place + '</div></div></div>' +
+        '<div class="stub"><a class="btn" href="' + url + '">' + (g.btn || g.label) + ' termékek</a></div></div>';
       grid.appendChild(w);
-      searchCount(url, function (n) {  /* cached 1 h per visitor: searches are slow on the shop */
-        if (n) { w.querySelector('.btn').innerHTML = (g.btn || g.label) + ' termékek (' + n + ') <i>&rarr;</i>'; }
-      });
     });
     target.parentNode.insertBefore(wrap, target);
   }
