@@ -3179,12 +3179,21 @@
           '@media (max-width:991px){.home-body a.header-logo img{max-width:min(196px,50vw)!important;width:auto!important;height:auto!important;max-height:84px!important}}';
         document.head.appendChild(ds);
       }
+      /* 2026-11-17: the shop logo (also the Facebook share picture) is now the RagnaRock-only footer logo; the home
+         header keeps showing the duo logo file, which is still on the server */
+      [].forEach.call(imgs, function (im) {
+        var s = im.currentSrc || im.src || '';
+        if (/ragna-rock-logo-rock-pince-/.test(s) && !im.getAttribute('data-rr-logo')) {
+          im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset');
+          im.src = 'https://rockpince.cdn.shoprenter.hu/custom/rockpince/image/cache/w336h230q100/design/ragnarock-rockpince-logo.png.webp';
+        }
+      });
       return imgs.length > 0;
     }
     for (var i = 0; i < imgs.length; i++) {
       var im = imgs[i], src = im.currentSrc || im.src || '';
       if (im.getAttribute('data-rr-logo')) { continue; }
-      if (/ragnarock-rockpince-logo/.test(src)) { im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset'); im.src = BRAND + 'ragnarock_logo.png'; im.style.height = 'auto';
+      if (/ragnarock-rockpince-logo|ragna-rock-logo-rock-pince-/.test(src)) { im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset'); im.src = BRAND + 'ragnarock_logo.png'; im.style.height = 'auto';
       }
       else if (/ragna-rock-logo-mobil/.test(src)) { im.setAttribute('data-rr-logo', '1'); im.removeAttribute('srcset'); im.src = BRAND + 'ragnarock_logo_mobil.png'; im.style.width = 'auto'; }
     }
