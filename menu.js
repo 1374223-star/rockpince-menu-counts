@@ -3622,7 +3622,7 @@
     try {
       var ac = new AC(), now = ac.currentTime + .03, sr = ac.sampleRate;
       var comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4; comp.connect(ac.destination);
-      var master = ac.createGain(); master.gain.value = .9; master.connect(comp);
+      var master = ac.createGain(); master.gain.value = .42; master.connect(comp);   /* owner: a bit too loud at .9 */
       // reverb: a generated 4 s decaying-noise impulse = the sky the thunder rolls around in
       var rev = ac.createConvolver(), ir = ac.createBuffer(2, sr * 4, sr);
       for (var ch = 0; ch < 2; ch++) { var d = ir.getChannelData(ch); for (var i = 0; i < d.length; i++) { d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.6); } }
@@ -3957,7 +3957,17 @@
       'left:auto!important;right:20px!important;top:50%!important;bottom:auto!important;margin:0!important;translate:0 -54%;' +
       'font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;font-size:54px!important;line-height:1!important;' +
       'background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;' +
-      'filter:drop-shadow(0 1px 0 #031220)}';
+      'filter:drop-shadow(0 1px 0 #031220)}' +
+    /* owner: "the > system is inconsistent": rows without subfolders get the same arrow (they open the category),
+       and the back button uses the same lettering */
+    '#js-mobile-nav .mm-listitem:not([data-mm-child]):not(.informations-mobile-menu-item-separator ~ li) > a.mm-listitem__text{position:relative;padding-right:64px!important}' +
+    '#js-mobile-nav .mm-listitem:not([data-mm-child]):not(.informations-mobile-menu-item-separator ~ li) > a.mm-listitem__text:after{content:"\\203A";position:absolute;right:20px;top:50%;translate:0 -54%;' +
+      'font-family:"Barlow Condensed",Poppins,sans-serif;font-weight:700;font-size:54px;line-height:1;' +
+      'background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 #031220)}' +
+    '#js-mobile-nav .mm-btn--prev:before{content:"\\2039"!important;border:0!important;transform:none!important;width:auto!important;height:auto!important;' +
+      'left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;margin:0!important;translate:-50% -54%;' +
+      'font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;font-size:54px!important;line-height:1!important;' +
+      'background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 #031220)}';
   var st = document.createElement('style'); st.id = 'rr-mm-arrows'; st.appendChild(document.createTextNode(css));
   (document.head || document.documentElement).appendChild(st);
 })();
@@ -4110,4 +4120,128 @@
     '#lastseen .product-card__details,#lastseen .quantity-input,#lastseen .quantity-name-text{display:none!important}' +
     '#lastseen .button-add-to-cart{display:flex!important;width:100%;justify-content:center}';
   (document.head || document.documentElement).appendChild(st);
+})();
+
+/* Cart side panel (owner 2026-11-16), desktop: hovering the basket opens a panel sliding in from the right with what
+   is in the cart (photo, name, size, quantity, price), the total and how much is left to free shipping. While the
+   cart has items, a small tab on the right edge opens the same panel. The items come from the cart page's own data
+   (document.aurora.initialState), fetched only when the panel opens and again only when the count changes. */
+(function () {
+  if (window.__rrCartPanel) { return; }
+  window.__rrCartPanel = true;
+  if (!window.matchMedia || !matchMedia('(min-width:992px) and (hover:hover)').matches) { return; }
+  if (/checkout/.test(location.search + location.pathname)) { return; }
+  var FREE = 30000, CART = '/index.php?route=checkout/cart';
+  var css =
+    '.header-middle-right-wrapper{overflow:visible!important}' +
+    '.header-middle-right-wrapper > .header-middle-right-box:first-child{border-radius:7px 0 0 7px}' +
+    '.header-middle-right-wrapper > .header-middle-right-box:last-child{border-radius:0 7px 7px 0}' +
+    '#js-cart .header-quantity-box{position:absolute!important;top:3px!important;right:5px!important;left:auto!important;min-width:18px;height:18px;line-height:18px;padding:0 4px;' +
+      'border-radius:9px;background:#e52421!important;color:#fff!important;font-size:11px;font-weight:700;text-align:center;box-shadow:0 0 0 2px #031627}' +
+    '.rr-cp{position:fixed;top:0;right:0;bottom:0;width:390px;max-width:92vw;z-index:2147483000;display:flex;flex-direction:column;' +
+      'background:linear-gradient(180deg,#0b3a5e 0%,#06243b 30%,#031627 100%);border-left:1px solid rgba(127,196,234,.55);box-shadow:-18px 0 40px rgba(0,0,0,.55);' +
+      'transform:translateX(105%);transition:transform .25s ease;color:#c4d2df;font-family:Poppins,sans-serif}' +
+    '.rr-cp.open{transform:none}' +
+    '.rr-cp h3{margin:0;padding:22px 22px 14px;color:#fff;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(127,196,234,.2)}' +
+    '.rr-cp .list{flex:1;overflow:auto;padding:6px 22px}' +
+    '.rr-cp .it{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(127,196,234,.14);text-decoration:none!important}' +
+    '.rr-cp .it img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:6px;flex:none}' +
+    '.rr-cp .nm{color:#e6f3fb;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
+    '.rr-cp .op{color:#9fd6f7;font-size:12px;margin-top:2px}' +
+    '.rr-cp .pr{color:#fff;font-weight:700;font-size:14px;margin-top:4px}' +
+    '.rr-cp .pr small{color:#9fb3c6;font-weight:400}' +
+    '.rr-cp .foot{padding:16px 22px 22px;border-top:1px solid rgba(127,196,234,.25);background:rgba(2,10,20,.55)}' +
+    '.rr-cp .sum{display:flex;justify-content:space-between;color:#fff;font-size:17px;font-weight:800;margin-bottom:10px}' +
+    '.rr-cp .free{font-size:12.5px;margin-bottom:6px}.rr-cp .free b{color:#fff}' +
+    '.rr-cp .bar{height:6px;border-radius:3px;background:rgba(127,196,234,.15);overflow:hidden;margin-bottom:14px}' +
+    '.rr-cp .bar i{display:block;height:100%;background:linear-gradient(90deg,#e52421,#ff6a63)}' +
+    '.rr-cp .bar.ok i{background:linear-gradient(90deg,#1f9d4a,#34d06a)}' +
+    '.rr-cp .go{display:block;text-align:center;padding:12px;border-radius:8px;background:#e52421;color:#fff!important;font-weight:800;text-decoration:none!important;text-transform:uppercase;letter-spacing:.04em}' +
+    '.rr-cp .go:hover{background:#ff3a36}' +
+    '.rr-cp .empty{padding:30px 0;text-align:center;color:#9fb3c6}' +
+    '.rr-cp .x{position:absolute;top:16px;right:16px;width:32px;height:32px;border:0;background:transparent;color:#cfe9f8;font-size:26px;line-height:1;cursor:pointer}' +
+    '.rr-cp-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:2147482999;display:none;flex-direction:column;align-items:center;gap:4px;' +
+      'padding:12px 9px;border-radius:10px 0 0 10px;background:linear-gradient(180deg,#14659c,#0a3a5e);border:1px solid rgba(127,196,234,.6);border-right:0;' +
+      'color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:-6px 0 18px rgba(0,0,0,.4)}' +
+    '.rr-cp-tab.on{display:flex}.rr-cp-tab svg{width:22px;height:22px}';
+  var st = document.createElement('style'); st.id = 'rr-cartpanel'; st.textContent = css; (document.head || document.documentElement).appendChild(st);
+
+  var panel, tab, data = null, dataCount = -1, closeT = null;
+  function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function count() { var q = document.querySelector('#js-cart .header-quantity-box'); return q ? parseInt(q.textContent, 10) || 0 : 0; }
+  function load(cb) {
+    var n = count();
+    if (data && n === dataCount) { cb(); return; }
+    fetch(CART, { credentials: 'include' }).then(function (r) { return r.text(); }).then(function (h) {
+      var m = h.match(/initialState\s*=\s*(\{"presentsData.*\});[ 	]*$/m);   /* one line of JSON; more code follows in that script */
+      var items = [];
+      if (m) { try { items = (JSON.parse(m[1]).items || []).filter(function (i) { return i.cartItemType !== 'Present'; }); } catch (e) { items = []; } }
+      data = items; dataCount = n; cb();
+    }).catch(function () { data = []; cb(); });
+  }
+  function render() {
+    var items = data || [], total = 0, html = '';
+    items.forEach(function (i) {
+      total += i.totalNumber || 0;
+      var opt = (i.option || []).map(function (o) { return esc(o.value || o.name); }).filter(Boolean).join(', ');
+      html += '<a class="it" href="' + esc(i.href) + '"><img src="' + esc(i.imageUrl) + '" alt="" loading="lazy"><div>' +
+        '<div class="nm">' + esc((i.name || '').trim()) + '</div>' + (opt ? '<div class="op">' + opt + '</div>' : '') +
+        '<div class="pr">' + fmt(i.totalNumber || 0) + (i.quantity > 1 ? ' <small>(' + i.quantity + ' × ' + fmt(i.priceNumber || 0) + ')</small>' : '') + '</div></div></a>';
+    });
+    var left = Math.max(0, FREE - total), pct = Math.min(100, total / FREE * 100);
+    panel.querySelector('h3').textContent = 'Kosár' + (items.length ? ' (' + items.reduce(function (a, i) { return a + (i.quantity || 1); }, 0) + ')' : '');
+    panel.querySelector('.list').innerHTML = items.length ? html : '<div class="empty">A kosarad üres.</div>';
+    panel.querySelector('.foot').style.display = items.length ? '' : 'none';
+    panel.querySelector('.sum').innerHTML = '<span>Összesen</span><span>' + fmt(total) + '</span>';
+    panel.querySelector('.free').innerHTML = left ? 'Még <b>' + fmt(left) + '</b> és ingyenes a szállítás!' : '<b>Ingyenes szállítás</b> erre a rendelésre!';
+    var bar = panel.querySelector('.bar'); bar.className = 'bar' + (left ? '' : ' ok'); bar.firstChild.style.width = pct + '%';
+  }
+  function open() {
+    clearTimeout(closeT);
+    load(function () { render(); panel.classList.add('open'); });
+  }
+  function later() { clearTimeout(closeT); closeT = setTimeout(function () { panel.classList.remove('open'); }, 350); }
+  function build() {
+    var cart = document.getElementById('js-cart');
+    if (!cart || !document.body) { return false; }
+    panel = document.createElement('div'); panel.className = 'rr-cp'; panel.setAttribute('aria-label', 'Kosár tartalma');
+    panel.innerHTML = '<button class="x" type="button" aria-label="Bezárás">×</button><h3>Kosár</h3><div class="list"></div>' +
+      '<div class="foot"><div class="sum"></div><div class="free"></div><div class="bar"><i></i></div><a class="go" href="' + CART + '">Tovább a kosárhoz</a></div>';
+    document.body.appendChild(panel);
+    tab = document.createElement('button'); tab.type = 'button'; tab.className = 'rr-cp-tab'; tab.setAttribute('aria-label', 'Kosár megnyitása');
+    document.body.appendChild(tab);
+    cart.addEventListener('mouseenter', open); cart.addEventListener('mouseleave', later);
+    tab.addEventListener('mouseenter', open); tab.addEventListener('click', open); tab.addEventListener('mouseleave', later);
+    panel.addEventListener('mouseenter', function () { clearTimeout(closeT); }); panel.addEventListener('mouseleave', later);
+    panel.querySelector('.x').addEventListener('click', function () { panel.classList.remove('open'); });
+    function syncTab() {
+      var n = count();
+      tab.classList.toggle('on', n > 0);
+      tab.innerHTML = '<svg viewBox="0 0 28 28" fill="none" stroke="#e6f3fb" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h3.2l3 13.5h13.6l2.9-9.5H7"/><circle cx="11" cy="22.6" r="1.8"/><circle cx="20" cy="22.6" r="1.8"/></svg><span>' + n + '</span>';
+    }
+    syncTab();
+    if (window.MutationObserver) { new MutationObserver(syncTab).observe(cart, { childList: true, subtree: true, characterData: true }); }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 50) { setTimeout(wait, 200); } })();
+})();
+
+/* Phone (owner 2026-11-16): the top band strip is part of the page, not of the sticky header - it scrolls away with
+   the page instead of riding along / vanishing under the header. */
+(function () {
+  if (window.__rrBandsFlow) { return; }
+  window.__rrBandsFlow = true;
+  if (!window.matchMedia || !matchMedia('(max-width:991px)').matches) { return; }
+  var tries = 0;
+  (function wait() {
+    var strip = document.querySelector('.rr-bands:not(.rr-bands2)'), sticky = document.querySelector('.section-wrapper.header-sticky');
+    if (!strip || !sticky) { if (tries++ < 60) { setTimeout(wait, 200); } return; }
+    if (strip.closest('.header-sticky')) {
+      var after = sticky.nextElementSibling && sticky.nextElementSibling.classList.contains('rr-bands-spacer') ? sticky.nextElementSibling : sticky;
+      after.parentNode.insertBefore(strip, after.nextSibling);
+      strip.classList.add('rr-bands-flow');
+    }
+  })();
 })();
