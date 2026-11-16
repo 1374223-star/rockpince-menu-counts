@@ -4833,3 +4833,45 @@
     });
   })();
 })();
+
+/* Band pages (SEO, owner OK 2026-11-16): every top band has its own page under /zenekarok/... (built and kept
+   filled by rockoff-upload/src/bandpages/build.py). The parent "Zenekarok" never shows in a menu and its own
+   page sends visitors to ZENEKAROS; the breadcrumb on a band page points there too. Band strip logos open the
+   band page when the band has one (otherwise the search, as before). Map: assets/seo/bandpages.json. */
+(function () {
+  if (window.__rrBandPages) { return; }
+  window.__rrBandPages = true;
+  var Z = 'https://www.rockpince.hu/zenekarok', ZEN = '/ruhazat_cipo-14031/zenekaros-14040';
+  var st = document.createElement('style'); st.id = 'rr-bandpages';
+  st.textContent = '#cat_19526,li:has(> a[href="' + Z + '"]),li:has(> div > a[href="' + Z + '"]),li:has(> span > a[href="' + Z + '"]){display:none!important}';
+  (document.head || document.documentElement).appendChild(st);
+  if (/^\/zenekarok\/?$/.test(location.pathname)) { location.replace(ZEN); return; }
+  function crumbs() {
+    [].forEach.call(document.querySelectorAll('.breadcrumb a[href="' + Z + '"],[class*=breadcrumb] a[href="' + Z + '"]'), function (a) {
+      a.setAttribute('href', ZEN);
+      var t = a.querySelector('span') || a;
+      if (/^\s*Zenekarok\s*$/.test(t.textContent)) { t.textContent = 'Zenekaros'; }
+    });
+  }
+  if (/^\/zenekarok\//.test(location.pathname)) {
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', crumbs); } else { crumbs(); }
+  }
+  var map = null, tries = 0;
+  var x = new XMLHttpRequest();
+  x.open('GET', 'https://1374223-star.github.io/rockpince-menu-counts/assets/seo/bandpages.json', true);
+  x.onload = function () { try { map = JSON.parse(x.responseText); } catch (e) { map = {}; } };
+  x.send();
+  function relink() {
+    var done = 0;
+    if (map) {
+      [].forEach.call(document.querySelectorAll('a.rr-blogo:not([data-bp])'), function (a) {
+        var im = a.querySelector('img'), m = im && /\/bands\/([^\/]+)\.webp/.exec(im.getAttribute('src') || '');
+        a.setAttribute('data-bp', '1');
+        if (m && map[m[1]]) { a.setAttribute('href', map[m[1]]); }
+      });
+      done = document.querySelectorAll('a.rr-blogo').length;
+    }
+    if (tries++ < 80) { setTimeout(relink, done ? 1500 : 250); }
+  }
+  relink();
+})();
