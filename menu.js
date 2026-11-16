@@ -3576,7 +3576,7 @@
   /* owner 2026-11-17: phones too, silent, the phone vibrates with the flashes instead of the thunder */
   var DESK = matchMedia('(hover:hover) and (pointer:fine) and (min-width:1200px)').matches, PHONE = matchMedia('(max-width:991px)').matches;
   if (!DESK && !PHONE) { return; }
-  var SLOT = 72;   /* phone home: height of the hammer row between the top strip and the banner (= gap below the banner) */
+  var SLOT = 62;   /* phone home: height of the hammer row under the second band strip */
   var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var HAMMER = '<img src="https://1374223-star.github.io/rockpince-menu-counts/assets/mjolnir.webp" width="32" height="44" alt="" draggable="false">';  /* owner's emblem in the lettering chrome */
   var css =
@@ -3805,15 +3805,13 @@
     requestAnimationFrame(frame);
   }
 
-  /* owner 2026-11-17: on the phone home page the hammer sits centred between the top band strip and the banner, and
-     the banner-to-second-strip gap matches; every few seconds it wiggles and glows (transform/opacity only, so the
+  /* owner 2026-11-17: on the phone home page the hammer sits centred in its own short row under the second band strip
+     (the strip/banner gaps stay as they were); every few seconds it wiggles and glows (transform/opacity only, so the
      compositor does it without repaints) so people see it is meant to be tapped */
   var phoneCss =
     '.rr-mj-slot{display:flex;justify-content:center;align-items:center;height:' + SLOT + 'px}' +
-    'body .rr-mj-slot + .section-wrapper{margin-top:0!important}' +
-    'body .rr-mj-slot ~ .rr-bands2{margin-top:' + SLOT + 'px!important}' +   /* collapses with the banner's own 24px bottom margin */
-    '.rr-mj.ph.slot{position:relative;left:auto;top:auto;margin:0!important;width:56px;height:56px}' +
-    '.rr-mj.ph.slot img{width:31px}' +
+    '.rr-mj.ph.slot{position:relative;left:auto;top:auto;margin:0!important;width:50px;height:50px}' +
+    '.rr-mj.ph.slot img{width:28px}' +
     '@keyframes rrMjNudge{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(-16deg) scale(1.1)}90%{transform:rotate(12deg) scale(1.1)}93%{transform:rotate(-7deg) scale(1.05)}96%{transform:rotate(3deg)}}' +
     '@keyframes rrMjGlow{0%,82%,100%{opacity:0}89%{opacity:1}}' +
     '@media (prefers-reduced-motion:no-preference){' +
@@ -3821,15 +3819,11 @@
       '.rr-mj.ph::after{content:"";position:absolute;inset:-8px;border-radius:50%;pointer-events:none;opacity:0;' +
         'background:radial-gradient(circle,rgba(150,215,255,.6) 0%,rgba(110,190,245,.25) 45%,rgba(110,190,245,0) 70%);animation:rrMjGlow 5s ease-in-out 1.5s infinite}' +
       '.rr-mj.ph.charge img{animation:rrMjCharge .55s ease-in forwards}}';
-  function homeBanner() {
-    var b = document.querySelector('.banner-item__image, .slider-thumbnails-wrapper, .rr-banner-arrows');
-    return b && (b.closest('.section-wrapper') || b.closest('.module'));
-  }
   function mount() {
     var HOME = PHONE && (location.pathname === '/' || location.pathname === '/index.php');
     var bar = PHONE ? document.querySelector('.header-middle-row') : document.querySelector('.header-top-row .rr-social-top');
-    var banner = HOME ? homeBanner() : null;
-    if (!bar || (HOME && (!banner || !document.querySelector('.rr-bands-flow')))) { return false; }
+    var strip2 = HOME ? document.querySelector('.rr-bands2') : null;
+    if (!bar || (HOME && !strip2)) { return false; }
     if (PHONE && !HOME && getComputedStyle(bar).position === 'static') { bar.style.position = 'relative'; }
     var st = document.createElement('style'); st.id = 'rr-mjolnir'; st.textContent = css + (PHONE ? phoneCss : ''); document.head.appendChild(st);
     var b = document.createElement('button');
@@ -3837,7 +3831,7 @@
     b.addEventListener('click', function (ev) { ev.preventDefault(); strike(b); });
     if (HOME) {
       var slot = document.createElement('div'); slot.className = 'rr-mj-slot'; slot.appendChild(b);
-      banner.parentNode.insertBefore(slot, banner);
+      strip2.parentNode.insertBefore(slot, strip2.nextSibling);
       return true;
     }
     bar.appendChild(b);
