@@ -4095,3 +4095,19 @@
   var tries = 0;
   (function wait() { if (!fix() && tries++ < 40) { setTimeout(wait, 250); } })();
 })();
+
+/* "Utoljára megtekintett termékek" (owner: "why are there no sizes, kosárba and price?"): the theme hides the price
+   and the card footer in this module only. Show them like on the other product modules (sizes come from the size
+   chips added to every card footer). */
+(function () {
+  if (window.__rrLastSeen) { return; }
+  window.__rrLastSeen = true;
+  var st = document.createElement('style'); st.id = 'rr-lastseen';
+  st.textContent =
+    '#lastseen .product-card__price{display:flex!important;flex-direction:column;align-items:center}' +
+    '#lastseen .product-card__footer{display:block!important}' +
+    '#lastseen .product-card__addtocart{display:flex!important;justify-content:center}' +
+    '#lastseen .product-card__details,#lastseen .quantity-input,#lastseen .quantity-name-text{display:none!important}' +
+    '#lastseen .button-add-to-cart{display:flex!important;width:100%;justify-content:center}';
+  (document.head || document.documentElement).appendChild(st);
+})();
