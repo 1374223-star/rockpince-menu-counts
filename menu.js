@@ -4396,9 +4396,19 @@
     else { prompt('Másold ki a linket:', u); }
     return w;
   }
+  /* owner 2026-11-17: on phones the system share sheet was too generic. Instagram and TikTok have no link that opens
+     a chat with text filled in, so the product link is copied first and then the app's own messages screen opens
+     (these https links open the installed app on phones, or the website if the app is missing). */
   function share(site) {
-    if (TOUCH && navigator.share) { navigator.share({ title: title(), url: link() }).catch(function () {}); }
-    else { copyOpen(site); }
+    if (!TOUCH) { copyOpen(site); return; }
+    var u = link(), go = function () { setTimeout(function () { location.href = site; }, 900); };
+    function copied() { toast('Link kimásolva - illeszd be az üzenetbe'); go(); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(u).then(copied, function () {
+        if (navigator.share) { navigator.share({ title: title(), url: u }).catch(function () {}); } else { prompt('Másold ki a linket:', u); }
+      });
+    } else if (navigator.share) { navigator.share({ title: title(), url: u }).catch(function () {}); }
+    else { prompt('Másold ki a linket:', u); go(); }
   }
   var ACT = {
     m: function () {
@@ -4448,12 +4458,60 @@
     [/\bour business\b/gi, 'Our store'],
     [/\brock cellar\b/gi, 'RockPince'],
     [/\brock basement\b/gi, 'RockPince'],
-    [/\bblack beard\b/gi, 'Barba Negra']   /* the concert venue's name */
+    [/\bblack beard\b/gi, 'Barba Negra'],   /* the concert venue's name */
+    /* owner's screenshots 2026-11-17 */
+    [/\bnew ?\/ ?action\b/gi, 'New / Sale'],
+    [/\bnews ?\/ ?sales\b/gi, 'New / Sale'],
+    [/\balternative clothes\b/gi, 'Alternative clothing'],
+    [/\bour discounted offers?\b/gi, 'On sale'],
+    [/\bour discount offers?\b/gi, 'On sale'],
+    [/\bour special offers\b/gi, 'On sale'],
+    [/\brandomly from our offer\b/gi, 'Random picks'],
+    [/\blast viewed products\b/gi, 'Recently viewed'],
+    [/\ball new\b(?! arrivals)/gi, 'All new arrivals'],
+    [/\bthe coupon, please\b/gi, 'Get my coupon'],
+    [/\babout business\b/gi, 'About the store'],
+    [/\bable information\b/gi, 'Illustrated guide'],
+    [/\bI'll put it on my wish ?list\b/gi, 'Add to wishlist'],
+    [/\bsmall sewing machine\b/gi, 'small patch'],
+    [/\bsmall seamstress\b/gi, 'small patch'],
+    [/\bbackstitcher\b/gi, 'back patch'],
+    [/\bseamstress\b/gi, 'patch'],
+    [/\bsteel-lined\b/gi, 'steel toe'],
+    [/\bsteel lined\b/gi, 'steel toe'],
+    [/\b(\d{1,2})[- ]holes?\b/gi, '$1-eyelet'],
+    [/\bXIV\. circ\./g, 'XIV. district,'],
+    [/\bWED (10:00 ?- ?2:00 PM)/g, 'SAT $1'],
+    [/\bredemption\b/gi, 'Apply'],
+    [/\bgross total\b/gi, 'Total'],
+    [/^availability$/gi, 'Contact details'],
+    [/\bI buy as a company\b/gi, "I'm buying as a company"]
   ];
+  /* "Még <b>X Ft</b> és <b>ingyenes</b> a szállítás!" comes back as "Even X and free the delivery!" in pieces */
+  function fixShipLines() {
+    [].forEach.call(document.querySelectorAll('b, strong'), function (b) {
+      var box = b.parentElement;
+      if (!box || box.__rrShipFixed || (box.textContent || '').length > 160) { return; }
+      if (!/\beven\b[\s\S]*\band\b[\s\S]*\bfree\b[\s\S]*\bdelivery\b/i.test(box.textContent)) { return; }
+      var w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) {
+        if (n.parentElement && n.parentElement.closest('.bar')) { continue; }
+        var v = n.nodeValue;
+        if (/^\s*even\s*$/i.test(v)) { n.nodeValue = keepCase(v.trim(), 'Only') + ' '; }
+        else if (/^\s*and\s*$/i.test(v)) { n.nodeValue = ' ' + keepCase(v.trim(), 'more for') + ' '; }
+        else if (/^\s*the delivery!?\s*$/i.test(v)) { n.nodeValue = ' ' + keepCase(v.trim(), 'delivery!'); }
+      }
+      box.__rrShipFixed = true;
+    });
+  }
   /* Hungarian text Google leaves as it is (lazy carousel cards, <option> labels), English only, exact matches */
   var LEFT_EN = { 'MÉRET': 'SIZE', 'Méret': 'Size', 'méret': 'size', 'VILLÁMNÉZET': 'QUICK VIEW', 'Villámnézet': 'Quick view',
     'Kívánságlistára teszem': 'Add to wishlist', 'KOSÁRBA': 'ADD TO CART', 'Kosárba': 'Add to cart', 'ÚJ TERMÉK': 'NEW', 'Új termék': 'New',
-    'Válassz méretet': 'Choose size', 'VÁLASSZ MÉRETET': 'CHOOSE SIZE', 'Méret választás': 'Choose size' };
+    'Válassz méretet': 'Choose size', 'VÁLASSZ MÉRETET': 'CHOOSE SIZE', 'Méret választás': 'Choose size',
+    'DIST': 'DECOR & GIFTS', 'Dist': 'Decor & Gifts', 'Törlés': 'Remove', 'TÖRLÉS': 'REMOVE', 'DELETION': 'REMOVE', 'Deletion': 'Remove',
+    'Magyarország': 'Hungary' };
+  var LEFT_RE = [[/^(Válassz méretet|VÁLASSZ MÉRETET)(\s*\(\d+\))$/, function (m, a, c) { return (a === a.toUpperCase() ? 'CHOOSE SIZE' : 'Choose size') + c; }],
+    [/^DIST(\s*\[\d+\])$/, 'DECOR & GIFTS$1']];
   var PH_EN = { 'Vezetéknév': 'Last name', 'Keresztnév': 'First name', 'E-mail cím': 'Email address', 'E-mail': 'Email', 'Jelszó': 'Password' };
   function lang() { return String(document.documentElement.lang || '').toLowerCase().split('-')[0]; }
   function active() { return /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className) && lang() && lang() !== 'hu'; }
@@ -4464,7 +4522,10 @@
   }
   function fixText(s) {
     var out = s;
-    for (var i = 0; i < FIX_EN.length; i++) { out = out.replace(FIX_EN[i][0], function (m) { return keepCase(m, FIX_EN[i][1]); }); }
+    for (var i = 0; i < FIX_EN.length; i++) {
+      var re = FIX_EN[i][0], one = new RegExp(re.source, re.flags.replace('g', ''));
+      out = out.replace(re, function (m) { return keepCase(m, m.replace(one, FIX_EN[i][1])); });   /* keeps $1 groups working */
+    }
     return out;
   }
   function placeholders(on) {
@@ -4480,7 +4541,7 @@
       [].forEach.call(document.querySelectorAll('input[data-rr-ph]'), function (el) { el.placeholder = el.getAttribute('data-rr-ph'); el.removeAttribute('data-rr-ph'); });
     }
   }
-  var timer = null, bodyObs = null, fixing = false, swapped = [];
+  var timer = null, bodyObs = null, fixing = false, swapped = [], swappedOpt = [];
   function sweep() {
     timer = null;
     if (!active()) { return; }
@@ -4493,11 +4554,21 @@
       if (!v || v.length < 3) { continue; }
       var k = v.trim();
       if (LEFT_EN[k]) { if (n.__rrOrig == null) { n.__rrOrig = v; swapped.push(n); } n.nodeValue = v.replace(k, LEFT_EN[k]); continue; }
+      var hit = false;
+      for (var j = 0; j < LEFT_RE.length; j++) {
+        if (LEFT_RE[j][0].test(k)) { if (n.__rrOrig == null) { n.__rrOrig = v; swapped.push(n); } n.nodeValue = v.replace(k, k.replace(LEFT_RE[j][0], LEFT_RE[j][1])); hit = true; break; }
+      }
+      if (hit) { continue; }
       if (/[a-z]/i.test(v)) { var f = fixText(v); if (f !== v) { n.nodeValue = f; } }
     }
     [].forEach.call(document.querySelectorAll('input[placeholder]'), function (el) {
       var o = el.getAttribute('data-rr-ph') != null ? el.getAttribute('data-rr-ph') : el.placeholder;
       if (PH_EN[o]) { if (el.getAttribute('data-rr-ph') == null) { el.setAttribute('data-rr-ph', o); } el.placeholder = PH_EN[o]; }
+    });
+    fixShipLines();
+    [].forEach.call(document.querySelectorAll('option'), function (o) {   /* <option> text is not reached by the walker fix for "DIST" etc. */
+      var k = o.textContent.trim();
+      for (var j = 0; j < LEFT_RE.length; j++) { if (LEFT_RE[j][0].test(k)) { if (o.__rrOrig == null) { o.__rrOrig = o.textContent; swappedOpt.push(o); } o.textContent = k.replace(LEFT_RE[j][0], LEFT_RE[j][1]); } }
     });
     var t = fixText(document.title); if (t !== document.title) { document.title = t; }
     fixing = false;
@@ -4515,12 +4586,22 @@
       placeholders(false);
       swapped.forEach(function (n) { if (n.__rrOrig != null) { n.nodeValue = n.__rrOrig; n.__rrOrig = null; } });   /* Google only restores what it translated */
       swapped = [];
+      swappedOpt.forEach(function (o) { if (o.__rrOrig != null) { o.textContent = o.__rrOrig; o.__rrOrig = null; } });
+      swappedOpt = [];
     }
   }
   if (window.MutationObserver) {
     new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'lang'] });
   }
   update();
+  /* footer opening hours "[H-P 12:00-18:00, SZ 10:00-14:00]": "SZ" is also Wednesday (szerda), translators said WED */
+  var fTries = 0;
+  (function footerDays() {
+    var f = document.querySelector('footer');
+    if (!f) { if (fTries++ < 30) { setTimeout(footerDays, 500); } return; }
+    var w = document.createTreeWalker(f, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) { if (/\bSZ \d{1,2}:\d{2}/.test(n.nodeValue)) { n.nodeValue = n.nodeValue.replace(/\bSZ (\d{1,2}:\d{2})/g, 'Szo $1'); } }
+  })();
 })();
 
 /* Display-only EUR prices (owner 2026-11-17). Visitors whose browser is not Hungarian (no Hungarian language and a
