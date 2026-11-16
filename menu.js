@@ -3561,7 +3561,10 @@
 (function () {
   if (window.__rrMjolnir) { return; }
   window.__rrMjolnir = true;
-  if (!window.matchMedia || !matchMedia('(hover:hover) and (pointer:fine) and (min-width:1200px)').matches) { return; }
+  if (!window.matchMedia) { return; }
+  /* owner 2026-11-17: phones too, silent, the phone vibrates with the flashes instead of the thunder */
+  var DESK = matchMedia('(hover:hover) and (pointer:fine) and (min-width:1200px)').matches, PHONE = matchMedia('(max-width:991px)').matches;
+  if (!DESK && !PHONE) { return; }
   var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var HAMMER = '<img src="https://1374223-star.github.io/rockpince-menu-counts/assets/mjolnir.webp" width="32" height="44" alt="" draggable="false">';  /* owner's emblem in the lettering chrome */
   var css =
@@ -3572,6 +3575,8 @@
     '.rr-mj:hover img{transform:rotate(-12deg) scale(1.1)}' +
     '.rr-mj.charge img{animation:rrMjCharge .55s ease-in forwards}' +
     '@keyframes rrMjCharge{0%{transform:rotate(0)}70%{transform:rotate(-38deg) scale(1.22)}100%{transform:rotate(22deg) scale(1.1)}}' +
+    '.rr-mj.ph{position:absolute;left:56px;top:50%;margin:-20px 0 0;width:40px;height:40px;z-index:6}' +
+    '.rr-mj.ph img{width:25px;height:auto}' +
     '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;background:#f4fbff;opacity:0}' +
     '.rr-mj-flash.go{animation:rrMjFlash 1.3s ease-out forwards}' +
     '@keyframes rrMjFlash{0%{opacity:0}4%{opacity:.97}12%{opacity:.25}20%{opacity:.9}30%{opacity:.15}42%{opacity:.7}100%{opacity:0}}' +
@@ -3677,7 +3682,8 @@
     if (busy) { return; }
     busy = true;
     btn.classList.remove('charge'); void btn.offsetWidth; btn.classList.add('charge');
-    thunder();
+    if (DESK) { thunder(); }
+    else if (navigator.vibrate) { try { navigator.vibrate([70, 50, 220, 90, 60, 70, 320, 160, 90, 120, 60, 220, 40, 90, 40]); } catch (e) {} }
     var W = innerWidth, H = innerHeight;
     var cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
     cv.className = 'rr-mj-cv'; cv.width = W * dpr; cv.height = H * dpr;
@@ -3703,7 +3709,7 @@
     }
     // racers: points that dart around the screen leaving short-lived electric arcs behind them
     var racers = [];
-    for (var r = 0; r < 9; r++) {
+    for (var r = 0; r < (PHONE ? 6 : 9); r++) {
       var a = Math.random() * 7, v = 14 + Math.random() * 16;
       racers.push({ x: Math.random() * W, y: Math.random() * H, vx: Math.cos(a) * v, vy: Math.sin(a) * v, trail: [] });
     }
@@ -3764,13 +3770,19 @@
   }
 
   function mount() {
-    var bar = document.querySelector('.header-top-row .rr-social-top');
+    var bar = PHONE ? document.querySelector('.header-middle-row') : document.querySelector('.header-top-row .rr-social-top');
     if (!bar) { return false; }
+    if (PHONE && getComputedStyle(bar).position === 'static') { bar.style.position = 'relative'; }
     var st = document.createElement('style'); st.id = 'rr-mjolnir'; st.textContent = css; document.head.appendChild(st);
     var b = document.createElement('button');
-    b.type = 'button'; b.className = 'rr-mj'; b.title = 'Mjölnir'; b.setAttribute('aria-label', 'Mjölnir'); b.innerHTML = HAMMER;
+    b.type = 'button'; b.className = PHONE ? 'rr-mj ph' : 'rr-mj'; b.title = 'Mjölnir'; b.setAttribute('aria-label', 'Mjölnir'); b.innerHTML = HAMMER;
     b.addEventListener('click', function (ev) { ev.preventDefault(); strike(b); });
     bar.appendChild(b);
+    if (PHONE) {   /* beside the menu button, on its centre line (absolute, so the logo stays centred) */
+      var br = bar.getBoundingClientRect(), first = null;
+      [].forEach.call(bar.children, function (e) { var r = e.getBoundingClientRect(); if (e !== b && r.width > 0 && (!first || r.left < first.left)) { first = r; } });
+      if (first) { b.style.margin = '0'; b.style.top = Math.round(first.top - br.top + first.height / 2 - 20) + 'px'; b.style.left = Math.round(first.right - br.left + 6) + 'px'; }
+    }
     return true;
   }
   var tries = 0;
@@ -4126,10 +4138,11 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* Cart side panel (owner 2026-11-16), desktop: hovering the basket opens a panel sliding in from the right with what
-   is in the cart (photo, name, size, quantity, price), the total and how much is left to free shipping. While the
-   cart has items, a small tab on the right edge opens the same panel. The items come from the cart page's own data
-   (document.aurora.initialState), fetched only when the panel opens and again only when the count changes. */
+/* Cart box (owner 2026-11-17, replaces the full-height side panel: "too big and clunky"), desktop: hovering the
+   basket drops a small box down from it, like the Kedvencek dropdown, with what is in the cart (photo, name, size,
+   price), the total, how much is left to free shipping and a button to the cart. While the cart has items, a small
+   tab on the right edge shows the same box beside it on hover. Nothing shows for an empty cart. The items come from
+   the cart page's own data (document.aurora.initialState), fetched on first hover and again only when the count changes. */
 (function () {
   if (window.__rrCartPanel) { return; }
   window.__rrCartPanel = true;
@@ -4138,7 +4151,7 @@
   var FREE = 30000, CART = '/index.php?route=checkout/cart';
   var css =
     '.header-middle-right-wrapper{overflow:visible!important}' +
-    /* the theme's own little cart hover box opened to the right, off the screen: the side panel replaces it */
+    /* the theme's own little cart hover box opened to the right, off the screen: this box replaces it */
     '#js-cart .cart-dropdown > :not(.cart-dropdown-toggle),#js-cart .dropdown-menu{display:none!important}' +
     /* the wishlist dropdown opens downwards, inside the screen, instead of to the right */
     '#header-middle-wishlist .dropdown-menu{left:auto!important;right:0!important;top:calc(100% + 8px)!important;bottom:auto!important;transform:none!important;margin:0!important}' +
@@ -4146,35 +4159,37 @@
     '.header-middle-right-wrapper > .header-middle-right-box:last-child{border-radius:0 7px 7px 0}' +
     '#js-cart .header-quantity-box{position:absolute!important;top:3px!important;right:5px!important;left:auto!important;min-width:18px;height:18px;line-height:18px;padding:0 4px;' +
       'border-radius:9px;background:#e52421!important;color:#fff!important;font-size:11px;font-weight:700;text-align:center;box-shadow:0 0 0 2px #031627}' +
-    '.rr-cp{position:fixed;top:0;right:0;bottom:0;width:390px;max-width:92vw;z-index:2147483000;display:flex;flex-direction:column;' +
-      'background:linear-gradient(180deg,#0b3a5e 0%,#06243b 30%,#031627 100%);border-left:1px solid rgba(127,196,234,.55);box-shadow:-18px 0 40px rgba(0,0,0,.55);' +
-      'transform:translateX(105%);transition:transform .25s ease;color:#c4d2df;font-family:Poppins,sans-serif}' +
-    '.rr-cp.open{transform:none}' +
-    '.rr-cp h3{margin:0;padding:22px 22px 14px;color:#fff;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(127,196,234,.2)}' +
-    '.rr-cp .list{flex:1;overflow:auto;padding:6px 22px}' +
-    '.rr-cp .it{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(127,196,234,.14);text-decoration:none!important}' +
-    '.rr-cp .it img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:6px;flex:none}' +
-    '.rr-cp .nm{color:#e6f3fb;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
-    '.rr-cp .op{color:#9fd6f7;font-size:12px;margin-top:2px}' +
-    '.rr-cp .pr{color:#fff;font-weight:700;font-size:14px;margin-top:4px}' +
-    '.rr-cp .pr small{color:#9fb3c6;font-weight:400}' +
-    '.rr-cp .foot{padding:16px 22px 22px;border-top:1px solid rgba(127,196,234,.25);background:rgba(2,10,20,.55)}' +
-    '.rr-cp .sum{display:flex;justify-content:space-between;color:#fff;font-size:17px;font-weight:800;margin-bottom:10px}' +
-    '.rr-cp .free{font-size:12.5px;margin-bottom:6px}.rr-cp .free b{color:#fff}' +
-    '.rr-cp .bar{height:6px;border-radius:3px;background:rgba(127,196,234,.15);overflow:hidden;margin-bottom:14px}' +
-    '.rr-cp .bar i{display:block;height:100%;background:linear-gradient(90deg,#e52421,#ff6a63)}' +
-    '.rr-cp .bar.ok i{background:linear-gradient(90deg,#1f9d4a,#34d06a)}' +
-    '.rr-cp .go{display:block;text-align:center;padding:12px;border-radius:8px;background:#e52421;color:#fff!important;font-weight:800;text-decoration:none!important;text-transform:uppercase;letter-spacing:.04em}' +
-    '.rr-cp .go:hover{background:#ff3a36}' +
-    '.rr-cp .empty{padding:30px 0;text-align:center;color:#9fb3c6}' +
-    '.rr-cp .x{position:absolute;top:16px;right:16px;width:32px;height:32px;border:0;background:transparent;color:#cfe9f8;font-size:26px;line-height:1;cursor:pointer}' +
+    '.rr-cb{position:fixed;z-index:2147483000;width:330px;display:none;flex-direction:column;background:#06243b;border:1px solid rgba(127,196,234,.55);' +
+      'border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.55);color:#c4d2df;font-family:Poppins,sans-serif;overflow:hidden}' +
+    '.rr-cb.open{display:flex;animation:rrCbIn .14s ease-out}' +
+    '@keyframes rrCbIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}' +
+    '.rr-cb.side.open{animation-name:rrCbSide}@keyframes rrCbSide{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:none}}' +
+    '.rr-cb .hd{padding:11px 14px 9px;color:#fff;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(127,196,234,.2)}' +
+    '.rr-cb .list{max-height:258px;overflow:auto;padding:0 14px}' +
+    '.rr-cb .it{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(127,196,234,.12);text-decoration:none!important}' +
+    '.rr-cb .it:last-child{border-bottom:0}' +
+    '.rr-cb .it img{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:5px;flex:none}' +
+    '.rr-cb .it > div{min-width:0;flex:1}' +
+    '.rr-cb .nm{color:#e6f3fb;font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
+    '.rr-cb .it:hover .nm{color:#fff;text-decoration:underline}' +
+    '.rr-cb .op{color:#9fd6f7;font-size:11.5px}' +
+    '.rr-cb .pr{flex:none;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;text-align:right}' +
+    '.rr-cb .pr small{display:block;color:#9fb3c6;font-weight:400;font-size:11px}' +
+    '.rr-cb .foot{padding:10px 14px 13px;border-top:1px solid rgba(127,196,234,.25);background:rgba(2,10,20,.45)}' +
+    '.rr-cb .sum{display:flex;justify-content:space-between;color:#fff;font-size:14.5px;font-weight:800;margin-bottom:6px}' +
+    '.rr-cb .free{font-size:11.5px;margin-bottom:5px}.rr-cb .free b{color:#fff}' +
+    '.rr-cb .bar{height:4px;border-radius:2px;background:rgba(127,196,234,.15);overflow:hidden;margin-bottom:10px}' +
+    '.rr-cb .bar i{display:block;height:100%;background:linear-gradient(90deg,#e52421,#ff6a63)}' +
+    '.rr-cb .bar.ok i{background:linear-gradient(90deg,#1f9d4a,#34d06a)}' +
+    '.rr-cb .go{display:block;text-align:center;padding:9px;border-radius:6px;background:#e52421;color:#fff!important;font-size:13px;font-weight:800;text-decoration:none!important;text-transform:uppercase;letter-spacing:.04em}' +
+    '.rr-cb .go:hover{background:#ff3a36}' +
     '.rr-cp-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:2147482999;display:none;flex-direction:column;align-items:center;gap:4px;' +
       'padding:12px 9px;border-radius:10px 0 0 10px;background:linear-gradient(180deg,#14659c,#0a3a5e);border:1px solid rgba(127,196,234,.6);border-right:0;' +
       'color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:-6px 0 18px rgba(0,0,0,.4)}' +
     '.rr-cp-tab.on{display:flex}.rr-cp-tab svg{width:22px;height:22px}';
   var st = document.createElement('style'); st.id = 'rr-cartpanel'; st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
-  var panel, tab, data = null, dataCount = -1, closeT = null;
+  var box, tab, cart, data = null, dataCount = -1, closeT = null, want = null;
   function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function count() { var q = document.querySelector('#js-cart .header-quantity-box'); return q ? parseInt(q.textContent, 10) || 0 : 0; }
@@ -4189,40 +4204,56 @@
     }).catch(function () { data = []; cb(); });
   }
   function render() {
-    var items = data || [], total = 0, html = '';
+    var items = data || [], total = 0, html = '', pcs = 0;
     items.forEach(function (i) {
-      total += i.totalNumber || 0;
+      total += i.totalNumber || 0; pcs += i.quantity || 1;
       var opt = (i.option || []).map(function (o) { return esc(o.value || o.name); }).filter(Boolean).join(', ');
       html += '<a class="it" href="' + esc(i.href) + '"><img src="' + esc(i.imageUrl) + '" alt="" loading="lazy"><div>' +
-        '<div class="nm">' + esc((i.name || '').trim()) + '</div>' + (opt ? '<div class="op">' + opt + '</div>' : '') +
-        '<div class="pr">' + fmt(i.totalNumber || 0) + (i.quantity > 1 ? ' <small>(' + i.quantity + ' × ' + fmt(i.priceNumber || 0) + ')</small>' : '') + '</div></div></a>';
+        '<div class="nm">' + esc((i.name || '').trim()) + '</div>' + (opt ? '<div class="op">' + opt + '</div>' : '') + '</div>' +
+        '<div class="pr">' + fmt(i.totalNumber || 0) + (i.quantity > 1 ? '<small>' + i.quantity + ' db</small>' : '') + '</div></a>';
     });
     var left = Math.max(0, FREE - total), pct = Math.min(100, total / FREE * 100);
-    panel.querySelector('h3').textContent = 'Kosár' + (items.length ? ' (' + items.reduce(function (a, i) { return a + (i.quantity || 1); }, 0) + ')' : '');
-    panel.querySelector('.list').innerHTML = items.length ? html : '<div class="empty">A kosarad üres.</div>';
-    panel.querySelector('.foot').style.display = items.length ? '' : 'none';
-    panel.querySelector('.sum').innerHTML = '<span>Összesen</span><span>' + fmt(total) + '</span>';
-    panel.querySelector('.free').innerHTML = left ? 'Még <b>' + fmt(left) + '</b> és ingyenes a szállítás!' : '<b>Ingyenes szállítás</b> erre a rendelésre!';
-    var bar = panel.querySelector('.bar'); bar.className = 'bar' + (left ? '' : ' ok'); bar.firstChild.style.width = pct + '%';
+    box.querySelector('.hd').textContent = 'Kosár (' + pcs + ' termék)';
+    box.querySelector('.list').innerHTML = html;
+    box.querySelector('.sum').innerHTML = '<span>Összesen</span><span>' + fmt(total) + '</span>';
+    box.querySelector('.free').innerHTML = left ? 'Még <b>' + fmt(left) + '</b> és ingyenes a szállítás!' : '<b>Ingyenes szállítás</b> erre a rendelésre!';
+    var bar = box.querySelector('.bar'); bar.className = 'bar' + (left ? '' : ' ok'); bar.firstChild.style.width = pct + '%';
+    return items.length > 0;
   }
-  function open() {
-    clearTimeout(closeT);
-    load(function () { render(); panel.classList.add('open'); });
+  function place(from) {
+    if (from === 'tab') {
+      var t = tab.getBoundingClientRect();
+      box.classList.add('side'); box.style.right = (innerWidth - t.left + 8) + 'px'; box.style.left = 'auto';
+      box.style.top = Math.max(10, Math.min(innerHeight - box.offsetHeight - 10, t.top + t.height / 2 - box.offsetHeight / 2)) + 'px';
+    } else {
+      var a = (cart.closest('.header-middle-right-wrapper') || cart).getBoundingClientRect(), c = cart.getBoundingClientRect();
+      box.classList.remove('side'); box.style.left = 'auto';
+      box.style.right = Math.max(8, innerWidth - c.right) + 'px'; box.style.top = (a.bottom + 8) + 'px';
+    }
   }
-  function later() { clearTimeout(closeT); closeT = setTimeout(function () { panel.classList.remove('open'); }, 350); }
+  function open(from) {
+    clearTimeout(closeT); want = from;
+    if (count() < 1) { box.classList.remove('open'); return; }
+    load(function () {
+      if (want !== from) { return; }
+      if (!render()) { box.classList.remove('open'); return; }
+      box.classList.add('open'); place(from);
+    });
+  }
+  function later() { clearTimeout(closeT); closeT = setTimeout(function () { want = null; box.classList.remove('open'); }, 300); }
   function build() {
-    var cart = document.getElementById('js-cart');
+    cart = document.getElementById('js-cart');
     if (!cart || !document.body) { return false; }
-    panel = document.createElement('div'); panel.className = 'rr-cp'; panel.setAttribute('aria-label', 'Kosár tartalma');
-    panel.innerHTML = '<button class="x" type="button" aria-label="Bezárás">×</button><h3>Kosár</h3><div class="list"></div>' +
+    box = document.createElement('div'); box.className = 'rr-cb'; box.setAttribute('aria-label', 'Kosár tartalma');
+    box.innerHTML = '<div class="hd">Kosár</div><div class="list"></div>' +
       '<div class="foot"><div class="sum"></div><div class="free"></div><div class="bar"><i></i></div><a class="go" href="' + CART + '">Tovább a kosárhoz</a></div>';
-    document.body.appendChild(panel);
-    tab = document.createElement('button'); tab.type = 'button'; tab.className = 'rr-cp-tab'; tab.setAttribute('aria-label', 'Kosár megnyitása');
+    document.body.appendChild(box);
+    tab = document.createElement('a'); tab.href = CART; tab.className = 'rr-cp-tab'; tab.setAttribute('aria-label', 'Kosár');
     document.body.appendChild(tab);
-    cart.addEventListener('mouseenter', open); cart.addEventListener('mouseleave', later);
-    tab.addEventListener('mouseenter', open); tab.addEventListener('click', open); tab.addEventListener('mouseleave', later);
-    panel.addEventListener('mouseenter', function () { clearTimeout(closeT); }); panel.addEventListener('mouseleave', later);
-    panel.querySelector('.x').addEventListener('click', function () { panel.classList.remove('open'); });
+    cart.addEventListener('mouseenter', function () { open('cart'); }); cart.addEventListener('mouseleave', later);
+    tab.addEventListener('mouseenter', function () { open('tab'); }); tab.addEventListener('mouseleave', later);
+    box.addEventListener('mouseenter', function () { clearTimeout(closeT); }); box.addEventListener('mouseleave', later);
+    addEventListener('scroll', function () { if (box.classList.contains('open') && want === 'cart') { want = null; box.classList.remove('open'); } }, { passive: true });
     function syncTab() {
       var n = count();
       tab.classList.toggle('on', n > 0);
@@ -4252,4 +4283,80 @@
       strip.classList.add('rr-bands-flow');
     }
   })();
+})();
+
+/* Owner feedback 2026-11-17:
+   - RagnaRock page: its theme column kept a 25% empty side column, so the content sat left; full width + centred now.
+   - "Utoljára megtekintett termékek" heading was black (unreadable) on the info pages.
+   - Pinterest "Mentés" / Facebook "Megosztás" buttons hidden everywhere (info pages had them under the content).
+   - Product page: "Küldd el egy barátodnak" buttons under the photo - Messenger, Instagram, TikTok. Phones open the
+     Messenger app directly, and the phone's own share sheet for Instagram / TikTok (neither has a share link). Desktop
+     copies the product link and opens that site's inbox to paste it in. */
+(function () {
+  if (window.__rrFb17) { return; }
+  window.__rrFb17 = true;
+  var st = document.createElement('style'); st.id = 'rr-fb17';
+  st.textContent =
+    '.information-page-body section.column-content{flex:0 0 100%!important;max-width:100%!important}' +
+    '#lastseen .module-head-title,#lastseen .module-head .h2{color:#fff!important;-webkit-text-fill-color:#fff!important}' +
+    '.social-share-module,.information__social-share-module,.pinterest-share,.fb-share-button,#socail-media,[class*="PIN_"][class*="_button_pin"]{display:none!important}' +
+    '.rr-send{margin:14px 0 4px;text-align:center}' +
+    '.rr-send .lb{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9fd6f7;margin-bottom:8px}' +
+    '.rr-send .bt{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}' +
+    '.rr-send button{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:19px;border:1px solid rgba(127,196,234,.5);' +
+      'background:rgba(6,36,59,.85);color:#e6f3fb;font:600 13px Poppins,sans-serif;cursor:pointer;transition:background .15s,border-color .15s}' +
+    '.rr-send button:hover{background:#0e4d78;border-color:#9fd6f7}' +
+    '.rr-send svg{width:18px;height:18px;flex:none}' +
+    '@media (max-width:480px){.rr-send .bt{gap:6px;flex-wrap:nowrap}.rr-send button{height:36px;padding:0 10px;font-size:12px;gap:5px}.rr-send svg{width:16px;height:16px}}' +
+    '.rr-send-toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:2147483600;padding:10px 16px;border-radius:8px;' +
+      'background:#06243b;border:1px solid rgba(127,196,234,.6);color:#fff;font:600 13px Poppins,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.5)}';
+  (document.head || document.documentElement).appendChild(st);
+
+  if (!/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+  var TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+  var IC = {
+    m: '<svg viewBox="0 0 24 24"><path fill="#4aa8ff" d="M12 2C6.4 2 2 6.1 2 11.6c0 2.9 1.2 5.4 3.2 7.1V22l2.9-1.6c1.2.3 2.5.5 3.9.5 5.6 0 10-4.1 10-9.4S17.6 2 12 2z"/><path fill="#fff" d="m5.9 14.6 3-4.7 2.6 2 3.3-2 -3 4.7-2.5-2z"/></svg>',
+    i: '<svg viewBox="0 0 24 24" fill="none" stroke="#ff6fae" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="#ff6fae"/></svg>',
+    t: '<svg viewBox="0 0 24 24"><path fill="#fff" d="M16.6 2h-3.3v13.2a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9a6.3 6.3 0 1 0 5.3 6.2V8.6a7.7 7.7 0 0 0 4.4 1.4V6.7A4.4 4.4 0 0 1 16.6 2z"/></svg>'
+  };
+  function link() { var c = document.querySelector('link[rel=canonical]'); return (c && c.href) || location.href.split('#')[0]; }
+  function title() { var h = document.querySelector('h1'); return h ? h.textContent.trim() : document.title; }
+  function toast(t) {
+    var d = document.createElement('div'); d.className = 'rr-send-toast'; d.textContent = t; document.body.appendChild(d);
+    setTimeout(function () { d.remove(); }, 3200);
+  }
+  function copyOpen(site) {
+    var u = link(), w = window.open(site, '_blank', 'noopener');
+    function done() { toast('Link kimásolva - illeszd be az üzenetbe'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(done, function () { prompt('Másold ki a linket:', u); }); }
+    else { prompt('Másold ki a linket:', u); }
+    return w;
+  }
+  function share(site) {
+    if (TOUCH && navigator.share) { navigator.share({ title: title(), url: link() }).catch(function () {}); }
+    else { copyOpen(site); }
+  }
+  var ACT = {
+    m: function () {
+      if (TOUCH) { location.href = 'fb-messenger://share/?link=' + encodeURIComponent(link()); return; }
+      copyOpen('https://www.messenger.com/');
+    },
+    i: function () { share('https://www.instagram.com/direct/inbox/'); },
+    t: function () { share('https://www.tiktok.com/messages'); }
+  };
+  function mount() {
+    var img = document.getElementById('product-image');
+    if (!img) { return false; }
+    if (document.querySelector('.rr-send')) { return true; }
+    var box = document.createElement('div'); box.className = 'rr-send';
+    box.innerHTML = '<div class="lb">Küldd el egy barátodnak</div><div class="bt">' +
+      '<button type="button" data-k="m">' + IC.m + 'Messenger</button>' +
+      '<button type="button" data-k="i">' + IC.i + 'Instagram</button>' +
+      '<button type="button" data-k="t">' + IC.t + 'TikTok</button></div>';
+    box.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) { e.preventDefault(); ACT[b.getAttribute('data-k')](); } });
+    img.parentNode.insertBefore(box, img.nextSibling);
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!mount() && tries++ < 40) { setTimeout(wait, 250); } })();
 })();
