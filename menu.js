@@ -1150,7 +1150,10 @@
     truck: '<path d="M1 6h13v10H1zM14 10h4l3 3v3h-7M5.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>',
     lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
   };
+  ICON.clock = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
   var ROWS = [
+    /* Experiment 3 (owner 2026-11-17): honest delivery time, the owner's own figures */
+    ['clock', 'Raktárról 1–2 munkanap alatt nálad, beszerzéssel általában kb. 2 hét'],
     ['shop', 'Ingyenes személyes átvétel budapesti boltunkban'],
     ['truck', 'Ingyenes szállítás 30 000 Ft felett'],
     ['lock', 'Biztonságos online bankkártyás fizetés (SimplePay)']
@@ -1695,6 +1698,10 @@
     '.rr-sticky .t{flex:1;min-width:0;color:#fff;font-size:12px;line-height:1.25}.rr-sticky .t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.rr-sticky .t b{display:block;font-size:16px}' +
     '.rr-sticky a{background:#e52421;color:#fff!important;font-weight:800;text-transform:uppercase;padding:12px 18px;border-radius:4px;font-size:14px;text-decoration:none}' +
+    '.rr-sticky .rr-st-size{flex:0 0 auto;max-width:92px;height:44px;padding:0 8px;background:#0b2236;color:#fff;border:1px solid rgba(127,196,234,.55);border-radius:4px;font-weight:700;font-size:14px}' +
+    '.rr-sticky .rr-st-size.need{border-color:#e52421;box-shadow:0 0 0 2px rgba(229,36,33,.45)}' +
+    '.rr-sticky.has-size{gap:8px;padding:10px 10px}.rr-sticky.has-size a{padding:12px 12px}' +
+    '@media (max-width:420px){.rr-sticky.has-size img{display:none}}' +
     /* 10 size chart */
     '.rr-sg{margin-left:10px;color:#9cc7e3!important;font-weight:700;font-size:12.5px;text-transform:uppercase;text-decoration:underline!important;cursor:pointer;white-space:nowrap}' +
     '.rr-modal-bg{position:fixed;inset:0;background:rgba(0,6,14,.72);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px}' +
@@ -2034,11 +2041,37 @@
     var bar = el('div', 'rr-sticky', '<img alt="" src="' + esc(img ? img.currentSrc || img.src : '') + '"><div class="t"><span>' +
       esc(h ? h.textContent.trim() : '') + '</span><b>' + ft(productPrice()) + '</b></div><a href="#">Kosárba</a>');
     document.body.appendChild(bar);
+    /* Experiment 2 (owner 2026-11-17): the size picker right in the sticky bar, mirrored both ways with the real one */
+    var realSel = document.querySelector('.product-cart-box select[name^="option["]'), mini = null;
+    if (realSel) {
+      mini = document.createElement('select');
+      mini.className = 'rr-st-size';
+      mini.setAttribute('aria-label', 'Méret');
+      Array.prototype.forEach.call(realSel.options, function (o) {
+        var c = document.createElement('option');
+        c.value = o.value; c.disabled = o.disabled;
+        c.textContent = o.value ? o.textContent.replace(/\s+/g, ' ').replace(/\s*\+.*$/, '').trim() : 'Méret';
+        mini.appendChild(c);
+      });
+      mini.value = realSel.value;
+      bar.insertBefore(mini, bar.querySelector('a'));
+      bar.classList.add('has-size');
+      mini.addEventListener('change', function () {
+        realSel.value = mini.value;
+        realSel.dispatchEvent(new Event('change', { bubbles: true }));
+        if (window.jQuery) { try { window.jQuery(realSel).trigger('change'); } catch (er) { /* */ } }
+      });
+      realSel.addEventListener('change', function () { if (mini.value !== realSel.value) { mini.value = realSel.value; } });
+    }
     bar.querySelector('a').addEventListener('click', function (e) {
       e.preventDefault();
+      try { if (window.gtag) { window.gtag('event', 'rr_exp_click', { rr_exp: 'sticky_add_to_cart' }); } } catch (er) { /* */ }
       var box = document.querySelector('.product-cart-box');
       var sel = box && box.querySelector('select[name^="option["]');
-      if (sel && !sel.value) { sel.scrollIntoView({ block: 'center', behavior: 'smooth' }); try { sel.focus(); } catch (er) { /* */ } return; }
+      if (sel && !sel.value) {
+        if (mini) { try { mini.focus(); mini.showPicker && mini.showPicker(); } catch (er) { /* */ } mini.classList.add('need'); return; }
+        sel.scrollIntoView({ block: 'center', behavior: 'smooth' }); try { sel.focus(); } catch (er) { /* */ } return;
+      }
       add.click();
     });
     var queued = false;
@@ -5098,4 +5131,79 @@
   for (var i = 0; i < dl.length; i++) { forward(dl[i]); }
   var push = dl.push;
   dl.push = function () { for (var j = 0; j < arguments.length; j++) { forward(arguments[j]); } return push.apply(dl, arguments); };
+})();
+
+/* Mobile conversion experiments (owner OK 2026-11-17; measured before/after for 8 weeks with GA4 funnel by device).
+   Baseline (365 days): mobile view->add to cart 14.4%, add to cart->begin checkout 51.0%, AOV 13,226 Ft.
+   Exp 1: on the phone basket page a sticky bar above the bottom menu with the gross total, what is missing for
+          free shipping, and "Tovább a pénztárba" (shown while the page's own button is off screen).
+   Exp 4: on phones the "Ehhez ajánljuk" add-on row moves up, right under the buy box.
+   (Exp 2 = size picker in the sticky Kosárba bar, Exp 3 = delivery line in the trust row: in their own blocks.)
+   Clicks on the sticky buttons send the GA4 event rr_exp_click. No per-frame work: IntersectionObserver only. */
+(function () {
+  'use strict';
+  if (window.__rrExp) { return; }
+  window.__rrExp = { start: '2026-11-17' };
+  var phone = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+  if (!phone) { return; }
+  var FREE = 30000;
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function num(t) { var m = String(t || '').replace(/\s/g, '').match(/(\d[\d.]*)Ft/); return m ? Number(m[1].replace(/\./g, '')) : 0; }
+
+  /* Exp 1 */
+  function cartBar() {
+    if (!/sr-cart-page-body/.test(document.body.className) || document.querySelector('.rr-cobar')) { return true; }
+    var btn = document.querySelector('.sr-next-to-checkout, .ac-next-to-checkout');
+    var lab = document.querySelector('.ac-gross-sum-label');
+    if (!btn || !lab) { return false; }
+    var bar = document.createElement('div');
+    bar.className = 'rr-cobar';
+    bar.innerHTML = '<div class="t"><span>Összesen</span><b></b><i></i></div><a href="' + (btn.getAttribute('href') || '/checkout') + '">Tovább a pénztárba</a>';
+    document.body.appendChild(bar);
+    function total() {
+      var row = lab.closest('tr'), cells = row ? row.querySelectorAll('td, th') : [];
+      return num(cells.length ? cells[cells.length - 1].textContent : '');
+    }
+    function paint() {
+      var t = total();
+      bar.querySelector('b').textContent = t ? ft(t) : '';
+      bar.querySelector('i').textContent = t && t < FREE ? 'Még ' + ft(FREE - t) + ' és ingyenes a szállítás' : (t ? 'Ingyenes szállítás' : '');
+    }
+    paint();
+    var tbl = lab.closest('table');
+    if (tbl && window.MutationObserver) { new MutationObserver(paint).observe(tbl, { childList: true, subtree: true, characterData: true }); }
+    bar.querySelector('a').addEventListener('click', function () {
+      try { if (window.gtag) { window.gtag('event', 'rr_exp_click', { rr_exp: 'sticky_checkout' }); } } catch (e) { /* */ }
+    });
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (en) { bar.classList.toggle('show', !en[0].isIntersecting); }).observe(btn);
+    } else { bar.classList.add('show'); }
+    return true;
+  }
+
+  /* Exp 4 */
+  function moveXsell() {
+    var xs = document.querySelector('.rr-xsell'), box = document.querySelector('.product-cart-box');
+    if (!xs || !box || xs.classList.contains('rr-xsell-up')) { return !!xs || !box; }
+    xs.classList.add('rr-xsell-up');
+    /* after the product's <form>, never inside it: the add-on cards' hidden fields would be submitted with Kosárba */
+    var anchor = box.closest('form') || box;
+    anchor.parentNode.insertBefore(xs, anchor.nextSibling);
+    return true;
+  }
+
+  var st = document.createElement('style');
+  st.id = 'rr-exp';
+  st.textContent =
+    '.rr-cobar{position:fixed;left:0;right:0;bottom:60px;z-index:1025;display:flex;align-items:center;gap:10px;padding:10px 12px;' +
+    'background:#06131f;border-top:1px solid rgba(127,196,234,.35);box-shadow:0 -8px 24px rgba(0,0,0,.5);transform:translateY(130%);transition:transform .25s}' +
+    '.rr-cobar.show{transform:none}' +
+    '.rr-cobar .t{flex:1;min-width:0;color:#fff;line-height:1.2}.rr-cobar .t span{display:block;font-size:11px;color:#9fb3c6;text-transform:uppercase}' +
+    '.rr-cobar .t b{display:block;font-size:17px}.rr-cobar .t i{display:block;font-style:normal;font-size:11px;color:#9cc7e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.rr-cobar a{flex:0 0 auto;background:#e52421;color:#fff!important;font-weight:800;text-transform:uppercase;padding:13px 14px;border-radius:4px;font-size:14px;text-decoration:none!important}' +
+    '.rr-xsell.rr-xsell-up{padding:18px 0 6px!important;max-width:100%}.rr-xsell.rr-xsell-up .module-head-title{font-size:18px!important;margin-bottom:12px!important;text-align:left!important}';
+  (document.head || document.documentElement).appendChild(st);
+  var n1 = 0, n4 = 0;
+  (function wait1() { if (!cartBar() && n1++ < 40) { setTimeout(wait1, 300); } })();
+  (function wait4() { if (!moveXsell() && n4++ < 50) { setTimeout(wait4, 400); } })();
 })();
