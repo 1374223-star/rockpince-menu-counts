@@ -3933,6 +3933,7 @@
   var st = document.createElement('style'); st.id = 'rr-headtidy'; st.appendChild(document.createTextNode(css));
   (document.head || document.documentElement).appendChild(st);
   function merge() {
+    if (!window.matchMedia || !matchMedia('(min-width:992px)').matches) { return true; }   /* phones keep the theme's own cart button (it balances the centred logo) */
     var wrap = document.querySelector('.header-middle-right-wrapper'), cart = document.getElementById('js-cart');
     if (!wrap || !cart) { return false; }
     if (cart.parentNode !== wrap) { wrap.appendChild(cart); }
@@ -3985,7 +3986,10 @@
     '.rr-mm-pills{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:16px 20px 10px}' +
     '.rr-mm-pills a{display:inline-flex!important;align-items:center;gap:9px;padding:8px 16px!important;border:1px solid rgba(127,196,234,.45)!important;border-radius:18px;' +
       'color:#e6f3fb!important;font-family:Poppins,sans-serif!important;font-size:15px!important;letter-spacing:.02em;text-decoration:none!important;background:rgba(3,16,28,.35)}' +
-    '.rr-mm-pills svg{width:17px;height:17px;flex:none}';
+    '.rr-mm-pills svg{width:17px;height:17px;flex:none}' +
+    /* keep the last items clear of the bottom bar, and hide the Fogyasztó Barát badge while the menu is open */
+    '#js-mobile-nav .mm-panel{padding-bottom:110px!important}' +
+    '.mm-wrapper--opened #fb_header_box,.mm-wrapper--opened #fb_content_box{display:none!important}';
   var TEL = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
   var MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>';
   function build() {
