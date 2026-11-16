@@ -4424,3 +4424,83 @@
   var tries = 0;
   (function wait() { if (!mount() && tries++ < 40) { setTimeout(wait, 250); } })();
 })();
+
+/* Browser translation helpers (owner 2026-11-17: "fix the translation stuff, even things like KERESÉS"). The shop is
+   Hungarian only; foreign visitors use Chrome/Google page translation. When a page is shown translated (Google adds
+   translated-ltr/-rtl to <html> and sets its lang to the target language):
+   - the search box placeholder (an attribute Google does not touch) is set in that language, and restored after;
+   - in English, known machine-translation mistakes are corrected in the translated text and the tab title
+     ("Disztárgy" -> "Disobject", "Magyar zenekarok" -> "Hungarian orchestra", "Üzletünk" -> "Our business",
+     "Rockpince" -> "Rock Cellar", ...). Only the translated copy is touched, so "show original" brings the Hungarian
+     back untouched. Nothing at all runs for visitors who do not translate. */
+(function () {
+  if (window.__rrTranslate) { return; }
+  window.__rrTranslate = true;
+  var SEARCH = { en: 'Search', de: 'Suche', fr: 'Rechercher', it: 'Cerca', es: 'Buscar', pt: 'Pesquisar', nl: 'Zoeken', pl: 'Szukaj',
+    cs: 'Hledat', sk: 'Hľadať', sl: 'Iskanje', hr: 'Traži', sr: 'Pretraga', ro: 'Căutare', bg: 'Търсене', uk: 'Пошук', ru: 'Поиск',
+    sv: 'Sök', da: 'Søg', no: 'Søk', nb: 'Søk', fi: 'Haku', el: 'Αναζήτηση', tr: 'Ara', ja: '検索', zh: '搜索', ko: '검색' };
+  var FIX_EN = [   /* [pattern, replacement] on the English output; case of the original is kept */
+    [/\bdis ?objects?\b/gi, 'Decor & Gifts'],
+    [/\bdisplay objects?\b/gi, 'Decor & Gifts'],
+    [/\bdecorative objects?\b/gi, 'Decor & Gifts'],
+    [/\bhungarian orchestras?\b/gi, 'Hungarian bands'],   /* only this one: real band names contain "Orchestra" */
+    [/\bband and other clothes\b/gi, 'Band merch & other clothing'],
+    [/\bour business\b/gi, 'Our store'],
+    [/\brock cellar\b/gi, 'RockPince'],
+    [/\brock basement\b/gi, 'RockPince']
+  ];
+  function lang() { return String(document.documentElement.lang || '').toLowerCase().split('-')[0]; }
+  function active() { return /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className) && lang() && lang() !== 'hu'; }
+  function keepCase(src, rep) {
+    if (src === src.toUpperCase() && /[A-Z]/.test(src)) { return rep.toUpperCase(); }
+    if (src.charAt(0) === src.charAt(0).toUpperCase()) { return rep.charAt(0).toUpperCase() + rep.slice(1); }
+    return rep.charAt(0).toLowerCase() + rep.slice(1);
+  }
+  function fixText(s) {
+    var out = s;
+    for (var i = 0; i < FIX_EN.length; i++) { out = out.replace(FIX_EN[i][0], function (m) { return keepCase(m, FIX_EN[i][1]); }); }
+    return out;
+  }
+  function placeholders(on) {
+    var inputs = document.querySelectorAll('.header input[type="text"], .header input[type="search"], #js-mobile-nav input[type="text"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      if (on) {
+        if (!el.hasAttribute('data-rr-ph')) { el.setAttribute('data-rr-ph', el.placeholder || ''); }
+        el.placeholder = SEARCH[lang()] || SEARCH.en;
+      } else if (el.hasAttribute('data-rr-ph')) { el.placeholder = el.getAttribute('data-rr-ph'); el.removeAttribute('data-rr-ph'); }
+    }
+  }
+  var timer = null, bodyObs = null, fixing = false;
+  function sweep() {
+    timer = null;
+    if (!active()) { return; }
+    placeholders(true);
+    if (lang() !== 'en') { return; }
+    fixing = true;
+    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) {
+      var v = n.nodeValue;
+      if (v && v.length > 2 && /[a-z]/i.test(v)) { var f = fixText(v); if (f !== v) { n.nodeValue = f; } }
+    }
+    var t = fixText(document.title); if (t !== document.title) { document.title = t; }
+    fixing = false;
+  }
+  function later() { if (!fixing && !timer) { timer = setTimeout(sweep, 350); } }
+  function update() {
+    if (active()) {
+      later();
+      if (!bodyObs && window.MutationObserver && document.body) {
+        bodyObs = new MutationObserver(later);
+        bodyObs.observe(document.body, { childList: true, subtree: true, characterData: true });
+      }
+    } else {
+      if (bodyObs) { bodyObs.disconnect(); bodyObs = null; }
+      placeholders(false);
+    }
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'lang'] });
+  }
+  update();
+})();
