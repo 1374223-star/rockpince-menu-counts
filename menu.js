@@ -4102,7 +4102,9 @@
     '.rr-bands2{margin:0}' +
     '.rr-bands2 .rr-bands-track{animation-direction:reverse!important}' +
     /* owner: the same 24px gap above the banner as between the banner and this strip */
-    '.section-wrapper:has(+ .rr-bands2){margin-top:24px!important}';
+    /* owner 2026-11-17: both gaps about 30% smaller (24px -> 17px) */
+    '.section-wrapper:has(+ .rr-bands2){margin-top:17px!important;margin-bottom:17px!important}' +
+    '.rr-bands2{margin-top:-7px!important}';   /* the banner's hidden thumbnail row adds 7px under it */
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function pick(all, used) {
     var pool = all.filter(function (b) { return !used[b.s]; }), out = [];
