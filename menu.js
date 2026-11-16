@@ -1375,9 +1375,12 @@
 })();
 
 /* Owner 2026-11-12: ÚJDONSÁGOK opens sorted by "Elérhetőség, legújabb" (newest first) on PC and phone.
-   Links to it get the sort added when clicked; landing on it without any sort switches to it.
-   A sort the visitor picks in the list (price, name, ...) is always kept. */
+   Links to it get the sort added when clicked. A sort the visitor picks in the list (price, name, ...) is always kept.
+   2026-11-17 (SEO audit R3.2, owner "do everything"): the redirect on landing without a sort is switched off. Google
+   followed it to the sorted URL, which Shoprenter marks "noindex, nofollow", so the category could drop out of Google.
+   Menu clicks still open newest-first; to restore the landing redirect set LANDING = true. */
 (function () {
+  var LANDING = false;
   var SORT = 'sort=p.date_available&order=DESC';
   function isNew(url) {
     return /\/ujdonsagok2-18914(?:[?#]|$)/.test(url) || /[?&]category_id=18914(?:[&#]|$)/.test(url);
@@ -1389,7 +1392,7 @@
     return href + (href.indexOf('?') >= 0 ? '&' : '?') + SORT + hash;
   }
   try {
-    if (isNew(location.pathname + location.search) && !/[?&]sort=/.test(location.search)) {
+    if (LANDING && isNew(location.pathname + location.search) && !/[?&]sort=/.test(location.search)) {
       location.replace(withSort(location.href));
       return;
     }
@@ -5225,4 +5228,25 @@
   var n1 = 0, n4 = 0;
   (function wait1() { if (!cartBar() && n1++ < 40) { setTimeout(wait1, 300); } })();
   (function wait4() { if (!moveXsell() && n4++ < 50) { setTimeout(wait4, 400); } })();
+})();
+
+/* Deleted products (owner OK 2026-11-16: 185 TDM "farmering" items removed). Shoprenter has no 301 tool and shows
+   "A termék nem található!" with status 200 for them, so on that page a known deleted product id is sent to its band
+   page (or a band search). Google follows JS redirects. Map: assets/seo/deleted_redirects.json, built by
+   rockoff-upload/src/util/deleted_redirect_map.py from the deletion backups. Runs only on the not-found page. */
+(function () {
+  if (window.__rrGone) { return; }
+  window.__rrGone = true;
+  function go() {
+    if (!document.querySelector('[data-test-id="notFoundPage"]')) { return; }
+    var m = location.search.match(/[?&]product_id=(\d+)/) || location.pathname.match(/-(\d+)\/?$/);
+    if (!m) { return; }
+    var x = new XMLHttpRequest();
+    x.open('GET', 'https://1374223-star.github.io/rockpince-menu-counts/assets/seo/deleted_redirects.json');
+    x.onload = function () {
+      try { var to = JSON.parse(x.responseText)[m[1]]; if (to) { location.replace(to); } } catch (e) {}
+    };
+    x.send();
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
 })();
