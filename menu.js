@@ -3537,3 +3537,144 @@
   var tries = 0;
   (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
 })();
+
+/* Divider lines (owner 2026-11-16): no Celtic-knot image on <hr>; thin chrome-blue glow line instead */
+(function () {
+  if (window.__rrHr) { return; }
+  window.__rrHr = true;
+  var st = document.createElement('style');
+  st.textContent = 'hr{background:linear-gradient(90deg,rgba(127,196,234,0),rgba(127,196,234,.75),rgba(127,196,234,0))!important;' +
+    'height:1px!important;border:0!important;opacity:1!important;margin:28px 0!important;box-shadow:0 0 8px rgba(110,190,240,.35)}';
+  (document.head || document.documentElement).appendChild(st);
+})();
+
+/* Mjölnir easter egg (owner 2026-11-16, desktop only): a small hammer in the top bar; a click calls down a lightning
+   strike on the page (one bright flash, short shake), then electricity crawls along the screen edges for a few seconds.
+   Nothing runs until the click, and the canvas is removed afterwards. Reduced-motion users get no flash or shake. */
+(function () {
+  if (window.__rrMjolnir) { return; }
+  window.__rrMjolnir = true;
+  if (!window.matchMedia || !matchMedia('(hover:hover) and (pointer:fine) and (min-width:1024px)').matches) { return; }
+  var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var HAMMER = '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">' +
+    '<defs><linearGradient id="rrMjG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4fbff"/><stop offset=".5" stop-color="#9fd6f7"/><stop offset="1" stop-color="#5aa6d6"/></linearGradient></defs>' +
+    '<path d="M4 4h24l-2 9H6z" fill="url(#rrMjG)" stroke="#0a3a5e" stroke-width="1"/>' +
+    '<path d="M9 7h14" stroke="#0a3a5e" stroke-width="1" opacity=".6"/>' +
+    '<rect x="14" y="13" width="4" height="13" rx="1" fill="#6b4a2b" stroke="#2d1d10" stroke-width=".8"/>' +
+    '<path d="M14 16l4 2M14 19l4 2M14 22l4 2" stroke="#c9a46b" stroke-width="1"/>' +
+    '<circle cx="16" cy="28" r="2.2" fill="url(#rrMjG)" stroke="#0a3a5e" stroke-width=".8"/></svg>';
+  var css =
+    '.rr-mj{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin-left:10px;border-radius:50%;cursor:pointer;' +
+      'border:1px solid rgba(127,196,234,.45);background:radial-gradient(circle at 50% 40%,#14659c,#06243b);transition:box-shadow .2s,transform .2s;vertical-align:middle;padding:0}' +
+    '.rr-mj:hover{box-shadow:0 0 14px rgba(140,210,255,.8);transform:rotate(-14deg) scale(1.08)}' +
+    '.rr-mj.on{animation:rrMjSpin .5s ease-in-out}' +
+    '@keyframes rrMjSpin{0%{transform:rotate(0)}40%{transform:rotate(-40deg) scale(1.2)}100%{transform:rotate(0)}}' +
+    '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#ffffff 0%,#e6f6ff 35%,#9fd6f7 100%);opacity:0}' +
+    '.rr-mj-flash.go{animation:rrMjFlash .9s ease-out forwards}' +
+    '@keyframes rrMjFlash{0%{opacity:0}6%{opacity:1}18%{opacity:.95}100%{opacity:0}}' +
+    '.rr-mj-cv{position:fixed;inset:0;z-index:2147483647;pointer-events:none}' +
+    'html.rr-mj-shake body{animation:rrMjShake .45s cubic-bezier(.36,.07,.19,.97)}' +
+    '@keyframes rrMjShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-6px,2px)}40%,60%{transform:translate(6px,-1px)}}';
+
+  function bolt(x1, y1, x2, y2, rough) {          // jagged path by midpoint displacement
+    var pts = [[x1, y1], [x2, y2]];
+    for (var d = Math.hypot(x2 - x1, y2 - y1) * rough; d > 3; d /= 2) {
+      var n = [pts[0]];
+      for (var i = 1; i < pts.length; i++) {
+        var a = pts[i - 1], b = pts[i];
+        n.push([(a[0] + b[0]) / 2 + (Math.random() - .5) * d, (a[1] + b[1]) / 2 + (Math.random() - .5) * d], b);
+      }
+      pts = n;
+    }
+    return pts;
+  }
+  function stroke(ctx, pts, w, glow, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) { ctx.lineTo(pts[i][0], pts[i][1]); }
+    ctx.shadowColor = '#7fd0ff'; ctx.shadowBlur = glow;
+    ctx.strokeStyle = 'rgba(150,215,255,.9)'; ctx.lineWidth = w * 2.4; ctx.stroke();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = w; ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  function edgePoint(W, H) {                       // random point on the screen border
+    var t = Math.random() * 2 * (W + H);
+    if (t < W) { return [t, 2]; }
+    if (t < W + H) { return [W - 2, t - W]; }
+    if (t < 2 * W + H) { return [t - W - H, H - 2]; }
+    return [2, t - 2 * W - H];
+  }
+
+  var busy = false;
+  function strike(btn) {
+    if (busy) { return; }
+    busy = true;
+    btn.classList.remove('on'); void btn.offsetWidth; btn.classList.add('on');
+    var W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect();
+    var tx = W * (.35 + Math.random() * .3), ty = H * (.55 + Math.random() * .2);   // where the bolt hits
+    var cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.className = 'rr-mj-cv'; cv.width = W * dpr; cv.height = H * dpr;
+    document.body.appendChild(cv);
+    var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (!calm) {
+      var fl = document.createElement('div'); fl.className = 'rr-mj-flash';
+      fl.style.setProperty('--x', tx + 'px'); fl.style.setProperty('--y', ty + 'px');
+      document.body.appendChild(fl); void fl.offsetWidth; fl.classList.add('go');
+      setTimeout(function () { fl.remove(); }, 1000);
+      document.documentElement.classList.add('rr-mj-shake');
+      setTimeout(function () { document.documentElement.classList.remove('rr-mj-shake'); }, 480);
+    }
+    var main = bolt(r.left + r.width / 2, r.bottom, tx, ty, .35), forks = [];
+    for (var k = 0; k < 4; k++) {
+      var p = main[Math.floor(main.length * (.3 + Math.random() * .6))];
+      forks.push(bolt(p[0], p[1], p[0] + (Math.random() - .5) * 320, p[1] + 60 + Math.random() * 180, .45));
+    }
+    var t0 = performance.now(), last = 0, DUR = 4200;
+    function frame(now) {
+      var t = now - t0;
+      if (t > DUR) { cv.remove(); busy = false; return; }
+      if (now - last < 55) { requestAnimationFrame(frame); return; }   // ~18 fps: crackle, not strobe
+      last = now;
+      ctx.clearRect(0, 0, W, H);
+      if (t < 650) {                                                   // the strike itself
+        var a = t < 120 ? 1 : 1 - (t - 120) / 530;
+        stroke(ctx, main, 3.2, 30, a);
+        forks.forEach(function (f) { stroke(ctx, f, 1.4, 16, a * .8); });
+        var g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 140);
+        g.addColorStop(0, 'rgba(220,245,255,' + .8 * a + ')'); g.addColorStop(1, 'rgba(120,200,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tx, ty, 140, 0, 7); ctx.fill();
+      }
+      var fade = t < 3200 ? 1 : 1 - (t - 3200) / 1000;                  // electricity crawling round the edges
+      if (t > 250) {
+        var n = 3 + Math.floor(Math.random() * 3);
+        for (var i = 0; i < n; i++) {
+          var s = edgePoint(W, H), len = 80 + Math.random() * 220;
+          var ang = Math.random() * Math.PI * 2;
+          var e = [Math.min(W - 2, Math.max(2, s[0] + Math.cos(ang) * len)), Math.min(H - 2, Math.max(2, s[1] + Math.sin(ang) * len))];
+          if (s[1] <= 2 || s[1] >= H - 2) { e[1] = s[1] === 2 ? 2 + Math.random() * 30 : H - 2 - Math.random() * 30; }
+          else { e[0] = s[0] === 2 ? 2 + Math.random() * 30 : W - 2 - Math.random() * 30; }
+          stroke(ctx, bolt(s[0], s[1], e[0], e[1], .5), 1.2, 14, (.55 + Math.random() * .45) * fade);
+        }
+        for (var j = 0; j < 2; j++) {                                    // small sparks round the hammer
+          var cx = r.left + r.width / 2, cy = r.top + r.height / 2, aa = Math.random() * 7;
+          stroke(ctx, bolt(cx, cy, cx + Math.cos(aa) * 34, cy + Math.sin(aa) * 34, .6), 1, 10, .9 * fade);
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function mount() {
+    var tt = document.querySelector('.header a[href*="tiktok.com"], header a[href*="tiktok.com"], .header-top a[href*="tiktok.com"]');
+    if (!tt) { return false; }
+    var st = document.createElement('style'); st.id = 'rr-mjolnir'; st.textContent = css; document.head.appendChild(st);
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'rr-mj'; b.title = 'Mjölnir'; b.setAttribute('aria-label', 'Mjölnir'); b.innerHTML = HAMMER;
+    b.addEventListener('click', function (ev) { ev.preventDefault(); strike(b); });
+    tt.insertAdjacentElement('afterend', b);
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!mount() && tries++ < 40) { setTimeout(wait, 200); } })();
+})();
