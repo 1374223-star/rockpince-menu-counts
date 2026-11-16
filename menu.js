@@ -4504,3 +4504,116 @@
   }
   update();
 })();
+
+/* Display-only EUR prices (owner 2026-11-17). Visitors whose browser is not Hungarian (no Hungarian language and a
+   time zone other than Budapest) see prices converted to EUR at the daily ECB rate (assets/eur.json, refreshed by a
+   GitHub Action, so no outside service sees the visitor). A small Ft / € switch on the left edge flips it either way
+   and is remembered. Checkout and cart pages always show forints, because that is what the card is charged.
+   Only text that reads "<number> Ft" or "<number> HUF" changes; the original text is kept and put back on switching. */
+(function () {
+  if (window.__rrEur) { return; }
+  window.__rrEur = true;
+  var RATE_URL = 'https://1374223-star.github.io/rockpince-menu-counts/assets/eur.json', FALLBACK = 365.6;
+  var KEY = 'rr_cur', RKEY = 'rr_eur_rate';
+  function store(k, v) { try { if (v == null) { localStorage.removeItem(k); } else { localStorage.setItem(k, v); } } catch (e) {} }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']).join(',');
+  var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+  var foreign = !/(^|,)hu\b/i.test(langs) && tz !== 'Europe/Budapest';
+  var pref = read(KEY);
+  var mode = pref === 'EUR' || pref === 'HUF' ? pref : (foreign ? 'EUR' : 'HUF');
+  if (!foreign && !pref) { return; }                      /* Hungarian visitors never see any of this */
+  var checkout = /checkout|route=checkout|\/kosar/i.test(location.pathname + location.search);
+  var rate = FALLBACK;
+  var cached = read(RKEY);
+  if (cached) { try { var c = JSON.parse(cached); if (c.r > 250 && c.r < 600) { rate = c.r; } if (Date.now() - c.t < 12 * 3600e3) { cached = 'fresh'; } } catch (e) {} }
+  if (cached !== 'fresh') {
+    fetch(RATE_URL, { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (j) {
+      var r = Number(j && j.huf_per_eur);
+      if (r > 250 && r < 600) { store(RKEY, JSON.stringify({ r: r, t: Date.now() })); if (r !== rate) { rate = r; if (mode === 'EUR') { restoreAll(); convertAll(); } } }
+    }).catch(function () {});
+  }
+
+  var RE = /(\d{1,3}(?:[.,   ]\d{3})+|\d+)\s?(Ft|HUF)\b/g;
+  var SKIP = 'script,style,textarea,input,select,noscript,.rr-cur,[contenteditable],.rr-cur-toast';
+  var touched = [];
+  function eur(n) { var v = n / rate; return '€' + (v >= 100 ? Math.round(v).toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); }
+  function convertNode(n) {
+    var v = n.nodeValue;
+    if (!v || v.indexOf('Ft') < 0 && v.indexOf('HUF') < 0) { return; }
+    RE.lastIndex = 0;
+    if (!RE.test(v)) { return; }
+    var p = n.parentElement;
+    if (!p || p.closest(SKIP)) { return; }
+    RE.lastIndex = 0;
+    var out = v.replace(RE, function (m, num) { var h = parseInt(num.replace(/[^\d]/g, ''), 10); return isFinite(h) ? eur(h) : m; });
+    if (out !== v) { if (n.__rrHu == null) { n.__rrHu = v; touched.push(n); } n.nodeValue = out; }
+  }
+  var busy = false;
+  function convertAll(root) {
+    if (mode !== 'EUR' || checkout || !document.body) { return; }
+    busy = true;
+    var w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) { convertNode(n); }
+    busy = false;
+  }
+  function restoreAll() {
+    busy = true;
+    touched.forEach(function (n) { if (n.__rrHu != null) { n.nodeValue = n.__rrHu; n.__rrHu = null; } });
+    touched = [];
+    busy = false;
+  }
+  var timer = null;
+  if (window.MutationObserver) {
+    new MutationObserver(function () {
+      if (busy || mode !== 'EUR' || timer) { return; }
+      timer = setTimeout(function () { timer = null; convertAll(); }, 250);
+    }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  }
+
+  var css =
+    '.rr-cur{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:2147482998;display:flex;flex-direction:column;' +
+      'border-radius:0 10px 10px 0;overflow:hidden;border:1px solid rgba(127,196,234,.6);border-left:0;box-shadow:6px 0 18px rgba(0,0,0,.4);font-family:Poppins,sans-serif}' +
+    '.rr-cur button{width:38px;height:34px;border:0;background:#06243b;color:#9fb3c6;font-weight:800;font-size:14px;cursor:pointer;padding:0}' +
+    '.rr-cur button.on{background:linear-gradient(180deg,#14659c,#0a3a5e);color:#fff}' +
+    '.rr-cur button + button{border-top:1px solid rgba(127,196,234,.35)}' +
+    '@media (max-width:991px){.rr-cur{top:auto;bottom:calc(var(--rr-bottomnav,64px) + 86px);transform:none}.rr-cur button{width:34px;height:30px;font-size:13px}}' +
+    '.rr-cur-toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2147483600;max-width:min(92vw,420px);padding:11px 16px;border-radius:8px;' +
+      'background:#06243b;border:1px solid rgba(127,196,234,.6);color:#e6f3fb;font:600 13px/1.4 Poppins,sans-serif;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.5)}';
+  function toast(t) {
+    var d = document.createElement('div'); d.className = 'rr-cur-toast'; d.setAttribute('translate', 'no'); d.textContent = t; document.body.appendChild(d);
+    setTimeout(function () { d.remove(); }, 6500);
+  }
+  function set(m) {
+    if (m === mode) { return; }
+    mode = m; store(KEY, m);
+    if (m === 'EUR') { convertAll(); } else { restoreAll(); }
+    paint();
+  }
+  var bar = null;
+  function paint() {
+    if (!bar) { return; }
+    [].forEach.call(bar.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-c') === mode); });
+  }
+  function build() {
+    if (!document.body) { return false; }
+    var st = document.createElement('style'); st.id = 'rr-eur'; st.textContent = css; document.head.appendChild(st);
+    bar = document.createElement('div'); bar.className = 'rr-cur notranslate'; bar.setAttribute('translate', 'no');
+    bar.title = checkout ? 'Payment is in Hungarian forint (HUF)' : 'Approximate prices in EUR. You pay in Hungarian forint (HUF).';
+    bar.innerHTML = '<button type="button" data-c="HUF" aria-label="Prices in forint">Ft</button><button type="button" data-c="EUR" aria-label="Prices in euro">€</button>';
+    bar.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-c]'); if (!b) { return; }
+      if (checkout && b.getAttribute('data-c') === 'EUR') { toast('At checkout prices are shown in HUF, the currency you pay in.'); }
+      set(b.getAttribute('data-c'));
+    });
+    document.body.appendChild(bar);
+    paint();
+    if (mode === 'EUR' && !checkout) {
+      convertAll();
+      if (!read('rr_cur_seen')) { store('rr_cur_seen', '1'); toast('Prices are shown in EUR (approx., ECB rate). You pay in Hungarian forint (HUF). Tap Ft on the left to switch back.'); }
+    }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!build() && tries++ < 40) { setTimeout(wait, 150); } })();
+})();

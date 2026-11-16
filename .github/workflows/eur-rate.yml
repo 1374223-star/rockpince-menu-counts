@@ -1,0 +1,50 @@
+name: Update EUR rate
+
+# Daily ECB euro reference rate (HUF per EUR) for the display-only EUR prices in menu.js (owner 2026-11-17).
+# Visitors read assets/eur.json from GitHub Pages, so no exchange-rate service ever sees their IP.
+on:
+  schedule:
+    - cron: "40 15 * * 1-5" # ECB publishes around 16:00 CET on working days
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eur-rate
+  cancel-in-progress: false
+
+jobs:
+  rate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the ECB rate and publish only if it changed
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib, re, sys, urllib.request
+          xml = urllib.request.urlopen("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", timeout=30).read().decode()
+          day = re.search(r"time='(\d{4}-\d{2}-\d{2})'", xml)
+          huf = re.search(r"currency='HUF' rate='([\d.]+)'", xml)
+          if not (day and huf):
+              sys.exit("ECB file without HUF rate")
+          rate = float(huf.group(1))
+          if not 250 < rate < 600:
+              sys.exit("implausible rate %s" % rate)
+          path = pathlib.Path("assets/eur.json")
+          new = {"huf_per_eur": rate, "date": day.group(1), "source": "ECB"}
+          old = json.loads(path.read_text()) if path.exists() else {}
+          if old.get("huf_per_eur") == rate and old.get("date") == new["date"]:
+              print("unchanged"); sys.exit(0)
+          path.write_text(json.dumps(new) + "\n")
+          print("updated", new)
+          EOF
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+            git add assets/eur.json
+            git commit -m "Update EUR rate"
+            git pull --rebase
+            git push
+          fi
