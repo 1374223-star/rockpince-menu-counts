@@ -4888,12 +4888,15 @@
     T + '{color:#fff!important;-webkit-text-fill-color:#fff!important;background-image:none!important;text-shadow:none!important}' +
     '.header-top .rr-phonetop svg,.header-top .rr-mailtop svg{color:#fff!important;stroke:#fff!important}' +
     'html body .header-bottom{border-top:0!important;border-bottom:0!important;box-shadow:none!important}' +
+    /* steel strip on PC only (owner 2026-11-16: phones keep the old navy strips) */
+    '@media (min-width:992px){' +
     'html body .rr-bands{background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.03) 1px 3px),linear-gradient(180deg,#d9dfe4,#aab5bf)!important;' +
     'border-top:1px solid #f1f4f6!important;border-bottom:1px solid #5c6873!important}' +
     'html body .rr-bands:before{background:linear-gradient(90deg,#b9c3cb,rgba(185,195,203,0))!important}' +
     'html body .rr-bands:after{background:linear-gradient(270deg,#b9c3cb,rgba(185,195,203,0))!important}' +
     'html body .rr-bands .rr-bands-track{filter:invert(1) brightness(.28)}' +
     'html body .rr-bands .rr-blogo,html body .rr-bands .rr-blogo:hover{opacity:.92!important}' +
-    'html body .rr-bands .rr-blogo:hover img,html body .rr-bands .rr-blogo:active img{filter:none!important}';
+    'html body .rr-bands .rr-blogo:hover img,html body .rr-bands .rr-blogo:active img{filter:none!important}' +
+    '}';
   (document.head || document.documentElement).appendChild(st);
 })();
