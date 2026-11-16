@@ -41,19 +41,23 @@
   function namedCandidates(text) {
     return candidatesByName['$' + normalize(bare(text))] || [];
   }
+  var hostRx = /^(?:(?:www\.)?rockpince\.hu|rockpince\.myshoprenter\.hu|(?:www\.)?ragnarock\.hu)$/i, hostSeen = {};
   function knownHost(host) {
-    return (/^(www\.)?rockpince\.hu$/i).test(String(host || '')) ||
-      (/^rockpince\.myshoprenter\.hu$/i).test(String(host || '')) ||
-      (/^(www\.)?ragnarock\.hu$/i).test(String(host || ''));
+    host = String(host || '');
+    var v = hostSeen[host];
+    if (v === undefined) { v = hostSeen[host] = hostRx.test(host); }
+    return v;
   }
   function categoryId(link) {
     if (!knownHost(link.hostname)) { return null; }
-    /* page-number links (?page=2) point at the same category: never count them */
-    if (link.tagName && (/[?&]page=/i.test(String(link.search || '')) ||
-        (link.closest && link.closest('.pagination, [class*="pagination"], [class*="paging"]')))) { return null; }
     var parts = String(link.pathname || '').replace(/\/+$/, '').split('/');
     var match = lastPathId.exec(parts[parts.length - 1] || '');
-    return match && Object.prototype.hasOwnProperty.call(data, match[1]) ? match[1] : null;
+    if (!match || !Object.prototype.hasOwnProperty.call(data, match[1])) { return null; }
+    /* page-number links (?page=2) point at the same category: never count them
+       (perf 2026-11-17: checked after the cheap ID test, so product links never pay for closest()) */
+    if (link.tagName && (/[?&]page=/i.test(String(link.search || '')) ||
+        (link.closest && link.closest('.pagination, [class*="pagination"], [class*="paging"]')))) { return null; }
+    return match[1];
   }
   function tag(node) {
     return String(node && (node.tagName || node.nodeName) || '').toUpperCase();
@@ -174,28 +178,80 @@
   /* perf (owner 2026-11-15, older phones lagged): links already checked are skipped on later passes;
      the link identities and the still-unknown links are kept between passes. */
   var hrefIds = {}, pendingLinks = [];
-  function update() {
+  /* perf (2026-11-17, phone CPU profile: this block was ~0.5 s of a 6x-throttled load): links inside menus that are
+     not on screen (the desktop menu on phones, the phone menu until it is opened) are labelled in small chunks
+     while the browser is idle; opening the phone menu finishes them at once. Visible links are done right away. */
+  var lazyQueue = [], lazyTimer = null;
+  function lazyRoots() {
+    var out = [], mob = document.getElementById('js-mobile-nav'), desk = document.getElementById('category-nav');
+    if (mob && !/mm-menu--opened/.test(mob.className)) { out.push(mob); }
+    if (desk && !desk.getClientRects().length) { out.push(desk); }
+    return out;
+  }
+  function processLink(link, unresolved) {
+    var resolved, urlKey, parts;
+    link.__rrSeen = true;
+    if (!knownHost(link.hostname)) { return; }
+    resolved = resolve(link);
+    urlKey = '$' + link.hostname.toLowerCase() + String(link.pathname || '');
+    if (resolved) {
+      if (Object.prototype.hasOwnProperty.call(hrefIds, urlKey) &&
+          hrefIds[urlKey] !== resolved) {
+        hrefIds[urlKey] = null;
+      } else if (!Object.prototype.hasOwnProperty.call(hrefIds, urlKey)) {
+        hrefIds[urlKey] = resolved;
+      }
+      decorate(link, resolved, resolved === categoryId(link));
+      return;
+    }
+    /* a numeric ID that is not a category (product pages): can never become one, so not kept for later passes */
+    parts = String(link.pathname || '').replace(/\/+$/, '').split('/');
+    if (!lastPathId.test(parts[parts.length - 1] || '')) { unresolved.push(link); }
+  }
+  function lazyStep(all) {
+    lazyTimer = null;
+    var n = all ? lazyQueue.length : 120, link;
+    while (n-- > 0 && lazyQueue.length) {
+      link = lazyQueue.shift();
+      if (!link.__rrSeen) { processLink(link, pendingLinks); }
+    }
+    if (lazyQueue.length) { lazyLater(); } else {
+      update(true);
+      try { fixMobileMenu(); } catch (e) { /* the theme menu stays as it is */ }
+    }
+  }
+  function lazyLater() {
+    if (lazyTimer) { return; }
+    lazyTimer = window.requestIdleCallback ? window.requestIdleCallback(function () { lazyStep(false); }, { timeout: 2500 })
+      : window.setTimeout(function () { lazyStep(false); }, 60);
+  }
+  function lazyFlush() {
+    if (!lazyQueue.length) { return; }
+    if (lazyTimer && window.cancelIdleCallback && window.requestIdleCallback) { window.cancelIdleCallback(lazyTimer); }
+    else if (lazyTimer) { window.clearTimeout(lazyTimer); }
+    lazyTimer = null;
+    lazyStep(true);
+  }
+  function update(noLazy) {
     var anchors = document.getElementsByTagName('a');
-    var i, link, resolved, headings, currentId, urlKey;
+    var i, j, link, headings, currentId, urlKey, roots, inner;
     var unresolved = pendingLinks;
+    if (!noLazy) {
+      roots = lazyRoots();
+      for (j = 0; j < roots.length; j += 1) {
+        inner = roots[j].getElementsByTagName('a');
+        for (i = 0; i < inner.length; i += 1) {
+          if (!inner[i].__rrSeen && !inner[i].__rrLazy) { inner[i].__rrLazy = true; lazyQueue.push(inner[i]); }
+        }
+      }
+      if (lazyQueue.length) { lazyLater(); }
+    }
     /* Once a nested desktop link is safely identified, the mobile/flat copy
        with exactly the same host and path can inherit that identity. */
     for (i = 0; i < anchors.length; i += 1) {
       link = anchors[i];
-      if (link.__rrSeen) { continue; }
-      link.__rrSeen = true;
-      if (!knownHost(link.hostname)) { continue; }
-      resolved = resolve(link);
-      urlKey = '$' + link.hostname.toLowerCase() + String(link.pathname || '');
-      if (resolved) {
-        if (Object.prototype.hasOwnProperty.call(hrefIds, urlKey) &&
-            hrefIds[urlKey] !== resolved) {
-          hrefIds[urlKey] = null;
-        } else if (!Object.prototype.hasOwnProperty.call(hrefIds, urlKey)) {
-          hrefIds[urlKey] = resolved;
-        }
-        decorate(link, resolved, resolved === categoryId(link));
-      } else { unresolved.push(link); }
+      if (link.__rrSeen || (link.__rrLazy && !noLazy)) { continue; }
+      processLink(link, unresolved);
     }
     pendingLinks = [];
     for (i = 0; i < unresolved.length; i += 1) {
@@ -432,6 +488,11 @@
     update();
     try { fixMobileMenu(); } catch (e) { /* the theme menu stays as it is */ }
     var Observer = window.MutationObserver || window.WebKitMutationObserver;
+    var mobNav = document.getElementById('js-mobile-nav');
+    if (Observer && mobNav) {   /* phone menu opening (mmenu adds mm-menu--opened): finish its labels now */
+      new Observer(function () { if (/mm-menu--opened/.test(mobNav.className)) { lazyFlush(); } })
+        .observe(mobNav, { attributes: true, attributeFilter: ['class'] });
+    }
     if (Observer && document.body) {
       var observer = new Observer(function (mutations) {
         var i;
@@ -1661,15 +1722,20 @@
   }
   document.addEventListener('cartChanged', function () { cartData = null; });
 
+  /* perf 2026-11-17: one formatter, and the answer is reused for 20 s (it was rebuilt on every call) */
+  var budFmt = null, budLast = null, budAt = 0;
   function budapestNow() {
-    var parts = {};
+    var parts = {}, now = Date.now();
+    if (budLast && now - budAt < 20000) { return budLast; }
     try {
-      new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit',
-        weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date())
-        .forEach(function (p) { parts[p.type] = p.value; });
+      budFmt = budFmt || new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit',
+        weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+      budFmt.formatToParts(new Date(now)).forEach(function (p) { parts[p.type] = p.value; });
     } catch (e) { var d = new Date(); return { ymd: d.toISOString().slice(0, 10), dow: d.getDay(), min: d.getHours() * 60 + d.getMinutes() }; }
     var dow = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.weekday];
-    return { ymd: parts.year + '-' + parts.month + '-' + parts.day, dow: dow, min: (Number(parts.hour) % 24) * 60 + Number(parts.minute) };
+    budAt = now;
+    budLast = { ymd: parts.year + '-' + parts.month + '-' + parts.day, dow: dow, min: (Number(parts.hour) % 24) * 60 + Number(parts.minute) };
+    return budLast;
   }
 
   var css =
@@ -3094,7 +3160,9 @@
     }
     for (var i = 0; i < links.length; i++) {
       var a = links[i];
-      if (/rgb\(229,\s*36,\s*33\)/.test(getComputedStyle(a).color) || /akci/i.test(a.textContent)) { a.classList.add('rr-cat-red'); }
+      /* perf 2026-11-17: no getComputedStyle here (it forced a full style recalculation per link while icons were
+         being inserted); RED is the regular chrome since 2026-11-16, the class is kept for the ÚJDONSÁG / AKCIÓ link */
+      if (/akci/i.test(a.textContent)) { a.classList.add('rr-cat-red'); }
       var img = a.querySelector('img');
       if (!img || a.querySelector('.rr-caticon')) { continue; }
       var ic = document.createElement('span');
@@ -3302,7 +3370,9 @@
     if (!main || !thumbs) { return !!document.querySelector('.home-body') ? false : true; }
     if (main.querySelector('.rr-bn-arrows')) { return true; }
     var s = document.createElement('style'); s.id = 'rr-bn-arrows'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
-    if (getComputedStyle(main).position === 'static') { main.style.position = 'relative'; }
+    /* perf 2026-11-17: was getComputedStyle(main).position (forced a full style recalculation during load); the
+       slider is position:relative already (Splide CSS), the rule below only makes sure */
+    s.appendChild(document.createTextNode('#main-carousel{position:relative}'));
     var box = document.createElement('div'); box.className = 'rr-bn-arrows';
     box.innerHTML = '<button type="button" class="rr-bn-arr p" aria-label="Előző"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>' +
       '<button type="button" class="rr-bn-arr n" aria-label="Következő"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>';
