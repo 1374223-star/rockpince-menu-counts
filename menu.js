@@ -1556,7 +1556,7 @@
   }
   function apply() {
     var inputs = document.querySelectorAll('.header input[type=text], .header input[type=search]');
-    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = '';   /* owner 2026-11-16: no placeholder text, too much noise */ }
+    for (var i = 0; i < inputs.length; i++) { inputs[i].placeholder = 'Keresés';   /* owner 2026-11-16: just a faint dark-blue "Keresés" */ }
     if (!/product-page-body/.test(document.body ? document.body.className : '')) { return; }
     var rows = document.querySelectorAll('.product-parameters tr');
     for (var j = 0; j < rows.length; j++) {
@@ -2920,13 +2920,21 @@
     }
     var vp = box.querySelector('.rr-bands-vp'), track = box.querySelector('.rr-bands-track');
     var half = 0, dur = 120;
+    /* owner 2026-11-16 "sometimes it starts sliding really fast": the duration was measured while the strip was
+       hidden (it hides when the page is scrolled; phones fire resize on scroll), so the width read as 0 and the
+       30 s floor made 80 logos fly past. Now a hidden/unlaid-out strip is never measured, and it re-measures when
+       its real width changes. */
     function measure() {
-      half = track.scrollWidth / 2;
-      dur = Math.max(30, half / SPEED);
+      var w = track.scrollWidth;
+      if (!w || !box.offsetWidth || w < 2 * vp.clientWidth) { return; }
+      var nd = Math.max(30, (w / 2) / SPEED);
+      if (half && Math.abs(nd - dur) < 1) { return; }
+      half = w / 2; dur = nd;
       track.style.setProperty('--dur', dur.toFixed(1) + 's');
     }
     measure();
     window.addEventListener('resize', function () { measure(); });
+    if (window.ResizeObserver) { new ResizeObserver(function () { measure(); }).observe(track); }
 
     /* dragging: freeze the slide where it is, follow the finger/mouse, then let it carry on from there */
     var down = false, moved = false, sx = 0, base = 0, x = 0, pid = null;
@@ -3564,10 +3572,11 @@
     '.rr-mj:hover img{transform:rotate(-12deg) scale(1.1)}' +
     '.rr-mj.charge img{animation:rrMjCharge .55s ease-in forwards}' +
     '@keyframes rrMjCharge{0%{transform:rotate(0)}70%{transform:rotate(-38deg) scale(1.22)}100%{transform:rotate(22deg) scale(1.1)}}' +
-    '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;mix-blend-mode:screen;' +
-      'background:radial-gradient(circle at var(--x) var(--y),#ffffff 0%,#dff4ff 30%,#7fc4ea 100%);opacity:0}' +
-    '.rr-mj-flash.go{animation:rrMjFlash 1s ease-out forwards}' +
-    '@keyframes rrMjFlash{0%{opacity:0}5%{opacity:1}12%{opacity:.35}17%{opacity:.85}100%{opacity:0}}' +
+    '.rr-mj-flash{position:fixed;inset:0;z-index:2147483646;pointer-events:none;background:#f4fbff;opacity:0}' +
+    '.rr-mj-flash.go{animation:rrMjFlash 1.3s ease-out forwards}' +
+    '@keyframes rrMjFlash{0%{opacity:0}4%{opacity:.97}12%{opacity:.25}20%{opacity:.9}30%{opacity:.15}42%{opacity:.7}100%{opacity:0}}' +
+    'html.rr-mj-lit{animation:rrMjLit 1.5s ease-out}' +
+    '@keyframes rrMjLit{0%{filter:none}8%{filter:brightness(1.9) saturate(.5)}60%{filter:brightness(1.25)}100%{filter:none}}' +
     '.rr-mj-cv{position:fixed;inset:0;z-index:2147483647;pointer-events:none}' +
     'html.rr-mj-shake body{animation:rrMjShake .5s cubic-bezier(.36,.07,.19,.97)}' +
     '@keyframes rrMjShake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-7px,3px)}40%,60%{transform:translate(7px,-2px)}}';
@@ -3606,146 +3615,148 @@
     ctx.globalAlpha = a;       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = w; ctx.stroke();         // white core
   }
 
-  /* ---------- synthesized thunder (no sound files) ---------- */
+  /* ---------- synthesized thunder (no sound files): crackling strike, then a long rolling rumble in a big space ---------- */
   function thunder() {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) { return; }
     try {
-      var ac = new AC(), now = ac.currentTime, sr = ac.sampleRate;
-      var master = ac.createGain(); master.gain.value = .55; master.connect(ac.destination);
-      function noise(sec, brown) {
-        var b = ac.createBuffer(1, Math.floor(sr * sec), sr), d = b.getChannelData(0), last = 0;
+      var ac = new AC(), now = ac.currentTime + .03, sr = ac.sampleRate;
+      var comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4; comp.connect(ac.destination);
+      var master = ac.createGain(); master.gain.value = .9; master.connect(comp);
+      // reverb: a generated 4 s decaying-noise impulse = the sky the thunder rolls around in
+      var rev = ac.createConvolver(), ir = ac.createBuffer(2, sr * 4, sr);
+      for (var ch = 0; ch < 2; ch++) { var d = ir.getChannelData(ch); for (var i = 0; i < d.length; i++) { d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.6); } }
+      rev.buffer = ir; var wet = ac.createGain(); wet.gain.value = .55; rev.connect(wet); wet.connect(master);
+      function noiseBuf(sec, kind) {
+        var b = ac.createBuffer(1, Math.floor(sr * sec), sr), d = b.getChannelData(0), l = 0, b0 = 0, b1 = 0, b2 = 0;
         for (var i = 0; i < d.length; i++) {
           var w = Math.random() * 2 - 1;
-          if (brown) { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } else { d[i] = w; }
+          if (kind === 'brown') { l = (l + .02 * w) / 1.02; d[i] = l * 3.5; }
+          else if (kind === 'pink') { b0 = .997 * b0 + w * .029591; b1 = .985 * b1 + w * .032534; b2 = .95 * b2 + w * .048056; d[i] = (b0 + b1 + b2 + w * .1) * 2.2; }
+          else { d[i] = w; }
         }
-        var s = ac.createBufferSource(); s.buffer = b; return s;
+        return b;
       }
-      // 1) the crack: bright noise burst, very fast decay, with a second snap
-      [0, .07].forEach(function (t0, i) {
-        var n = noise(.35, false), hp = ac.createBiquadFilter(), g = ac.createGain();
-        hp.type = 'highpass'; hp.frequency.value = 1400;
-        g.gain.setValueAtTime(0, now + t0); g.gain.linearRampToValueAtTime(i ? .5 : .9, now + t0 + .004);
-        g.gain.exponentialRampToValueAtTime(.001, now + t0 + .28);
-        n.connect(hp); hp.connect(g); g.connect(master); n.start(now + t0); n.stop(now + t0 + .35);
-      });
-      // 2) the rumble: low brown noise rolling for ~3 s with a wobble
-      var r = noise(3.6, true), lp = ac.createBiquadFilter(), rg = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
-      lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, now + .05); lp.frequency.exponentialRampToValueAtTime(140, now + 3.2);
-      rg.gain.setValueAtTime(0, now + .05); rg.gain.linearRampToValueAtTime(1, now + .25); rg.gain.exponentialRampToValueAtTime(.001, now + 3.5);
-      lfo.frequency.value = 5.5; lg.gain.value = .3; lfo.connect(lg); lg.connect(rg.gain);
-      r.connect(lp); lp.connect(rg); rg.connect(master); r.start(now + .05); lfo.start(now); r.stop(now + 3.6); lfo.stop(now + 3.6);
-      // 3) electric buzz under the crawling arcs
-      var o = ac.createOscillator(), bf = ac.createBiquadFilter(), og = ac.createGain();
-      o.type = 'sawtooth'; o.frequency.value = 95; bf.type = 'bandpass'; bf.frequency.value = 1800; bf.Q.value = 1.5;
-      og.gain.setValueAtTime(0, now + .4); og.gain.linearRampToValueAtTime(.05, now + .6); og.gain.linearRampToValueAtTime(0, now + 4);
-      o.connect(bf); bf.connect(og); og.connect(master); o.start(now + .4); o.stop(now + 4.1);
-      setTimeout(function () { ac.close(); }, 4500);
+      var white = noiseBuf(1, 'white'), pink = noiseBuf(3, 'pink'), brown = noiseBuf(7, 'brown');
+      function play(buf, t, dur, gainPeak, attack, filt, f1, f2, toRev) {
+        var s = ac.createBufferSource(); s.buffer = buf;
+        var f = ac.createBiquadFilter(); f.type = filt; f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + dur);
+        var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gainPeak, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        s.connect(f); f.connect(g); g.connect(master); if (toRev) { g.connect(rev); }
+        s.start(t, Math.random() * .3); s.stop(t + dur + .05);
+      }
+      // 1) the strike: a fast cluster of crackles (each a tiny bright noise burst), then the main crack
+      for (var k = 0; k < 9; k++) { play(white, now + k * .012 + Math.random() * .01, .05 + Math.random() * .05, .5 + Math.random() * .4, .002, 'highpass', 2500, 1200, true); }
+      play(white, now + .1, .5, 1, .003, 'lowpass', 9000, 600, true);
+      play(pink, now + .1, 1.2, .9, .01, 'lowpass', 3000, 250, true);
+      // 2) the roll: several overlapping low swells with random delays, like thunder echoing off clouds
+      var t = now + .35;
+      for (var r = 0; r < 6; r++) {
+        play(brown, t, 2.2 + Math.random() * 2.5, .7 + Math.random() * .5, .25 + Math.random() * .4, 'lowpass', 420 - r * 40, 70, true);
+        t += .35 + Math.random() * .7;
+      }
+      // 3) sub-bass thump you feel more than hear
+      var o = ac.createOscillator(), og = ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(70, now + .1); o.frequency.exponentialRampToValueAtTime(32, now + 1.6);
+      og.gain.setValueAtTime(.0001, now + .1); og.gain.exponentialRampToValueAtTime(.9, now + .14); og.gain.exponentialRampToValueAtTime(.0001, now + 1.8);
+      o.connect(og); og.connect(master); o.start(now + .1); o.stop(now + 1.9);
+      // 4) fizzing electricity while the arcs run around
+      var z = ac.createBufferSource(); z.buffer = white; z.loop = true;
+      var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 2;
+      var zg = ac.createGain(); zg.gain.setValueAtTime(.0001, now + .6); zg.gain.exponentialRampToValueAtTime(.06, now + .9); zg.gain.exponentialRampToValueAtTime(.0001, now + 4.6);
+      var am = ac.createOscillator(), amg = ac.createGain(); am.type = 'square'; am.frequency.value = 23; amg.gain.value = .04;
+      am.connect(amg); amg.connect(zg.gain);
+      z.connect(bp); bp.connect(zg); zg.connect(master); z.start(now + .6); am.start(now + .6); z.stop(now + 4.7); am.stop(now + 4.7);
+      setTimeout(function () { ac.close(); }, 9000);
     } catch (e) { /* no sound, no problem */ }
   }
 
-  /* ---------- the strike ---------- */
+  /* ---------- the storm: bolts strike all over the page, the page flashes white, then electricity races around ---------- */
   var busy = false;
   function strike(btn) {
     if (busy) { return; }
     busy = true;
     btn.classList.remove('charge'); void btn.offsetWidth; btn.classList.add('charge');
-    var W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect();
-    var hx = r.left + r.width / 2, hy = r.top + r.height / 2;
-    var tx = W * (.3 + Math.random() * .4), ty = H * (.55 + Math.random() * .25);
+    thunder();
+    var W = innerWidth, H = innerHeight;
     var cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
     cv.className = 'rr-mj-cv'; cv.width = W * dpr; cv.height = H * dpr;
     document.body.appendChild(cv);
     var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    var CHARGE = 520, sparks = [], strikes = [], crawlers = [];
-    var t0 = performance.now(), last = 0, DUR = 5200, struck = false;
-
-    function boom() {
-      struck = true;
-      thunder();
-      strikes.push({ segs: tree(hx, hy + 14, tx, ty, 3, [], 3.4), t: 0 });
-      setTimeout(function () { strikes.push({ segs: tree(hx, hy + 14, tx + (Math.random() - .5) * 120, ty + (Math.random() - .5) * 60, 2, [], 2.4), t: 0 }); }, 110);
-      for (var i = 0; i < 70; i++) {
-        var a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 7;
-        sparks.push({ x: tx, y: ty, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3, life: 1 });
-      }
-      for (var c = 0; c < 6; c++) { crawlers.push({ pos: Math.random() * 2 * (W + H), speed: (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 10) }); }
-      if (!calm) {
-        var fl = document.createElement('div'); fl.className = 'rr-mj-flash';
-        fl.style.setProperty('--x', tx + 'px'); fl.style.setProperty('--y', ty + 'px');
-        document.body.appendChild(fl); void fl.offsetWidth; fl.classList.add('go');
-        setTimeout(function () { fl.remove(); }, 1100);
-        document.documentElement.classList.add('rr-mj-shake');
-        setTimeout(function () { document.documentElement.classList.remove('rr-mj-shake'); }, 520);
-      }
+    if (!calm) {
+      var fl = document.createElement('div'); fl.className = 'rr-mj-flash';
+      document.body.appendChild(fl); void fl.offsetWidth; fl.classList.add('go');
+      setTimeout(function () { fl.remove(); }, 1400);
+      document.documentElement.classList.add('rr-mj-shake', 'rr-mj-lit');
+      setTimeout(function () { document.documentElement.classList.remove('rr-mj-shake'); }, 600);
+      setTimeout(function () { document.documentElement.classList.remove('rr-mj-lit'); }, 1500);
     }
-    function edge(pos) {                                    // position along the screen border -> point
-      var P = 2 * (W + H); pos = ((pos % P) + P) % P;
-      if (pos < W) { return [pos, 3]; }
-      if (pos < W + H) { return [W - 3, pos - W]; }
-      if (pos < 2 * W + H) { return [W - (pos - W - H), H - 3]; }
-      return [3, H - (pos - 2 * W - H)];
+    // bolts: from the top edge to points spread over the whole page, staggered over ~0.7 s
+    var strikes = [];
+    var N = 7 + Math.floor(Math.random() * 3);
+    for (var i = 0; i < N; i++) {
+      (function (i) {
+        var x2 = W * ((i + .2 + Math.random() * .6) / N), y2 = H * (.35 + Math.random() * .6);
+        var x1 = x2 + (Math.random() - .5) * W * .35;
+        strikes.push({ at: i < 3 ? i * 40 : 120 + Math.random() * 600, segs: tree(x1, -10, x2, y2, 2 + (i % 2), [], 2 + Math.random() * 1.6), x: x2, y: y2 });
+      })(i);
     }
-
+    // racers: points that dart around the screen leaving short-lived electric arcs behind them
+    var racers = [];
+    for (var r = 0; r < 9; r++) {
+      var a = Math.random() * 7, v = 14 + Math.random() * 16;
+      racers.push({ x: Math.random() * W, y: Math.random() * H, vx: Math.cos(a) * v, vy: Math.sin(a) * v, trail: [] });
+    }
+    var sparks = [];
+    var t0 = performance.now(), last = 0, DUR = 5000;
     function frame(now) {
       var t = now - t0;
       if (t > DUR) { cv.remove(); busy = false; btn.classList.remove('charge'); return; }
-      if (now - last < 40) { requestAnimationFrame(frame); return; }      // ~25 fps keeps it crackly, not strobing
+      if (now - last < 33) { requestAnimationFrame(frame); return; }
       last = now;
       ctx.clearRect(0, 0, W, H);
       ctx.globalCompositeOperation = 'lighter';
-      var fade = t < 3800 ? 1 : 1 - (t - 3800) / 1400;
-
-      if (!struck && t >= CHARGE) { boom(); }
-      // charging / lingering arcs wrapped round the hammer
-      var ring = t < CHARGE ? .4 + t / CHARGE * .6 : fade * .8;
-      for (var j = 0; j < (t < CHARGE ? 5 : 3); j++) {
-        var a1 = Math.random() * 7, a2 = a1 + .8 + Math.random() * 1.5, rad = 22 + Math.random() * 14;
-        draw(ctx, bolt(hx + Math.cos(a1) * rad, hy + Math.sin(a1) * rad, hx + Math.cos(a2) * rad, hy + Math.sin(a2) * rad, .7), 1, ring);
-      }
-      if (t < CHARGE) {                                      // gathering glow
-        var gg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 70);
-        gg.addColorStop(0, 'rgba(160,220,255,' + .5 * t / CHARGE + ')'); gg.addColorStop(1, 'rgba(60,140,220,0)');
-        ctx.globalAlpha = 1; ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(hx, hy, 70, 0, 7); ctx.fill();
-      }
-      // main strikes: bright, then flicker out
+      var fade = t < 3800 ? 1 : 1 - (t - 3800) / 1200;
       strikes.forEach(function (s) {
-        s.t += 40;
-        var a = s.t < 90 ? 1 : Math.max(0, 1 - (s.t - 90) / 650) * (Math.random() < .25 ? .35 : 1);
-        if (a <= 0) { return; }
-        s.segs.forEach(function (g) { draw(ctx, g.p, g.w, a); });
-        var ig = ctx.createRadialGradient(tx, ty, 0, tx, ty, 180);
-        ig.addColorStop(0, 'rgba(230,248,255,' + .7 * a + ')'); ig.addColorStop(1, 'rgba(90,170,240,0)');
-        ctx.globalAlpha = 1; ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(tx, ty, 180, 0, 7); ctx.fill();
-      });
-      if (struck && !calm) {                                  // shockwave ring
-        var st = t - CHARGE;
-        if (st < 900) {
-          var rr = 20 + st * .9;
-          ctx.globalAlpha = (1 - st / 900) * .8; ctx.strokeStyle = '#9fd6f7'; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.arc(tx, ty, rr, 0, 7); ctx.stroke();
-          ctx.globalAlpha = (1 - st / 900) * .35; ctx.lineWidth = 14; ctx.stroke();
+        var st = t - s.at;
+        if (st < 0) { return; }
+        if (!s.hit) {
+          s.hit = true;
+          for (var q = 0; q < 18; q++) { var an = Math.random() * 7, sp = 2 + Math.random() * 6; sparks.push({ x: s.x, y: s.y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp - 2.5, life: 1 }); }
         }
-      }
-      // sparks with gravity
-      sparks.forEach(function (p) {
-        if (p.life <= 0) { return; }
-        p.x += p.vx; p.y += p.vy; p.vy += .35; p.vx *= .98; p.life -= .03;
-        ctx.globalAlpha = Math.max(0, p.life); ctx.strokeStyle = '#dff4ff'; ctx.lineWidth = 1.6;
-        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2); ctx.stroke();
+        var al = st < 70 ? 1 : Math.max(0, 1 - (st - 70) / 520) * (Math.random() < .3 ? .3 : 1);
+        if (al <= 0) { return; }
+        s.segs.forEach(function (g) { draw(ctx, g.p, g.w, al); });
+        var ig = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 120);
+        ig.addColorStop(0, 'rgba(230,248,255,' + .6 * al + ')'); ig.addColorStop(1, 'rgba(90,170,240,0)');
+        ctx.globalAlpha = 1; ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(s.x, s.y, 120, 0, 7); ctx.fill();
       });
-      // electricity running along the screen edges: each crawler moves and throws short arcs inward
-      if (struck) {
-        crawlers.forEach(function (c) {
-          c.pos += c.speed * 4;
-          var a = edge(c.pos), b = edge(c.pos - c.speed * 14);
-          draw(ctx, bolt(a[0], a[1], b[0], b[1], .45), 1.3, .9 * fade);
-          if (Math.random() < .35) {
-            var ang = Math.atan2(H / 2 - a[1], W / 2 - a[0]) + (Math.random() - .5) * 1.2, len = 30 + Math.random() * 70;
-            draw(ctx, bolt(a[0], a[1], a[0] + Math.cos(ang) * len, a[1] + Math.sin(ang) * len, .6), .8, .7 * fade);
+      if (t > 450) {
+        racers.forEach(function (p) {
+          // jittery, fast, bouncing off the screen edges; sometimes it jumps to a new direction
+          if (Math.random() < .12) { var na = Math.random() * 7, nv = 14 + Math.random() * 18; p.vx = Math.cos(na) * nv; p.vy = Math.sin(na) * nv; }
+          var ox = p.x, oy = p.y;
+          p.x += p.vx + (Math.random() - .5) * 10; p.y += p.vy + (Math.random() - .5) * 10;
+          if (p.x < 0 || p.x > W) { p.vx = -p.vx; p.x = Math.max(0, Math.min(W, p.x)); }
+          if (p.y < 0 || p.y > H) { p.vy = -p.vy; p.y = Math.max(0, Math.min(H, p.y)); }
+          p.trail.push([ox, oy, p.x, p.y]); if (p.trail.length > 6) { p.trail.shift(); }
+          p.trail.forEach(function (seg, k) { draw(ctx, bolt(seg[0], seg[1], seg[2], seg[3], .55), 1.1, (k + 1) / p.trail.length * .9 * fade); });
+          if (Math.random() < .15) {                                   // a branch flicks out to a nearby spot
+            var ba = Math.random() * 7, bl = 40 + Math.random() * 90;
+            draw(ctx, bolt(p.x, p.y, p.x + Math.cos(ba) * bl, p.y + Math.sin(ba) * bl, .6), .8, .7 * fade);
           }
         });
+        if (Math.random() < .25 * fade) {                              // the odd arc jumping between two racers
+          var A = racers[Math.floor(Math.random() * racers.length)], B = racers[Math.floor(Math.random() * racers.length)];
+          if (A !== B && Math.hypot(A.x - B.x, A.y - B.y) < 450) { draw(ctx, bolt(A.x, A.y, B.x, B.y, .4), 1.4, .9 * fade); }
+        }
       }
+      sparks.forEach(function (p) {
+        if (p.life <= 0) { return; }
+        p.x += p.vx; p.y += p.vy; p.vy += .32; p.vx *= .98; p.life -= .035;
+        ctx.globalAlpha = Math.max(0, p.life); ctx.strokeStyle = '#dff4ff'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2); ctx.stroke();
+      });
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       requestAnimationFrame(frame);
     }
@@ -3887,4 +3898,173 @@
   (function wait() { if (!build() && tries++ < 50) { setTimeout(wait, 200); } })();
   var n = 0;
   (function chip() { syncChip(); if (n++ < 20) { setTimeout(chip, 1500); } else { setInterval(syncChip, 60000); } })();
+})();
+
+/* Header tidy-up (owner 2026-11-16):
+   - profile, wishlist and basket are one framed block (same height as the search bar, thin dividers between)
+   - top bar spans the full width: phone + e-mail against the left edge, page links against the right edge
+   - product cards: no "Cikkszám" line
+   - "Kedvezményes kínálatunk" title and its "Összes akciós termék" button in the same colours as the rest */
+(function () {
+  if (window.__rrHeadTidy) { return; }
+  window.__rrHeadTidy = true;
+  var LINE = 'rgba(127,196,234,.55)';
+  var css =
+    '@media (min-width:992px){' +
+      '.header-middle-right-wrapper{display:flex!important;align-items:stretch!important;height:52px;border:1px solid ' + LINE + '!important;border-radius:8px!important;' +
+        'background:rgba(3,16,28,.55)!important;overflow:hidden;margin:0!important;padding:0!important}' +
+      '.header-middle-right-wrapper > .header-middle-right-box{display:flex!important;align-items:center;justify-content:center;width:56px!important;height:100%!important;' +
+        'margin:0!important;padding:0!important;border:0!important;background:transparent!important;transition:background .15s}' +
+      '.header-middle-right-wrapper > .header-middle-right-box + .header-middle-right-box{border-left:1px solid rgba(127,196,234,.22)!important}' +
+      '.header-middle-right-wrapper > .header-middle-right-box:hover{background:rgba(127,196,234,.1)!important}' +
+      '.header-middle-right-wrapper > .header-middle-right-box:before,.header-middle-right-wrapper > .header-middle-right-box:after{display:none!important}' +
+      '.header-middle-right-wrapper #js-cart *{border:0!important}' +
+      '.header-middle-right-wrapper #js-cart,.header-middle-right-wrapper #js-cart > *,.header-middle-right-wrapper #js-cart .js-cart-ajax,.header-middle-right-wrapper #js-cart .cart-dropdown{width:100%;height:100%;display:flex;align-items:center;justify-content:center}' +
+      '.header-middle-right-wrapper .cart-dropdown-toggle{background:transparent!important;box-shadow:none!important;width:100%!important;height:100%!important;' +
+        'padding:0!important;display:flex!important;align-items:center;justify-content:center;border-radius:0!important}' +
+      '.header-middle-right-wrapper .rr-cart-ic{width:26px;height:26px}' +
+      '.header-top-row{max-width:none!important;width:100%!important;margin:0!important;padding:0 20px!important}' +
+    '}' +
+    '.product-card__sku{display:none!important}' +
+    '.header input::placeholder{color:#3f6d93!important;opacity:1!important}' +
+    '.module-special-wrapper .module-head-title{color:#fff!important;-webkit-text-fill-color:#fff!important}' +
+    '.module-special-wrapper .modules-all-link{background:#0b344d!important;border:1px solid ' + LINE + '!important;color:#fff!important}' +
+    '.module-special-wrapper .modules-all-link:hover{background:#114a6d!important;border-color:#9fd6f7!important}';
+  var st = document.createElement('style'); st.id = 'rr-headtidy'; st.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(st);
+  function merge() {
+    var wrap = document.querySelector('.header-middle-right-wrapper'), cart = document.getElementById('js-cart');
+    if (!wrap || !cart) { return false; }
+    if (cart.parentNode !== wrap) { wrap.appendChild(cart); }
+    return true;
+  }
+  var tries = 0;
+  (function wait() { if (!merge() && tries++ < 50) { setTimeout(wait, 200); } })();
+})();
+
+/* Phone menu arrows (owner 2026-11-16): no subfolder count numbers (they sat misaligned), no tall divider line before
+   the arrow, and the ">" is a big chrome "›" in the menu's Barlow Condensed lettering instead of a thin drawn chevron. */
+(function () {
+  if (window.__rrMmArrows) { return; }
+  window.__rrMmArrows = true;
+  var CHROME = 'linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%)';
+  var css =
+    '#js-mobile-nav .mm-counter{display:none!important}' +
+    '#js-mobile-nav .mm-listitem__btn,#js-mobile-nav .mm-btn--next{border-left:0!important;background:transparent!important}' +
+    '#js-mobile-nav .mm-listitem__btn:before,#js-mobile-nav .mm-btn--next:before{display:none!important}' +
+    '#js-mobile-nav .mm-btn--next{width:56px!important}' +
+    '#js-mobile-nav .mm-btn--next:after{content:"\\203A"!important;border:0!important;transform:none!important;width:auto!important;height:auto!important;' +
+      'left:auto!important;right:20px!important;top:50%!important;bottom:auto!important;margin:0!important;translate:0 -54%;' +
+      'font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;font-size:54px!important;line-height:1!important;' +
+      'background:' + CHROME + ';-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;' +
+      'filter:drop-shadow(0 1px 0 #031220)}';
+  var st = document.createElement('style'); st.id = 'rr-mm-arrows'; st.appendChild(document.createTextNode(css));
+  (document.head || document.documentElement).appendChild(st);
+})();
+
+/* Phone menu bottom (owner 2026-11-16): no separator lines under the page links, and phone + e-mail as the same
+   rounded pills as on the desktop top bar. */
+(function () {
+  if (window.__rrMmContact) { return; }
+  window.__rrMmContact = true;
+  var css =
+    '#js-mobile-nav li.informations-mobile-menu-item-separator ~ li,#js-mobile-nav li.informations-mobile-menu-item-separator ~ li > *{border-bottom:0!important;border-top:0!important}' +
+    '#js-mobile-nav li.informations-mobile-menu-item-separator ~ li:after,#js-mobile-nav li.informations-mobile-menu-item-separator ~ li:before{display:none!important}' +
+    '#js-mobile-nav li.rr-mm-contact{padding:14px 20px 6px!important;border:0!important}' +
+    '#js-mobile-nav li.rr-mm-contact:after{display:none!important}' +
+    '.rr-mm-pills{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:16px 20px 10px}' +
+    '.rr-mm-pills a{display:inline-flex!important;align-items:center;gap:9px;padding:8px 16px!important;border:1px solid rgba(127,196,234,.45)!important;border-radius:18px;' +
+      'color:#e6f3fb!important;font-family:Poppins,sans-serif!important;font-size:15px!important;letter-spacing:.02em;text-decoration:none!important;background:rgba(3,16,28,.35)}' +
+    '.rr-mm-pills svg{width:17px;height:17px;flex:none}';
+  var TEL = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
+  var MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd6f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>';
+  function build() {
+    var tel = document.querySelector('a.informations-mobile-menu-phone');
+    if (!tel) { return false; }
+    /* mmenu turns anything added inside a menu item into a submenu, so the pills go below the list, and the old
+       phone item is hidden */
+    var li = tel.closest('li'), list = li && li.parentNode, panel = list && list.parentNode;
+    if (!panel) { return false; }
+    if (!document.getElementById('rr-mm-contact')) {
+      var st = document.createElement('style'); st.id = 'rr-mm-contact'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    }
+    li.style.display = 'none';
+    if (panel.querySelector('.rr-mm-pills')) { return true; }
+    var d = document.createElement('div'); d.className = 'rr-mm-pills';
+    d.innerHTML = '<a href="tel:+36705882134">' + TEL + '<span>+36 70 588 2134</span></a>' +
+      '<a href="mailto:info@ragnarock.hu">' + MAIL + '<span>info@ragnarock.hu</span></a>';
+    list.insertAdjacentElement('afterend', d);
+    return true;
+  }
+  var tries = 0;
+  (function wait() { build(); if (tries++ < 60) { setTimeout(wait, 500); } })();   /* keeps checking for 30 s: the menu re-renders */
+})();
+
+/* Second band strip, phone home page only (owner 2026-11-16): under the banner, sliding the other way, with none of
+   the bands already in the header strip. Same look; the duration is only measured once it is laid out. */
+(function () {
+  if (window.__rrBands2) { return; }
+  window.__rrBands2 = true;
+  if (!window.matchMedia || !matchMedia('(max-width:991px)').matches) { return; }
+  if (location.pathname !== '/' && location.pathname !== '/index.php') { return; }
+  var BASE = 'https://1374223-star.github.io/rockpince-menu-counts/assets/bands/', SHOW = 80, SPEED = 32;
+  var css =
+    '.rr-bands2{margin:0}' +
+    '.rr-bands2 .rr-bands-track{animation-direction:reverse!important}';
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function pick(all, used) {
+    var pool = all.filter(function (b) { return !used[b.s]; }), out = [];
+    while (out.length < SHOW && pool.length) {
+      var tot = 0, i;
+      for (i = 0; i < pool.length; i++) { tot += Math.sqrt(pool[i].c || 1) + 1; }
+      var r = Math.random() * tot;
+      for (i = 0; i < pool.length; i++) { r -= Math.sqrt(pool[i].c || 1) + 1; if (r <= 0) { break; } }
+      out.push(pool.splice(Math.min(i, pool.length - 1), 1)[0]);
+    }
+    return out;
+  }
+  function anchor() {
+    var b = document.querySelector('.banner-item__image, .slider-thumbnails-wrapper, .rr-banner-arrows');
+    return b && (b.closest('.section-wrapper') || b.closest('.module'));
+  }
+  function build(all) {
+    var first = document.querySelector('.rr-bands:not(.rr-bands2)'), at = anchor();
+    if (!first || !at || document.querySelector('.rr-bands2')) { return false; }
+    var used = {};
+    [].forEach.call(first.querySelectorAll('.rr-blogo img'), function (im) { var m = im.src.match(/\/([^\/]+)\.webp/); if (m) { used[m[1]] = 1; } });
+    var list = pick(all, used), html = '';
+    if (!list.length) { return true; }
+    for (var k = 0; k < 2; k++) {
+      for (var i = 0; i < list.length; i++) {
+        var b = list[i];
+        html += '<a class="rr-blogo" draggable="false" href="/index.php?route=product/list&amp;keyword=' + encodeURIComponent(b.k.toLowerCase()) +
+          '" title="' + esc(b.n) + '"' + (k ? ' aria-hidden="true" tabindex="-1"' : '') + '><img src="' + BASE + b.s + '.webp" alt="' + esc(b.n) +
+          '" width="' + b.w + '" height="' + b.h + '" style="--w:' + b.w + '" loading="lazy" decoding="async" draggable="false"></a>';
+      }
+    }
+    var st = document.createElement('style'); st.id = 'rr-bands2-css'; st.appendChild(document.createTextNode(css)); document.head.appendChild(st);
+    var box = document.createElement('div');
+    box.className = 'rr-bands rr-bands2'; box.setAttribute('aria-label', 'További zenekarok');
+    box.innerHTML = '<div class="rr-bands-vp"><div class="rr-bands-track">' + html + '</div></div>';
+    at.parentNode.insertBefore(box, at.nextSibling);
+    var track = box.querySelector('.rr-bands-track'), vp = box.querySelector('.rr-bands-vp'), dur = 0;
+    function measure() {
+      var w = track.scrollWidth;
+      if (!w || !box.offsetWidth || w < 2 * vp.clientWidth) { return; }
+      var nd = Math.max(30, (w / 2) / SPEED);
+      if (dur && Math.abs(nd - dur) < 1) { return; }
+      dur = nd; track.style.setProperty('--dur', dur.toFixed(1) + 's');
+    }
+    measure();
+    if (window.ResizeObserver) { new ResizeObserver(measure).observe(track); }
+    box.addEventListener('click', function (e) { if (!(e.target.closest && e.target.closest('.rr-blogo'))) { box.classList.toggle('paused'); } });
+    if (window.IntersectionObserver) { new IntersectionObserver(function (en) { box.classList.toggle('off', !en[0].isIntersecting); }).observe(box); }
+    return true;
+  }
+  var all = null, tries = 0;
+  var x = new XMLHttpRequest();
+  x.open('GET', BASE + 'bands.json', true);
+  x.onload = function () { try { all = JSON.parse(x.responseText); } catch (e) { all = []; } };
+  x.send();
+  (function wait() { if (!(all && all.length && build(all)) && tries++ < 60) { setTimeout(wait, 250); } })();
 })();
