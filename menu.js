@@ -3017,7 +3017,7 @@
   if (window.__rrCatLook) { return; }
   window.__rrCatLook = true;
   var CHROME = 'linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%)';
-  var RED = 'linear-gradient(180deg,#ff8a84 0%,#f04a43 45%,#d92420 55%,#ff6a63 100%)';
+  var RED = CHROME;  /* owner 2026-11-16: ÚJDONSÁG / AKCIÓ in the regular chrome too (was red) */
   var A = 'html body .module-category-wrapper li.module-list > a.nav-link';
   var css =
     A + ',' + A + ' .rr-category-count{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;' +
@@ -3280,7 +3280,7 @@
   if (window.__rrMmLook) { return; }
   window.__rrMmLook = true;
   var CHROME = 'linear-gradient(180deg,#ffffff 0%,#dcf0fc 40%,#a9d2ee 50%,#b8dcf3 56%,#f0f9ff 80%,#b5daf2 100%)';
-  var RED = 'linear-gradient(180deg,#ff8a84 0%,#f04a43 45%,#d92420 55%,#ff6a63 100%)';
+  var RED = CHROME;  /* owner 2026-11-16: ÚJDONSÁG / AKCIÓ in the regular chrome too (was red) */
   var css =
     '#js-mobile-nav .mm-listitem__text,#js-mobile-nav .mm-navbar__title{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:600!important;' +
     'letter-spacing:.03em!important;font-size:17px!important}' +
@@ -4874,4 +4874,26 @@
     if (tries++ < 80) { setTimeout(relink, done ? 1500 : 250); }
   }
   relink();
+})();
+
+/* Header look (owner 2026-11-16, mockup "L" with white top row): the band-logo strip on a light brushed-steel band
+   with dark logos, plain white text in the top info row, no line under the category bar. Static paint only: the
+   darkening filter sits once on the sliding track (one layer), nothing repaints while it slides. */
+(function () {
+  if (window.__rrSteel) { return; }
+  window.__rrSteel = true;
+  var T = '.header-top .headermenu-list a,.header-top .headermenu-list a *,.header-top .rr-phonetop,.header-top .rr-phonetop *,.header-top .rr-mailtop,.header-top .rr-mailtop *';
+  var st = document.createElement('style'); st.id = 'rr-steel';
+  st.textContent =
+    T + '{color:#fff!important;-webkit-text-fill-color:#fff!important;background-image:none!important;text-shadow:none!important}' +
+    '.header-top .rr-phonetop svg,.header-top .rr-mailtop svg{color:#fff!important;stroke:#fff!important}' +
+    'html body .header-bottom{border-top:0!important;border-bottom:0!important;box-shadow:none!important}' +
+    'html body .rr-bands{background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.03) 1px 3px),linear-gradient(180deg,#d9dfe4,#aab5bf)!important;' +
+    'border-top:1px solid #f1f4f6!important;border-bottom:1px solid #5c6873!important}' +
+    'html body .rr-bands:before{background:linear-gradient(90deg,#b9c3cb,rgba(185,195,203,0))!important}' +
+    'html body .rr-bands:after{background:linear-gradient(270deg,#b9c3cb,rgba(185,195,203,0))!important}' +
+    'html body .rr-bands .rr-bands-track{filter:invert(1) brightness(.28)}' +
+    'html body .rr-bands .rr-blogo,html body .rr-bands .rr-blogo:hover{opacity:.92!important}' +
+    'html body .rr-bands .rr-blogo:hover img,html body .rr-bands .rr-blogo:active img{filter:none!important}';
+  (document.head || document.documentElement).appendChild(st);
 })();
