@@ -2683,7 +2683,8 @@
   }
   function cssSnow(bar) {
     if (!document.getElementById('rr-snowcss')) {
-      var dot = function (x, y, r, a) { return 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,255,255,' + a + ') ' + r + 'px, transparent ' + (r + 0.6) + 'px)'; };
+      var dot = function (x, y, r, a) { r = parseFloat(r);   /* r arrived as text: 'r + 0.6' made '1.50.6px', an invalid gradient, so phones had no snow */
+        return 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,255,255,' + a + ') ' + r.toFixed(1) + 'px, transparent ' + (r + 0.7).toFixed(1) + 'px)'; };
       var near = [], far = [];
       for (var i = 0; i < 14; i++) {
         near.push(dot(Math.round(Math.random() * 180), Math.round(Math.random() * 120), (1.2 + Math.random() * 0.9).toFixed(1), (0.6 + Math.random() * 0.3).toFixed(2)));
