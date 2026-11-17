@@ -919,7 +919,7 @@
     for (var i = 0; i < items.length; i++) { sum += Number(items[i].totalNumber || 0); }
     return Math.round(sum);
   }
-  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
   function html(sum) {
     var left = LIMIT - sum, pct = Math.max(4, Math.min(100, Math.round(sum / LIMIT * 100))), done = left <= 0;
     var text = done ? '<strong>Ingyenes a szállítás!</strong> A kosarad értéke elérte a ' + ft(LIMIT) + '-ot.'
@@ -1742,7 +1742,7 @@
   var isCart = /route=checkout\/cart/.test(location.search) || /\/kosar/.test(location.pathname);
   var phone = function () { return window.innerWidth < 768; };
 
-  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) { e.className = cls; } if (html != null) { e.innerHTML = html; } return e; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function store(kind) { try { var s = window[kind]; s.setItem('rr-t', '1'); s.removeItem('rr-t'); return s; } catch (e) { return null; } }
@@ -2843,10 +2843,10 @@
     if (badges) { badges.style.display = 'none'; }
     var price = card.querySelector('.product-card__price');
     if (price) {
-      var nums = (price.textContent.match(/\d[\d.]*\s*Ft/g) || []).map(function (s) { return Number(s.replace(/\D/g, '')); }).filter(Boolean);
+      var nums = (price.textContent.match(/\d[\d.\s]*\s*Ft/g) || []).map(function (s) { return Number(s.replace(/\D/g, '')); }).filter(Boolean);
       if (nums.length >= 2) {
         var hi = Math.max.apply(null, nums);
-        price.innerHTML = '<span class="snapshot-price snapshot-price--regular">' + String(hi).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft</span>';
+        price.innerHTML = '<span class="snapshot-price snapshot-price--regular">' + String(hi).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft</span>';
       }
     }
     var img = card.querySelector('.product-card-image') || card;
@@ -4488,7 +4488,7 @@
   var st = document.createElement('style'); st.id = 'rr-cartpanel'; st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
   var box, tab, cart, data = null, dataCount = -1, closeT = null, want = null;
-  function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function count() { var q = document.querySelector('#js-cart .header-quantity-box'); return q ? parseInt(q.textContent, 10) || 0 : 0; }
   function load(cb) {
@@ -5365,7 +5365,7 @@
   var phone = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
   if (!phone) { return; }
   var FREE = 30000;
-  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
   function num(t) { var m = String(t || '').replace(/\s/g, '').match(/(\d[\d.]*)Ft/); return m ? Number(m[1].replace(/\./g, '')) : 0; }
 
   /* Exp 1 */
