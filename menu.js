@@ -6142,3 +6142,41 @@
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
 })();
+
+
+/* Méretcsere (owner 2026-11-17: "a 4th button that says MÉRETCSERE, GLS cserecsomag 1500 Ft, csak címre, make a fitting
+   icon"): a fourth item in the theme's advantage boxes on the home page (.advantages-grid) and on product pages
+   (.product-advantages-grid), same markup as the others, icon assets/icons/meretcsere.svg (T-shirt in swap arrows,
+   site-changes/2026-11-17_meretcsere/make_icon.py). Desktop shows four columns, tablets two, phones keep one. */
+(function () {
+  'use strict';
+  if (window.__rrSizeSwap) { return; }
+  window.__rrSizeSwap = true;
+  var ICON = 'https://1374223-star.github.io/rockpince-menu-counts/assets/icons/meretcsere.svg';
+  var SPOTS = [
+    { grid: '.advantages-grid', p: 'advantages-item', title: 'MÉRETCSERE', text: 'GLS cserecsomaggal 1 500 Ft, csak címre szállítva' },
+    { grid: '.product-advantages-grid', p: 'product-advantages-item', title: 'MÉRETCSERE', text: 'Nem jó a méret? GLS cserecsomaggal 1 500 Ft, csak címre szállítva.' }
+  ];
+  var st = document.createElement('style');
+  st.textContent =
+    '@media (min-width:768px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(2,1fr)!important}}' +
+    '@media (min-width:1200px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(4,1fr)!important}}';
+  (document.head || document.documentElement).appendChild(st);
+  function add() {
+    for (var i = 0; i < SPOTS.length; i++) {
+      var s = SPOTS[i], grid = document.querySelector(s.grid);
+      if (!grid || grid.querySelector('.rr-swap') || grid.children.length < 1) { continue; }
+      var item = grid.children[grid.children.length - 1].cloneNode(true);
+      item.classList.add('rr-swap');
+      item.removeAttribute('data-aos');
+      var img = item.querySelector('img');
+      if (img) { img.src = ICON; img.removeAttribute('srcset'); img.alt = s.title; }
+      var h = item.querySelector('.' + s.p + '__title'), tx = item.querySelector('.' + s.p + '__text');
+      if (h) { h.textContent = s.title; }
+      if (tx) { tx.textContent = s.text; }
+      grid.appendChild(item);
+      grid.classList.add('rr-adv4');
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', add); } else { add(); }
+})();
