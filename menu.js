@@ -4872,7 +4872,7 @@
 (function () {
   if (window.__rrSeo) { return; }
   window.__rrSeo = true;
-  var SITE = 'https://www.rockpince.hu/';
+  var SITE = location.protocol + '//' + location.host + '/';   /* follows the domain (ragnarock.hu from January) */
   var body = document.body ? document.body.className : '';
   function ld(obj, id) {
     if (document.getElementById(id)) { return; }
@@ -4958,13 +4958,15 @@
 (function () {
   if (window.__rrBandPages) { return; }
   window.__rrBandPages = true;
-  var Z = 'https://www.rockpince.hu/zenekarok', ZEN = '/ruhazat_cipo-14031/zenekaros-14040';
+  var ZEN = '/ruhazat_cipo-14031/zenekaros-14040';
+  /* href ends with /zenekarok on any domain (2026-11-17: was the exact www.rockpince.hu address, would break in January) */
+  var Z = 'a[href$="/zenekarok"]';
   var st = document.createElement('style'); st.id = 'rr-bandpages';
-  st.textContent = '#cat_19526,li:has(> a[href="' + Z + '"]),li:has(> div > a[href="' + Z + '"]),li:has(> span > a[href="' + Z + '"]){display:none!important}';
+  st.textContent = '#cat_19526,li:has(> ' + Z + '),li:has(> div > ' + Z + '),li:has(> span > ' + Z + '){display:none!important}';
   (document.head || document.documentElement).appendChild(st);
   if (/^\/zenekarok\/?$/.test(location.pathname)) { location.replace(ZEN); return; }
   function crumbs() {
-    [].forEach.call(document.querySelectorAll('.breadcrumb a[href="' + Z + '"],[class*=breadcrumb] a[href="' + Z + '"]'), function (a) {
+    [].forEach.call(document.querySelectorAll('.breadcrumb ' + Z + ',[class*=breadcrumb] ' + Z), function (a) {
       a.setAttribute('href', ZEN);
       var t = a.querySelector('span') || a;
       if (/^\s*Zenekarok\s*$/.test(t.textContent)) { t.textContent = 'Zenekaros'; }
