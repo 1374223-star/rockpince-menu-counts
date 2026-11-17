@@ -5629,12 +5629,12 @@
     var h = '<div class="rr-tl">';
     for (var i = 0; i < LEVELS.length; i++) {
       var L = LEVELS[i];
-      h += '<div class="rr-tl-i' + (cur && cur.k === L.k ? ' on' : '') + '">' + gem(L.k, 34) + '<b>' + L.n + '</b><span>' + L.r +
+      h += '<div class="rr-tl-i' + (cur && cur.k === L.k ? ' on' : '') + '">' + gem(L.k, 42) + '<b>' + L.n + '</b><span>' + L.r +
         '% pont</span><i>' + (L.at ? ft(L.at) + '-tól' : 'regisztrációval') + '</i></div>';
     }
     return h + '</div>';
   }
-  function mini() { var h = ''; for (var i = 0; i < LEVELS.length; i++) { h += gem(LEVELS[i].k, 16); } return '<span class="rr-tmini">' + h + '</span>'; }
+  function mini() { var h = ''; for (var i = 0; i < LEVELS.length; i++) { h += gem(LEVELS[i].k, 20); } return '<span class="rr-tmini">' + h + '</span>'; }
   function user() { var c = window.ShopRenter && ShopRenter.customer; return c && Number(c.userId) > 0 && c.email ? c : null; }
   function hex(buf) { var a = new Uint8Array(buf), s = ''; for (var i = 0; i < a.length; i++) { s += ('0' + a[i].toString(16)).slice(-2); } return s; }
   function load(cb) {
@@ -5664,9 +5664,9 @@
     get(function (m) {
       var bg = document.createElement('div'), N = m && nextOf(m.L), body;
       if (m) {
-        body = '<div class="rr-tp-me">' + gem(m.L.k, 58) + '<div><b>' + m.L.n + ' szint</b><span>' + m.L.r +
+        body = '<div class="rr-tp-me">' + gem(m.L.k, 68) + '<div><b>' + m.L.n + ' szint</b><span>' + m.L.r +
           '% pont minden rendelésed után</span><i>Az elmúlt 12 hónapban: ' + ft(m.spend) + '</i></div></div>' +
-          (N ? '<p class="rr-tp-next">Még <b>' + ft(N.at - m.spend) + '</b>, és ' + gem(N.k, 18) + ' <b>' + N.n + '</b> szintre lépsz (' + N.r + '% pont).</p>' +
+          (N ? '<p class="rr-tp-next">Még <b>' + ft(N.at - m.spend) + '</b>, és ' + gem(N.k, 22) + ' <b>' + N.n + '</b> szintre lépsz (' + N.r + '% pont).</p>' +
             '<div class="rr-tp-bar"><span style="width:' + Math.max(3, Math.min(100, Math.round((m.spend - m.L.at) / (N.at - m.L.at) * 100))) + '%"></span></div>'
             : '<p class="rr-tp-next">A legmagasabb szinten vagy. Köszönjük, hogy velünk vagy!</p>');
       } else {
@@ -5713,7 +5713,7 @@
       var txt = (nav.textContent || '').trim() || 'Hűségprogram';
       nav.innerHTML = '<span class="rr-tier-n"></span><span class="rr-tier-nt"></span>';
       nav.lastChild.textContent = txt;
-      spot(nav, nav.firstChild, nav.lastChild, 24);
+      spot(nav, nav.firstChild, nav.lastChild, 29);
     }
     var a = document.createElement('a');
     a.id = 'rr-tier-m';
@@ -5722,7 +5722,7 @@
     a.setAttribute('aria-label', 'Hűségszintek');
     a.appendChild(document.createElement('span'));
     box.insertBefore(a, box.firstChild);
-    spot(a, a.firstChild, null, 26);
+    spot(a, a.firstChild, null, 31);
     paint(null);
     get(function (m) { if (m) { paint(m); } });
   }
@@ -5731,7 +5731,7 @@
   st.textContent =
     '.rr-gem{display:inline-block;vertical-align:middle;flex:none}' +
     '.rr-tier-n{display:inline-block;vertical-align:middle;margin:-5px 7px 0 0;line-height:0}' +
-    '#js-cart .rr-tier-m,.rr-tier-m{display:none!important;position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:6px;padding:6px;line-height:0;z-index:2}' +
+    '#js-cart .rr-tier-m,.rr-tier-m{display:none!important;position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:4px;padding:4px;line-height:0;z-index:2}' +
     '.rr-tier-m:hover .rr-gem,.nav-link:hover .rr-tier-n .rr-gem{filter:brightness(1.15)}' +
     '@media (max-width:991px){#js-cart .rr-tier-m,.rr-tier-m{display:block!important}}' +
     '.rr-tmini{display:inline-flex;gap:2px;vertical-align:middle;margin-right:4px}' +
@@ -5824,7 +5824,7 @@
     } else { row.parentNode.insertBefore(line, row.nextSibling); }
     RRTIER.get(function (m) {
       if (!m || m.L.r <= 3 || !base) { return; }
-      line.innerHTML = RRTIER.gem(m.L.k, 16) + ' <a href="#" role="button"><b>' + m.L.n + '</b> szinten kb. <b>' + Math.round(base * m.L.r / 3) + ' pont</b> jár erre a termékre</a>';
+      line.innerHTML = RRTIER.gem(m.L.k, 21) + ' <a href="#" role="button"><b>' + m.L.n + '</b> szinten kb. <b>' + Math.round(base * m.L.r / 3) + ' pont</b> jár erre a termékre</a>';
     });
   }
   var tries = 0;
@@ -5982,10 +5982,10 @@
     if (!m) { if (!tierAsked) { tierAsked = true; RRTIER.get(function () { ensure(); }); } return null; }
     N = RRTIER.nextOf(m.L);
     if (N && m.spend + sum >= N.at) {
-      return ['T' + N.k, '<p class="rr-loy-t">' + RRTIER.gem(N.k, 18) + 'Ezzel a rendeléssel <b>' + N.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
+      return ['T' + N.k, '<p class="rr-loy-t">' + RRTIER.gem(N.k, 22) + 'Ezzel a rendeléssel <b>' + N.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
         N.r + '% pont</b> jár. <a href="#" data-rr="tiers">Részletek</a></p>'];
     }
-    return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 18) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
+    return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 22) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
       (N ? 'Ezzel a kosárral együtt még <b>' + ft(N.at - m.spend - sum) + '</b> hiányzik ' + (/^[AEIOUÁÉÍÓÖŐÚÜŰ]/.test(N.n) ? 'az' : 'a') + ' <b>' + N.n + '</b> szinthez (' + N.r + '%). ' : '') +
       '<a href="#" data-rr="tiers">Részletek</a></p>'];
   }
