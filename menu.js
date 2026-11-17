@@ -2090,17 +2090,47 @@
         : 'Még <b>' + ft(left) + '</b> és <b>ingyenes</b> a szállítás!') + '<div class="bar"><i style="width:' + pct + '%"></i></div>';
     });
   }
+  /* SEO 2026-11-17: when the band has its own page (/zenekarok/..., assets/seo/bandkeys.json from
+     rockoff-upload/src/bandpages/bandkeys.py) the link goes there - an indexable page instead of the noindex search,
+     ~23 000 product pages now link to the band pages - and the count comes from the menu-count file the browser has
+     cached (no extra search request). Bands without a page keep the search link. */
+  var BANDKEYS = 'https://1374223-star.github.io/rockpince-menu-counts/assets/seo/bandkeys.json';
+  var COUNTS_JSON = 'https://1374223-star.github.io/rockpince-menu-counts/category_counts.json';
+  function bandNorm(s) {   /* same as build.norm() in Python */
+    s = String(s).replace(/&/g, ' and ').replace(/’/g, "'");
+    if (s.normalize) { s = s.normalize('NFKD'); }
+    s = s.replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\x00-\x7f]/g, '');
+    s = s.replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').replace(/^\s+|\s+$/g, '');
+    return s.replace(/^the /, '').replace(/ /g, '');
+  }
+  function getJson(url, cb) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url);
+    x.onload = function () { var d = null; try { d = JSON.parse(x.responseText); } catch (e) { /* none */ } cb(d); };
+    x.onerror = function () { cb(null); };
+    x.send();
+  }
   function bandLink() {
     var h = document.querySelector('.product-page-middle h1, .product-page-top__row h1');
     if (!h || document.querySelector('.rr-band')) { return; }
     var band = h.textContent.split(' - ')[0].replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
     if (band.length < 2 || band.length > 40 || band === h.textContent.trim() || /^\d+$/.test(band)) { return; }
-    var url = '/index.php?route=product/list&keyword=' + encodeURIComponent(band.toLowerCase());
-    searchCount(url, function (n) {
+    var search = '/index.php?route=product/list&keyword=' + encodeURIComponent(band.toLowerCase());
+    function put(href, n) {
       if (n < 2 || document.querySelector('.rr-band')) { return; }
       var a = el('a', 'rr-band', 'Még több ' + esc(band) + ' termék (' + n + ') &rarr;');
-      a.href = url;
+      a.href = href;
       h.parentNode.insertBefore(a, h.nextSibling);
+    }
+    getJson(BANDKEYS, function (keys) {
+      var hit = keys && keys[bandNorm(band)];
+      if (!hit) { searchCount(search, function (n) { put(search, n); }); return; }
+      /* same URL as the category-count block, so it comes from the browser cache */
+      getJson(COUNTS_JSON + '?v=' + Math.floor(new Date().getTime() / 600000), function (c) {
+        var row = c && c.counts && c.counts[hit[1]];
+        if (row && typeof row[1] === 'number') { put(hit[0], row[1]); }
+        else { searchCount(search, function (n) { put(hit[0], n); }); }
+      });
     });
   }
   function stickyBar() {
@@ -5309,15 +5339,25 @@
 (function () {
   if (window.__rrGone) { return; }
   window.__rrGone = true;
+  /* 2026-11-17: the not-found page says "index, follow" with status 200 (soft 404); when there is no redirect
+     target it becomes noindex, so dead URLs drop out of Google instead of being indexed as an empty page */
+  function noindex() {
+    var r = document.querySelector('meta[name="robots"]');
+    if (!r) { r = document.createElement('meta'); r.name = 'robots'; document.head.appendChild(r); }
+    r.setAttribute('content', 'noindex, follow');
+  }
   function go() {
     if (!document.querySelector('[data-test-id="notFoundPage"]')) { return; }
     var m = location.search.match(/[?&]product_id=(\d+)/) || location.pathname.match(/-(\d+)\/?$/);
-    if (!m) { return; }
+    if (!m) { noindex(); return; }
     var x = new XMLHttpRequest();
     x.open('GET', 'https://1374223-star.github.io/rockpince-menu-counts/assets/seo/deleted_redirects.json');
     x.onload = function () {
-      try { var to = JSON.parse(x.responseText)[m[1]]; if (to) { location.replace(to); } } catch (e) {}
+      var to = null;
+      try { to = JSON.parse(x.responseText)[m[1]]; } catch (e) { /* no map */ }
+      if (to) { location.replace(to); } else { noindex(); }
     };
+    x.onerror = noindex;
     x.send();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
