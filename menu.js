@@ -970,6 +970,7 @@
   function show(cards) {
     var anchor = document.querySelector('.product-advantages-module');
     anchor = anchor && (anchor.closest('.section-wrapper') || anchor);
+    anchor = document.querySelector('.rr-social') || anchor;   /* below the photos + reviews slot (owner 2026-11-17) */
     var self = (document.querySelector('form#product input[name="product_id"]') || {}).value;
     var seen = {}, picked = [];
     for (var i = 0; i < cards.length && picked.length < WANT; i++) {
@@ -5364,4 +5365,502 @@
     x.send();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();
+
+/* Vásárlóink fotói (owner 2026-11-17): customer photos.
+   Product pages: a strip of the approved photos of that product, from assets/photos/photos.json (built every night by
+   rockoff-upload/src/photos/publish_photos.py from the approved rows of the order tracker's VÁSÁRLÓI FOTÓK tab).
+   The "Vásárlóink fotói" information page (/vasarloink-fotoi, informationid_103): with ?t=<order token> from the
+   review email, the upload form (posts to the Apps Script photo web app); always the gallery of every approved photo.
+   No per-frame effects; the JSON is fetched once, after load, only on these pages. */
+(function () {
+  'use strict';
+  var cls = document.body ? document.body.className : '';
+  var onProduct = /product-page-body/.test(cls), onPage = /\binformationid_103\b/.test(cls);
+  if (window.__rrPhotos || (!onProduct && !onPage)) { return; }
+  window.__rrPhotos = true;
+  var BASE = 'https://1374223-star.github.io/rockpince-menu-counts/assets/photos/';
+  var APP = 'https://script.google.com/macros/s/AKfycbyZxl9EjPVUhT8_JxnLLPP6aswr6g62pXVs3MqyfdTOLYV3kC3UxfUy84emPbJ8sp34tw/exec';
+  var PAGE = '/vasarloink-fotoi';
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function huDate(d) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ''); return m ? m[1] + '. ' + m[2] + '. ' + m[3] + '.' : ''; }
+  function getJSON(url, done) {
+    var x = new XMLHttpRequest();
+    x.open('GET', url, true);
+    x.onload = function () { var j = null; try { j = JSON.parse(x.responseText); } catch (e) { /* bad */ } done(j); };
+    x.onerror = function () { done(null); };
+    x.send();
+  }
+  function productUrl(id) { return '/index.php?route=product/product&product_id=' + encodeURIComponent(id); }
+
+  var style = document.createElement('style');
+  style.textContent =
+    '.rr-social:empty{display:none}.rr-social{padding-top:8px}.rr-social>.module-productreview-wrapper{margin-bottom:24px}' +
+    '.rr-ugc{padding:28px 0 36px}.rr-ugc .module-head-title{margin-bottom:18px!important;text-align:center}' +
+    '.rr-ugc-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;justify-content:center;flex-wrap:wrap}' +
+    '.rr-ugc-thumb{flex:0 0 auto;width:150px;cursor:zoom-in;border:1px solid #3a7aa6;border-radius:8px;overflow:hidden;background:#06243b}' +
+    '.rr-ugc-thumb img{display:block;width:150px;height:150px;object-fit:cover}' +
+    '.rr-ugc-thumb span{display:block;padding:6px 8px;font-size:12px;color:#c9d8e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.rr-ugc-more{text-align:center;margin-top:12px}.rr-ugc-more a{color:#9fd6f7}' +
+    '.rr-ugc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:10px}' +
+    '.rr-ugc-card{border:1px solid #3a7aa6;border-radius:10px;overflow:hidden;background:#06243b}' +
+    '.rr-ugc-card img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;cursor:zoom-in}' +
+    '.rr-ugc-card div{padding:10px 12px;font-size:14px;color:#c9d8e6;line-height:1.45}.rr-ugc-card a{color:#9fd6f7}' +
+    '.rr-ugc-card i{display:block;color:#fff;font-style:normal;margin-top:4px}' +
+    '.rr-ugc-box{border:1px solid #3a7aa6;border-radius:12px;background:#06243b;padding:22px;margin:10px 0 30px;color:#c9d8e6;max-width:760px}' +
+    '.rr-ugc-box h2{color:#fff;margin:0 0 12px;font-size:22px}.rr-ugc-box label{display:block;margin:10px 0;cursor:pointer}' +
+    '.rr-ugc-box textarea{width:100%;min-height:70px;border-radius:6px;border:1px solid #3a7aa6;background:#000c1a;color:#fff;padding:8px}' +
+    '.rr-ugc-box .rr-ugc-btn{background:#e52421;color:#fff;border:0;border-radius:6px;padding:13px 26px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;cursor:pointer}' +
+    '.rr-ugc-box .rr-ugc-btn[disabled]{opacity:.6;cursor:wait}.rr-ugc-msg{margin-top:12px;font-weight:bold}' +
+    '.rr-ugc-prev{max-width:220px;max-height:220px;border-radius:8px;display:none;margin:8px 0}' +
+    '.rr-ugc-lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100000;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:zoom-out;padding:20px}' +
+    '.rr-ugc-lb img{max-width:100%;max-height:85vh;border-radius:8px}.rr-ugc-lb div{color:#fff;margin-top:10px;text-align:center}' +
+    '@media (max-width:767px){.rr-ugc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rr-ugc-thumb,.rr-ugc-thumb img{width:120px}.rr-ugc-thumb img{height:120px}}';
+  (document.head || document.documentElement).appendChild(style);
+
+  function lightbox(p) {
+    var lb = document.createElement('div');
+    lb.className = 'rr-ugc-lb';
+    lb.innerHTML = '<img alt="" src="' + BASE + esc(p.id) + '.webp"><div>' + esc(p.n) + (p.c ? ': ' + esc(p.c) : '') + '</div>';
+    function close() { lb.remove(); document.removeEventListener('keydown', key); }
+    function key(e) { if (e.key === 'Escape') { close(); } }
+    lb.addEventListener('click', close);
+    document.addEventListener('keydown', key);
+    document.body.appendChild(lb);
+  }
+
+  /* ---------- product page: description, photos, reviews right under the advantage boxes (owner 2026-11-17) ----------
+     A slot (.rr-social) goes right after the "Ingyenes kiszállítás" boxes, above "Ehhez ajánljuk" (the cross-sell
+     block places itself after the slot). Order inside: the Leírás tab (when it has content, usually the size chart),
+     the customer photos (when there are approved ones), the reviews (only when the product has reviews, so an empty
+     "no reviews yet" box never sits high up). */
+  function slot() {
+    var s = document.querySelector('.rr-social');
+    if (s) { return s; }
+    var adv = document.querySelector('.product-advantages-module');
+    adv = adv && (adv.closest('.section-wrapper') || adv);
+    if (!adv) { return null; }
+    s = document.createElement('div');
+    s.className = 'rr-social container';
+    adv.parentNode.insertBefore(s, adv.nextSibling);
+    /* the long description (usually the size chart) comes first, when there is one (owner 2026-11-17) */
+    var tab = document.querySelector('section.product-page-tab');
+    if (tab && (tab.querySelector('img, table') || tab.textContent.replace(/Leírás/g, '').replace(/\s+/g, '').length > 30)) {
+      s.appendChild(tab);
+    }
+    var rev = document.querySelector('#module_productreview_wrapper');
+    if (rev && rev.querySelector('.product-review-summary')) { s.appendChild(rev); }
+    return s;
+  }
+  function strip(list) {
+    var self = (document.querySelector('form#product input[name="product_id"]') || {}).value;
+    var mine = (list || []).filter(function (p) { return p.p === self; });
+    if (!mine.length) { return; }
+    var box = document.createElement('div');
+    var holder = slot();
+    box.className = holder ? 'rr-ugc' : 'rr-ugc container';
+    box.innerHTML = '<h3 class="module-head-title h2">Vásárlóink fotói</h3><div class="rr-ugc-row"></div>' +
+      '<div class="rr-ugc-more"><a href="' + PAGE + '">Még több vásárlói fotó</a></div>';
+    var row = box.querySelector('.rr-ugc-row');
+    mine.slice(0, 12).forEach(function (p) {
+      var t = document.createElement('div');
+      t.className = 'rr-ugc-thumb';
+      t.innerHTML = '<img loading="lazy" alt="Vásárlói fotó: ' + esc(p.pn) + '" src="' + BASE + esc(p.id) + '_t.webp"><span>' + esc(p.n) + '</span>';
+      t.addEventListener('click', function () { lightbox(p); });
+      row.appendChild(t);
+    });
+    if (holder) { holder.insertBefore(box, holder.querySelector('#module_productreview_wrapper')); return; }
+    var anchor = document.querySelector('#module_productreview_wrapper');
+    if (anchor) { anchor.parentNode.insertBefore(box, anchor); }
+  }
+
+  /* ---------- gallery ---------- */
+  function gallery(root, list) {
+    var wrap = document.createElement('div');
+    if (!list || !list.length) {
+      wrap.innerHTML = '<p>Hamarosan itt lesznek az első fotók.</p>';
+      root.appendChild(wrap);
+      return;
+    }
+    wrap.className = 'rr-ugc-grid';
+    list.forEach(function (p) {
+      var c = document.createElement('div');
+      c.className = 'rr-ugc-card';
+      c.innerHTML = '<img loading="lazy" alt="Vásárlói fotó: ' + esc(p.pn) + '" src="' + BASE + esc(p.id) + '_t.webp">' +
+        '<div><a href="' + productUrl(p.p) + '">' + esc(p.pn) + '</a><br>' + esc(p.n) + (p.d ? ', ' + huDate(p.d) : '') +
+        (p.c ? '<i>' + esc(p.c) + '</i>' : '') + '</div>';
+      c.querySelector('img').addEventListener('click', function () { lightbox(p); });
+      wrap.appendChild(c);
+    });
+    root.appendChild(wrap);
+  }
+
+  /* ---------- upload form ---------- */
+  var ERR = {
+    bad_link: 'Ez a link nem érvényes. Írj nekünk az info@ragnarock.hu címre, és segítünk.',
+    limit: 'Erre a rendelésre már elküldted a fotókat. Köszönjük!',
+    consent: 'Kérjük, pipáld be a hozzájárulást.',
+    too_big: 'Ez a kép túl nagy. Próbálj egy másikat.',
+    not_image: 'Ezt a fájlt nem tudjuk képként megnyitni. Próbáld JPG formátumban.',
+    bad_product: 'Válaszd ki, melyik termékről készült a fotó.',
+    busy: 'Most épp sokan küldenek fotót, próbáld újra egy perc múlva.',
+    server: 'Valami hiba történt. Próbáld újra később, vagy írj az info@ragnarock.hu címre.'
+  };
+  function shrink(file, done) {   /* longest side 1600 px, JPEG: small upload, no location data (EXIF dropped) */
+    function draw(src, w, h) {
+      var k = Math.min(1, 1600 / Math.max(w, h)), c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+      done(c.toDataURL('image/jpeg', 0.85));
+    }
+    if (window.createImageBitmap) {
+      createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (b) { draw(b, b.width, b.height); }, function () { done(null); });
+      return;
+    }
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function () { draw(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
+    img.onerror = function () { done(null); };
+    img.src = url;
+  }
+  function form(root, token) {
+    var box = document.createElement('div');
+    box.className = 'rr-ugc-box';
+    box.innerHTML = '<p>Betöltés...</p>';
+    root.appendChild(box);
+    getJSON(APP + '?rr=photo&a=order&t=' + encodeURIComponent(token), function (o) {
+      if (!o || !o.ok) { box.innerHTML = '<p>' + ERR[(o && o.error) || 'server'] + '</p>'; return; }
+      if (o.used >= o.max) { box.innerHTML = '<p>' + ERR.limit + '</p>'; return; }
+      var opts = o.products.map(function (p, i) {
+        return '<label><input type="radio" name="rr-ugc-p" value="' + esc(p.id) + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(p.name) + '</label>';
+      }).join('');
+      box.innerHTML = '<h2>' + (o.first ? 'Szia ' + esc(o.first) + '! ' : '') + 'Mutasd meg a fotódat!</h2>' +
+        '<p>Melyik termékről készült a fotó?</p>' + opts +
+        '<p style="margin-top:14px">Fotó (rajtad, nálad otthon, a koncerten, bárhol):</p>' +
+        '<input type="file" accept="image/*" class="rr-ugc-file"><img class="rr-ugc-prev" alt="">' +
+        '<p style="margin-top:14px">Pár szó a fotóhoz (nem kötelező):</p><textarea maxlength="200" class="rr-ugc-cap"></textarea>' +
+        '<label><input type="checkbox" class="rr-ugc-ok"> Hozzájárulok, hogy a fotó és a keresztnevem megjelenjen a RagnaRock webshopban.</label>' +
+        '<button type="button" class="rr-ugc-btn">Fotó küldése</button><div class="rr-ugc-msg"></div>';
+      var file = box.querySelector('.rr-ugc-file'), prev = box.querySelector('.rr-ugc-prev'), msg = box.querySelector('.rr-ugc-msg');
+      var btn = box.querySelector('.rr-ugc-btn'), data = null;
+      file.addEventListener('change', function () {
+        data = null; prev.style.display = 'none'; msg.textContent = '';
+        if (!file.files || !file.files[0]) { return; }
+        msg.textContent = 'Kép előkészítése...';
+        shrink(file.files[0], function (d) {
+          data = d;
+          msg.textContent = d ? '' : ERR.not_image;
+          if (d) { prev.src = d; prev.style.display = 'block'; }
+        });
+      });
+      btn.addEventListener('click', function () {
+        var pick = box.querySelector('input[name="rr-ugc-p"]:checked');
+        if (!data) { msg.textContent = 'Válassz ki egy fotót.'; return; }
+        if (!box.querySelector('.rr-ugc-ok').checked) { msg.textContent = ERR.consent; return; }
+        btn.disabled = true; msg.textContent = 'Küldés...';
+        var x = new XMLHttpRequest();
+        x.open('POST', APP + '?rr=photo', true);
+        x.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+        x.onload = function () {
+          var r = null;
+          try { r = JSON.parse(x.responseText); } catch (e) { /* bad */ }
+          btn.disabled = false;
+          if (r && r.ok) {
+            o.used++;
+            box.innerHTML = '<h2>Köszönjük!</h2><p>Megkaptuk a fotódat. Jóváhagyás után megjelenik a termék oldalán és itt, a Vásárlóink fotói között.</p>' +
+              (o.used < o.max ? '<button type="button" class="rr-ugc-btn">Küldök még egyet</button>' : '');
+            var again = box.querySelector('.rr-ugc-btn');
+            if (again) { again.addEventListener('click', function () { box.remove(); form(root, token); }); }
+            return;
+          }
+          msg.textContent = ERR[(r && r.error) || 'server'] || ERR.server;
+        };
+        x.onerror = function () { btn.disabled = false; msg.textContent = ERR.server; };
+        x.send(JSON.stringify({ t: token, product: pick ? pick.value : '', caption: box.querySelector('.rr-ugc-cap').value, consent: true, image: data }));
+      });
+    });
+  }
+
+  function run() {
+    if (onPage) {
+      var root = document.getElementById('rr-photos');
+      if (!root) { return; }
+      var t = (location.search.match(/[?&]t=([^&#]+)/) || [])[1];
+      var formRoot = document.createElement('div'), galRoot = document.createElement('div');
+      root.appendChild(formRoot); root.appendChild(galRoot);
+      if (t) { form(formRoot, decodeURIComponent(t)); }
+      getJSON(BASE + 'photos.json', function (j) { gallery(galRoot, j && j.photos); });
+      return;
+    }
+    slot();   /* reviews move up at once; the photos follow when the JSON arrives */
+    getJSON(BASE + 'photos.json', function (j) { strip(j && j.photos); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
+})();
+
+/* Hűségpont info (owner 2026-11-17: "unreadable for a while"). The theme's hover tooltip next to "Szerezhető
+   hűségpontok" was 1,100 px tall (it ran off the top of the screen), could not be scrolled, and its links were white on
+   white. The (i) now opens a short box on click / tap, with working links. No per-frame work. */
+(function () {
+  'use strict';
+  if (window.__rrLoyaltyInfo || !/product-page-body/.test(document.body ? document.body.className : '')) { return; }
+  window.__rrLoyaltyInfo = true;
+  var st = document.createElement('style');
+  st.textContent =
+    '.rr-lp-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100001;display:flex;align-items:center;justify-content:center;padding:16px}' +
+    '.rr-lp{position:relative;background:#06243b;border:1px solid #3a7aa6;border-radius:12px;max-width:440px;width:100%;max-height:86vh;overflow:auto;' +
+    'padding:22px 22px 18px;color:#c9d8e6;font-size:15px;line-height:1.55;box-shadow:0 12px 40px rgba(0,0,0,.6)}' +
+    '.rr-lp h3{color:#fff;font-size:20px;margin:0 0 10px;padding-right:28px}.rr-lp p{margin:0 0 10px}.rr-lp b{color:#fff}' +
+    '.rr-lp ul{margin:0 0 12px;padding-left:18px}.rr-lp li{margin:0 0 6px}' +
+    '.rr-lp-x{position:absolute;top:8px;right:10px;background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}' +
+    '.rr-lp-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}' +
+    '.rr-lp-btns a{display:inline-block;padding:10px 14px;border-radius:6px;font-weight:bold;font-size:14px;text-decoration:none!important}' +
+    '.rr-lp-btns a.p{background:#e52421;color:#fff!important}.rr-lp-btns a.s{border:1px solid #7fc4ea;color:#fff!important}' +
+    '.rr-lp-more{display:block;margin-top:12px;color:#9fd6f7!important;text-decoration:underline!important}' +
+    '.product-parameter__loyaltypoints .component-tooltip{cursor:pointer}';
+  (document.head || document.documentElement).appendChild(st);
+
+  function open() {
+    var bg = document.createElement('div');
+    bg.className = 'rr-lp-bg';
+    bg.innerHTML = '<div class="rr-lp" role="dialog" aria-modal="true" aria-label="Hűségpontok">' +
+      '<button type="button" class="rr-lp-x" aria-label="Bezárás">×</button>' +
+      '<h3>Hűségpontok</h3>' +
+      '<p><b>1 pont = 1 Ft</b> kedvezmény a következő rendelésedből.</p>' +
+      '<ul><li>Minden termék után jár pont, akciós terméknél az akciós ár után. A termék oldalán látod, mennyi. A szállítási díjra nem jár pont.</li>' +
+      '<li>A pontokat a <b>bejelentkezve</b> leadott rendelések után írjuk jóvá, amint megkaptad a rendelésed.</li>' +
+      '<li>Beváltás: 5 000 Ft feletti kosárértéknél, a pénztárban, bejelentkezve kiválaszthatod, hány pontot használsz fel. Egy rendelés összegének legfeljebb a fele fizethető pontokkal.</li></ul>' +
+      '<div class="rr-lp-btns"><a class="p" href="/customer/login">Belépés</a><a class="s" href="/customer/register">Regisztráció</a></div>' +
+      '<a class="rr-lp-more" href="/husegprogram">A hűségprogram részletei</a></div>';
+    function close() { bg.remove(); document.removeEventListener('keydown', key); }
+    function key(e) { if (e.key === 'Escape') { close(); } }
+    bg.addEventListener('click', function (e) { if (e.target === bg || e.target.classList.contains('rr-lp-x')) { close(); } });
+    document.addEventListener('keydown', key);
+    document.body.appendChild(bg);
+  }
+  var tries = 0;
+  function hook() {
+    var el = document.querySelector('.product-parameter__loyaltypoints .component-tooltip');
+    if (!el) { if (tries++ < 25) { setTimeout(hook, 300); } return; }
+    if (el.__rrLp) { return; }
+    el.__rrLp = true;
+    el.removeAttribute('data-tippy-content');   /* the theme reads it only when it builds the tooltip */
+    if (el._tippy) { el._tippy.destroy(); }
+    el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('aria-label', 'Hűségpontok: részletek');
+    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); open(); }, true);
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    /* the theme may build its tooltip after us: remove it again when it appears */
+    var n = 0;
+    (function late() { if (el._tippy) { el._tippy.destroy(); } else if (n++ < 20) { setTimeout(late, 500); } })();
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', hook); } else { hook(); }
+})();
+
+
+/* Hűségpont notices in the cart and the checkout (owner 2026-11-17: only 23% of orders are placed logged in and almost
+   nobody redeems points). One small inline box, never a popup, never sticky:
+   1. guest: "Bejelentkezve erre a rendelésre kb. N hűségpontot kapnál ..." + Belépés / Regisztráció. N = the shop's own
+      "+ N" row ("Ennyi hűségpontot kapnál regisztrált vásárlóként"), else product total / 50. Cart: above the checkout
+      buttons. Checkout: top of the first step (Elérhetőség); Belépés there opens the checkout's own login box.
+   2. logged in, has points, basket >= 5 000 Ft, no points used yet: "N hűségpontod van ...". Shoprenter redeems points
+      in the pénztár ("Hűségpont megadása" field), not in the cart, so the text says so; in the checkout a link jumps to
+      the field.
+   3. logged in, has points, basket < 5 000 Ft: one short line.
+   Logged in = ShopRenter.customer.userId > 0 (cart) / the checkout store's isAuthenticated. Balance = loyalty_points
+   .usercanuse: in the checkout from its store, on the cart page from the checkout's own GET /checkout/cart (asked only
+   for logged-in visitors). The guest box is checked on the live site; the logged-in boxes follow Shoprenter's checkout
+   bundle markup (no test account). No per-frame work: one debounced MutationObserver re-checks after the Vue apps
+   re-render (quantity change, step change) and writes only when the box text or place has to change. */
+(function () {
+  'use strict';
+  if (window.__rrCartLoyalty || !document.body) { return; }
+  var isCart = /\bsr-cart-page-body\b/.test(document.body.className || '');
+  var isCheckout = !isCart && (/^\/checkout\/?$/.test(location.pathname) || /route=checkout\/checkout(&|$)/.test(location.search));
+  if (!isCart && !isCheckout) { return; }
+  window.__rrCartLoyalty = true;
+  var MIN = 5000, PER = 50, lp = null, asked = false, timer = null;
+
+  function digits(t) { var m = String(t == null ? '' : t).replace(/[\s. ]/g, '').match(/\d+/); return m ? Number(m[0]) : 0; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
+  function initial() { return (document.aurora && document.aurora.initialState) || {}; }
+  function store() {
+    var el = document.querySelector(isCart ? '.cart-page-vue' : '#app');
+    return el && el.__vue__ && el.__vue__.$store ? el.__vue__.$store : null;
+  }
+  function config() { var s = store(); return (s && s.state.config) || initial().config || {}; }
+  function enabled() {
+    var c = config(), l = c.loyalty_points;
+    if (l && typeof l === 'object') {
+      MIN = Number(l.minCartAmount) || MIN;
+      PER = Number(l.valuePerPoints) || PER;
+      return String(l.enabled) !== '0' && String(l.loyaltypoints_status) !== '0';
+    }
+    return c.loyaltypoints_status !== false;
+  }
+  function totals() {
+    var s = store(), st = s && s.state, t = st && (isCart ? st.totals : st.cart && st.cart.totals);
+    if (!t) { var i = initial(); t = isCart ? i.totals : i.cart && i.cart.totals; }
+    return t || [];
+  }
+  function row(type) {
+    var t = totals();
+    for (var i = 0; i < t.length; i++) { if (t[i] && t[i].type === type) { return t[i]; } }
+    return null;
+  }
+  function basket() {   /* gross product total, shipping not included */
+    var r = row('sub_total_with_tax');
+    if (r) { return Math.round(Number(r.value) || 0); }   /* live Vue store; ShopRenter.cart is not updated by AJAX */
+    var items = (window.ShopRenter && ShopRenter.cart && ShopRenter.cart.items) || [], sum = 0;
+    for (var i = 0; i < items.length; i++) { sum += Number(items[i].totalNumber || 0); }
+    return Math.round(sum);
+  }
+  function toGet() {
+    var el = document.querySelector('.ac-total-value-potential-loyalty-points, .ac-checkout-potential-loyalty-points');
+    var n = el ? digits(el.textContent) : 0, r;
+    if (!n && (r = row('potentialLoyaltyPoints'))) { n = digits(r.description) || digits(r.text); }
+    return n || Math.round(basket() / PER);
+  }
+  function guest() {   /* true = guest, false = logged in, null = cannot tell (then nothing is shown) */
+    if (isCheckout) {
+      var s = store();
+      if (s && s.getters && typeof s.getters.isAuthenticated === 'boolean') { return !s.getters.isAuthenticated; }
+      var u = initial().user;
+      if (u !== undefined) { return !(u && u.customer_id !== undefined); }
+    }
+    var c = window.ShopRenter && ShopRenter.customer;
+    if (c && c.userId !== undefined) { return !(Number(c.userId) > 0); }
+    if (document.querySelector('.loyalty-would-get-row, .total-potential-loyalty-points')) { return true; }
+    if (document.querySelector('.loyalty-row, .total-loyalty-points')) { return false; }
+    return null;
+  }
+  function ask() {   /* cart page, logged-in visitors only: the checkout's own cart data carries the points balance */
+    if (asked) { return; }
+    asked = true;
+    var x = new XMLHttpRequest();
+    x.open('GET', '/checkout/cart', true);
+    x.setRequestHeader('Accept', 'application/json');
+    x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    if (document.aurora && document.aurora.csrfToken) { x.setRequestHeader('X-CSRF-TOKEN', document.aurora.csrfToken); }
+    x.onload = function () {
+      try { lp = JSON.parse(x.responseText).loyalty_points || false; } catch (e) { lp = false; }
+      ensure();
+    };
+    x.onerror = function () { lp = false; };
+    x.send();
+  }
+  function points() {   /* {have, used}, or null when there is no balance to talk about */
+    var l = lp;
+    if (isCheckout) { var s = store(); l = s && s.state.checkout ? s.state.checkout.loyalty_points : (initial().checkout || {}).loyalty_points; }
+    else if (l === null) { ask(); return null; }
+    if (!l || typeof l !== 'object') { return null; }
+    return { have: Math.floor(Number(l.usercanuse) || 0), used: Number(l.selected_value) > 0 || !!row('loyaltypointsToUse') };
+  }
+  function firstStep() {
+    var s = store(), r = s && s.state.route;
+    if (r && r.name) { return r.name === 'customerdata'; }
+    return !location.hash || /customerdata/i.test(location.hash);
+  }
+  function view() {   /* [key, html] of the box to show, or null */
+    if (!enabled()) { return null; }
+    var g = guest(), sum = basket();
+    if (g === null || !sum) { return null; }
+    if (g) {
+      if (isCheckout && !firstStep()) { return null; }
+      var n = toGet();
+      return ['g' + n, '<p>' + (n
+        ? 'Bejelentkezve erre a rendelésre kb. <b>' + n + ' hűségpontot</b> kapnál (<b>' + ft(n) + ' kedvezmény</b> a következő vásárlásodnál).'
+        : 'Bejelentkezve erre a rendelésre is <b>hűségpontot</b> kapnál, amit a következő vásárlásodnál kedvezményként beválthatsz.') +
+        '</p><p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
+    }
+    var p = points();
+    if (!p || !p.have || p.used) { return null; }
+    if (sum < MIN) {
+      return ['m' + p.have + '/' + sum, '<p><b>' + p.have + ' hűségpontod</b> van, ezeket ' + ft(MIN) + ' feletti kosárnál tudod beváltani. ' +
+        'Ehhez még <b>' + ft(MIN - sum) + '</b> hiányzik.</p>'];
+    }
+    var field = isCheckout && !!document.querySelector('.ac-test-loyalty-point-input, .loyalty-point input');
+    return ['u' + p.have + (field ? 'f' : ''), '<p><b>' + p.have + ' hűségpontod</b> van, ez <b>' + ft(p.have) + ' kedvezmény</b>. ' +
+      (isCheckout ? 'Itt, a <b>Hűségpont megadása</b> mezőben beválthatod.' : 'A pénztárban, a <b>Hűségpont megadása</b> mezőben beválthatod.') +
+      (p.have * 2 > sum ? ' Egy rendelés összegének legfeljebb a fele fizethető pontokkal.' : '') +   /* shop setting maxPercent 50 (owner 2026-11-17) */
+      '</p>' + (field ? '<p class="rr-loy-a"><a href="#" data-rr="field">Mutasd a mezőt</a></p>' : '')];
+  }
+  function anchor() {   /* the box goes right before this element */
+    if (isCart) {
+      var a = document.querySelector('.sr-cart-bottom-buttons-row'), b;
+      if (a) { return a; }
+      b = document.querySelector('.sr-next-to-checkout');
+      return b ? (b.closest('.row') || b) : null;
+    }
+    var inner = document.querySelector('#app .checkout-app-left-inner'), k = inner ? inner.children : [];
+    for (var i = 0; i < k.length; i++) {   /* first child after the logo / step bar (desktop keeps them in here) */
+      if (k[i].id !== 'rr-loy' && !k[i].classList.contains('header') && !k[i].classList.contains('sr-only')) { return k[i]; }
+    }
+    return null;
+  }
+  function visible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
+  function field() {
+    var all = document.querySelectorAll('.ac-test-loyalty-point-input, .loyalty-point input');
+    for (var i = 0; i < all.length; i++) { if (visible(all[i])) { return all[i]; } }
+    return null;
+  }
+  function showField(f) {
+    var w = f.closest('.loyalty-point') || f;
+    w.scrollIntoView({ block: 'center' });
+    try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); }
+    w.classList.add('rr-loy-hl');
+    setTimeout(function () { w.classList.remove('rr-loy-hl'); }, 2500);
+  }
+  function goField() {
+    var f = field(), h;
+    if (f) { showField(f); return; }
+    h = document.querySelector('#sidebar .sidebar-header');   /* phones: the field sits in the folded order summary */
+    if (h) { h.click(); setTimeout(function () { var g = field(); if (g) { showField(g); } }, 400); }
+  }
+  function click(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[data-rr]') : null, k;
+    if (!a) { return; }
+    k = a.getAttribute('data-rr');
+    try { if (window.gtag) { window.gtag('event', 'rr_loyalty_click', { rr_loy: k, rr_page: isCart ? 'cart' : 'checkout' }); } } catch (x) { /* */ }
+    if (k === 'field') { e.preventDefault(); goField(); return; }
+    var m = k === 'login' && isCheckout ? document.querySelector('.login-modal-button') : null;
+    if (m) { e.preventDefault(); m.click(); }
+  }
+  function ensure() {
+    var v = view(), box = document.getElementById('rr-loy'), a;
+    if (!v) { if (box && box.parentNode) { box.parentNode.removeChild(box); } return; }
+    a = anchor();
+    if (!a || !a.parentNode) { return; }
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'rr-loy';
+      box.className = 'rr-loy';
+      box.setAttribute('role', 'note');
+      box.addEventListener('click', click);
+    }
+    if (box.getAttribute('data-k') !== v[0]) { box.setAttribute('data-k', v[0]); box.innerHTML = v[1]; }
+    if (box.nextElementSibling !== a) { a.parentNode.insertBefore(box, a); }
+  }
+  function later() { clearTimeout(timer); timer = setTimeout(ensure, 250); }
+
+  var st = document.createElement('style');
+  st.id = 'rr-loy-css';
+  st.textContent =
+    '.rr-loy{background:#06243b;border:1px solid #3a7aa6;border-left:3px solid #e52421;border-radius:8px;padding:10px 14px;margin:0 0 16px;' +
+      'color:#c9d8e6;font-size:14px;line-height:1.5;text-align:left;text-transform:none;letter-spacing:normal}' +
+    '.rr-loy p{margin:0;color:#c9d8e6;font-size:14px;line-height:1.5}.rr-loy b{color:#fff;font-weight:700}' +
+    '.rr-loy .rr-loy-a{margin-top:6px}' +
+    '.rr-loy a{color:#9fd6f7!important;font-weight:700;text-decoration:underline!important;margin-right:18px}.rr-loy a:hover{color:#fff!important}' +
+    '.sr-cart-page-body .rr-loy{max-width:520px;margin:6px 0 16px auto}' +
+    '.rr-loy-hl{outline:2px solid #e52421;outline-offset:2px;border-radius:4px}' +
+    '@media (max-width:767px){.sr-cart-page-body .rr-loy{max-width:none;margin:6px 0 14px}}' +
+    '@media (min-width:992px){#app .rr-loy{margin:26px 0 0}}';   /* checkout, desktop: clear of the step labels */
+  (document.head || document.documentElement).appendChild(st);
+
+  function start() {
+    ensure();
+    var root = document.querySelector(isCart ? '.cart-page-vue' : '#app') || document.body;
+    if (window.MutationObserver) { new MutationObserver(later).observe(root, { childList: true, subtree: true, characterData: true }); }
+    if (isCheckout) { window.addEventListener('hashchange', later); }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
 })();
