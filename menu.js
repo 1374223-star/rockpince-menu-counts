@@ -6160,7 +6160,10 @@
   var st = document.createElement('style');
   st.textContent =
     '@media (min-width:768px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(2,1fr)!important}}' +
-    '@media (min-width:1200px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(4,1fr)!important}}';
+    '@media (min-width:1200px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(4,1fr)!important}}' +
+    /* owner 2026-11-17: "same sized in all dimensions": every row as tall as the tallest box, boxes fill their cell */
+    '.advantages-grid,.product-advantages-grid{grid-auto-rows:1fr!important;align-items:stretch!important}' +
+    '.advantages-grid>.advantages-item,.product-advantages-grid>.product-advantages-item{height:100%!important;align-items:center!important;box-sizing:border-box}';
   (document.head || document.documentElement).appendChild(st);
   function add() {
     for (var i = 0; i < SPOTS.length; i++) {
