@@ -48,10 +48,24 @@
     if (v === undefined) { v = hostSeen[host] = hostRx.test(host); }
     return v;
   }
+  /* 2026-11-17: folders whose address does not end in their id (/anime, /anime-kaiju-no-8) are found by their path */
+  var idByPath = null;
+  function pathId(path) {
+    if (idByPath === null) {
+      idByPath = {};
+      for (var k in data) {
+        if (Object.prototype.hasOwnProperty.call(data, k) && data[k] && data[k][3]) { idByPath[String(data[k][3]).replace(/\/+$/, '')] = k; }
+      }
+    }
+    return idByPath[path] || null;
+  }
   function categoryId(link) {
     if (!knownHost(link.hostname)) { return null; }
-    var parts = String(link.pathname || '').replace(/\/+$/, '').split('/');
+    var path = String(link.pathname || '').replace(/\/+$/, '');
+    var parts = path.split('/');
     var match = lastPathId.exec(parts[parts.length - 1] || '');
+    var byPath = pathId(path);
+    if (byPath && (!match || match[1] !== byPath)) { match = [null, byPath]; }
     if (!match || !Object.prototype.hasOwnProperty.call(data, match[1])) { return null; }
     /* page-number links (?page=2) point at the same category: never count them
        (perf 2026-11-17: checked after the cheap ID test, so product links never pay for closest()) */
@@ -330,7 +344,9 @@
       ['SZOBROK / DÍSZEK', ['14454', '18750']],
       ['OTTHON / LAKÁS', ['14460', '14451', '14469', '14445', '14151', '14409', '14283', '14478', '15276', '14748']],
       ['AJÁNDÉK / EGYÉB', ['14490', '14559', '14505', '18922', '14652', '14133', '20196', '20199']]] },
-    '14025': { expand: [], extra: [], first: ['19518'], depth: 0 }
+    '14025': { expand: [], extra: [], first: ['19518'], depth: 0 },
+    /* ANIME (owner 2026-11-17): the anime folders in 3 columns like KIEGÉSZÍTŐK, most products first, Egyéb last */
+    '20209': { expand: [], extra: [], first: [], depth: 0, sort: 'count' }
   };
   var HU = '0123456789abcdefghijklmnoöpqrstuüvwxyz';
   var HU_SAME = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ő': 'ö', 'ú': 'u', 'ű': 'ü' };
@@ -375,6 +391,11 @@
       }
       if (items.length < 3) { continue; } /* data looks wrong: keep the hand-made menu */
       items.sort(function (x, y) {
+        if (cfg.sort === 'count') {
+          var ex = /^egy[eé]b/i.test(data[x][0]) ? 1 : 0, ey = /^egy[eé]b/i.test(data[y][0]) ? 1 : 0;
+          if (ex !== ey) { return ex - ey; }
+          return (data[y][1] - data[x][1]) || (huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1);
+        }
         var fx = cfg.first.indexOf(x), fy = cfg.first.indexOf(y);
         if (fx >= 0 || fy >= 0) { return (fx < 0 ? 999 : fx) - (fy < 0 ? 999 : fy); }
         return huKey(data[x][0]) < huKey(data[y][0]) ? -1 : 1;
@@ -3190,7 +3211,8 @@
   var A = 'html body .module-category-wrapper li.module-list > a.nav-link';
   var css =
     A + ',' + A + ' .rr-category-count{font-family:"Barlow Condensed",Poppins,sans-serif!important;font-weight:700!important;' +
-    'font-size:clamp(12.5px,1.27vw,25px)!important;letter-spacing:.03em!important;text-transform:uppercase!important;line-height:1.1!important;' +
+    /* 2026-11-17: 7 tabs since ANIME (was 1.27vw/25px, which overflowed the row at 1440 px) */
+    'font-size:clamp(12px,1.12vw,22px)!important;letter-spacing:.03em!important;text-transform:uppercase!important;line-height:1.1!important;' +
     'background:' + CHROME + '!important;-webkit-background-clip:text!important;background-clip:text!important;' +
     'color:transparent!important;-webkit-text-fill-color:transparent!important}' +
     A + '{filter:drop-shadow(0 1px 0 #031220) drop-shadow(0 0 1px rgba(3,18,32,.8));align-items:center!important}' +
@@ -3225,6 +3247,15 @@
          being inserted); RED is the regular chrome since 2026-11-16, the class is kept for the ÚJDONSÁG / AKCIÓ link */
       if (/akci/i.test(a.textContent)) { a.classList.add('rr-cat-red'); }
       var img = a.querySelector('img');
+      if (!img && !a.querySelector('.rr-caticon') && a.parentNode && a.parentNode.id === 'cat_20209') {
+        /* ANIME has no menu image in the shop: the Brand of Sacrifice glyph (owner 2026-11-17) */
+        var ia = document.createElement('span');
+        ia.className = 'rr-caticon';
+        ia.setAttribute('aria-hidden', 'true');
+        ia.style.setProperty('--m', 'url("' + ICONS + 'anime_brand.svg")');
+        a.insertBefore(ia, a.firstChild);
+        continue;
+      }
       if (!img || a.querySelector('.rr-caticon')) { continue; }
       var ic = document.createElement('span');
       ic.className = 'rr-caticon';
