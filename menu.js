@@ -1215,7 +1215,7 @@
   ICON.clock = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
   var ROWS = [
     /* Experiment 3 (owner 2026-11-17): honest delivery time, the owner's own figures */
-    ['clock', 'Raktárról 1–2 munkanap alatt nálad, beszerzéssel általában kb. 2 hét'],
+    ['clock', 'Raktárról 1-2 munkanap alatt nálad, beszerzéssel általában kb. 2 hét'],
     ['shop', 'Ingyenes személyes átvétel budapesti boltunkban'],
     ['truck', 'Ingyenes szállítás 30 000 Ft felett'],
     ['lock', 'Biztonságos online bankkártyás fizetés (SimplePay)']
@@ -1596,7 +1596,7 @@
     if (seo && !seo.closest('.rr-seo-fold')) {
       var d = document.createElement('details'), s = document.createElement('summary');
       d.className = 'rr-seo-fold';
-      s.textContent = 'Rólunk – Ragnarock webáruház';
+      s.textContent = 'Rólunk | Ragnarock webáruház';
       d.appendChild(s);
       seo.parentNode.insertBefore(d, seo);
       d.appendChild(seo);
@@ -2201,7 +2201,7 @@
       e.preventDefault();
       var name = (document.querySelector('h1') || {}).textContent || '';
       var bg = el('div', 'rr-modal-bg', '<div class="rr-modal" role="dialog" aria-label="Mérettáblázat"><button type="button" class="x" aria-label="Bezárás">&times;</button>' +
-        '<h3>Mérettáblázat</h3><div style="color:#9cc7e3;font-size:13px">' + esc(name.trim()) + ' – centiméterben</div></div>');
+        '<h3>Mérettáblázat</h3><div style="color:#9cc7e3;font-size:13px">' + esc(name.trim()) + ', centiméterben</div></div>');
       bg.querySelector('.rr-modal').appendChild(tab.cloneNode(true));
       function close() { if (bg.parentNode) { bg.parentNode.removeChild(bg); } document.removeEventListener('keydown', key); }
       function key(k) { if (k.key === 'Escape') { close(); } }
@@ -2340,7 +2340,7 @@
     ls.setItem('rr-first-visit', String(Date.now()));
     setTimeout(function () {
       toast('<b>Ingyenes személyes átvétel</b><div style="margin-top:6px;color:#9cc7e3">Budapesten, a boltunkban: 1146 Dózsa György út 19.<br>' +
-        'Hétfő–péntek 12–18, szombat 10–14</div>', '#7fc4ea');
+        'Nyitva: hétfőtől péntekig 12-18, szombaton 10-14</div>', '#7fc4ea');
     }, 2500);
   }
 
@@ -3712,7 +3712,7 @@
       '</div>' +
       '<div class="shop"><div><h3>RagnaRock üzlet</h3>' +
         '<div class="ln">' + IC.pin + '<span>1146 Budapest, Dózsa György út 19.</span></div>' +
-        '<div class="ln">' + IC.clock + '<span>Hétfő–péntek 12–18 · Szombat 10–14 · Vasárnap zárva</span></div></div>' +
+        '<div class="ln">' + IC.clock + '<span>Hétfőtől péntekig 12-18 · Szombat 10-14 · Vasárnap zárva</span></div></div>' +
         '<a class="route" href="' + maps + '" target="_blank" rel="noopener">Útvonaltervezés</a></div>' +
       '<div class="soc">' + socials() + '</div>' +
       '<h2>Írj nekünk</h2><p class="sub">Általában egy munkanapon belül válaszolunk.</p>' +
@@ -4068,7 +4068,7 @@
         '<div class="eyebrow">Budapest · XIV. kerület</div>' +
         '<h3>Üzlet és átvevőhely</h3>' +
         '<div class="addr">1146 Budapest, Dózsa György út 19.</div>' +
-        '<table><tr><td>Hétfő – péntek</td><td>12:00 – 18:00</td></tr><tr><td>Szombat</td><td>10:00 – 14:00</td></tr>' +
+        '<table><tr><td>Hétfőtől péntekig</td><td>12:00-18:00</td></tr><tr><td>Szombat</td><td>10:00-14:00</td></tr>' +
           '<tr><td>Vasárnap</td><td class="closed">Zárva</td></tr></table>' +
         '<div class="note">Webshopos rendelésedet itt ingyen átveheted.</div>' +
         '<div class="btns"><a class="b1" href="' + ROUTE + '" target="_blank" rel="noopener">Útvonaltervezés</a>' +
@@ -4921,7 +4921,7 @@
       logo: 'https://1374223-star.github.io/rockpince-menu-counts/assets/mail/logo.png',
       image: ['https://1374223-star.github.io/rockpince-menu-counts/assets/shop/uzletunk_bolt_2026.webp'],
       description: 'Magyarország legnagyobb rock és alternatív ruházati webshopja és boltja: zenekaros pólók, pulóverek, bakancsok, kiegészítők és dísztárgyak Budapesten.',
-      telephone: '+36705882134', email: 'info@ragnarock.hu', priceRange: '990–150 000 Ft', currenciesAccepted: 'HUF',
+      telephone: '+36705882134', email: 'info@ragnarock.hu', priceRange: '990-150 000 Ft', currenciesAccepted: 'HUF',
       address: { '@type': 'PostalAddress', streetAddress: 'Dózsa György út 19.', addressLocality: 'Budapest', postalCode: '1146', addressRegion: 'Budapest', addressCountry: 'HU' },
       geo: { '@type': 'GeoCoordinates', latitude: 47.50566, longitude: 19.08687 },
       hasMap: 'https://www.google.com/maps?q=47.50566,19.08687',
@@ -4977,7 +4977,7 @@
     /* photos without a description: the product name (Google Images reads the alt text) */
     var pics = document.querySelectorAll('#product-image img, .product-image__main img, .product-image-thumbnails img');
     [].forEach.call(pics, function (im, k) {
-      if (!(im.getAttribute('alt') || '').trim()) { im.setAttribute('alt', name + (k ? ' – ' + (k + 1) + '. kép' : '')); }
+      if (!(im.getAttribute('alt') || '').trim()) { im.setAttribute('alt', name + (k ? ', ' + (k + 1) + '. kép' : '')); }
     });
   })();
 })();
