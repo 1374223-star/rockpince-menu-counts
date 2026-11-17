@@ -4418,6 +4418,8 @@
     '.rr-cb .bar.ok i{background:linear-gradient(90deg,#1f9d4a,#34d06a)}' +
     '.rr-cb .go{display:block;text-align:center;padding:9px;border-radius:6px;background:#e52421;color:#fff!important;font-size:13px;font-weight:800;text-decoration:none!important;text-transform:uppercase;letter-spacing:.04em}' +
     '.rr-cb .go:hover{background:#ff3a36}' +
+    '.rr-cb .tier{font-size:12px;line-height:1.45;color:#c9d8e6;margin:0 0 10px}.rr-cb .tier:empty{display:none}.rr-cb .tier b{color:#fff}' +
+    '.rr-cb .tier a{color:#9fd6f7!important;text-decoration:underline!important}.rr-cb .tier .rr-gem{margin:-3px 3px 0 0}' +
     '.rr-cp-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:2147482999;display:none;flex-direction:column;align-items:center;gap:4px;' +
       'padding:12px 9px;border-radius:10px 0 0 10px;background:linear-gradient(180deg,#14659c,#0a3a5e);border:1px solid rgba(127,196,234,.6);border-right:0;' +
       'color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:-6px 0 18px rgba(0,0,0,.4)}' +
@@ -4453,6 +4455,11 @@
     box.querySelector('.sum').innerHTML = '<span>Összesen</span><span>' + fmt(total) + '</span>';
     box.querySelector('.free').innerHTML = left ? 'Még <b>' + fmt(left) + '</b> és ingyenes a szállítás!' : '<b>Ingyenes szállítás</b> erre a rendelésre!';
     var bar = box.querySelector('.bar'); bar.className = 'bar' + (left ? '' : ' ok'); bar.firstChild.style.width = pct + '%';
+    var tl = box.querySelector('.tier');   /* Hűségszintek (owner 2026-11-17): points and level for this basket */
+    if (tl && window.RRTIER) {
+      tl.innerHTML = RRTIER.summary(total, RRTIER.me());
+      RRTIER.get(function (m) { if (m) { tl.innerHTML = RRTIER.summary(total, m); } });
+    }
     return items.length > 0;
   }
   function place(from) {
@@ -4481,7 +4488,7 @@
     if (!cart || !document.body) { return false; }
     box = document.createElement('div'); box.className = 'rr-cb'; box.setAttribute('aria-label', 'Kosár tartalma');
     box.innerHTML = '<div class="hd">Kosár</div><div class="list"></div>' +
-      '<div class="foot"><div class="sum"></div><div class="free"></div><div class="bar"><i></i></div><a class="go" href="' + CART + '">Tovább a kosárhoz</a></div>';
+      '<div class="foot"><div class="sum"></div><div class="free"></div><div class="bar"><i></i></div><div class="tier"></div><a class="go" href="' + CART + '">Tovább a kosárhoz</a></div>';
     document.body.appendChild(box);
     tab = document.createElement('a'); tab.href = CART; tab.className = 'rr-cp-tab'; tab.setAttribute('aria-label', 'Kosár');
     document.body.appendChild(tab);
@@ -5626,15 +5633,62 @@
   function levelOf(spend) { var L = LEVELS[0]; for (var i = 0; i < LEVELS.length; i++) { if (spend >= LEVELS[i].at) { L = LEVELS[i]; } } return L; }
   function nextOf(L) { var i = LEVELS.indexOf(L); return i >= 0 && i < LEVELS.length - 1 ? LEVELS[i + 1] : null; }
   function ladder(cur) {
-    var h = '<div class="rr-tl">';
+    var h = '<div class="rr-tlad">';
     for (var i = 0; i < LEVELS.length; i++) {
       var L = LEVELS[i];
-      h += '<div class="rr-tl-i' + (cur && cur.k === L.k ? ' on' : '') + '">' + gem(L.k, 42) + '<b>' + L.n + '</b><span>' + L.r +
+      h += '<div class="rr-tlad-i' + (cur && cur.k === L.k ? ' on' : '') + '">' + gem(L.k, 42) + '<b>' + L.n + '</b><span>' + L.r +
         '% pont</span><i>' + (L.at ? ft(L.at) + '-tól' : 'regisztrációval') + '</i></div>';
     }
     return h + '</div>';
   }
-  function mini() { var h = ''; for (var i = 0; i < LEVELS.length; i++) { h += gem(LEVELS[i].k, 20); } return '<span class="rr-tmini">' + h + '</span>'; }
+  function mini(sz) { var h = ''; for (var i = 0; i < LEVELS.length; i++) { h += gem(LEVELS[i].k, sz || 20); } return '<span class="rr-tmini">' + h + '</span>'; }
+  function art(n) { return /^[AEIOUÁÉÍÓÖŐÚÜŰ]/.test(n) ? 'az' : 'a'; }
+  function lrow(sz) {   /* the four levels in one row (cart / checkout) */
+    var h = '<div class="rr-lrow">';
+    for (var i = 0; i < LEVELS.length; i++) {
+      var L = LEVELS[i];
+      h += '<span>' + gem(L.k, sz || 26) + '<span><b>' + L.n + ' ' + L.r + '%</b><i>' + (L.at ? ft(L.at) + '-tól' : 'regisztrációval') + '</i></span></span>';
+    }
+    return h + '</div>';
+  }
+  var cartT = null;
+  function cartTotal(cb) {   /* the mini-cart endpoint: basket total */
+    var x = new XMLHttpRequest();
+    x.open('POST', '/index.php?route=module/cart/callback', true);
+    x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    x.onloadend = function () { var n = 0; try { n = Number(String(JSON.parse(x.responseText).total || '').replace(/[^0-9]/g, '')) || 0; } catch (e) { n = 0; } cb(n); };
+    x.send();
+  }
+  function summary(total, m) {   /* one line for small places (add-to-cart popup, mini cart); m = own level or null */
+    if (!total) { return ''; }
+    if (!m) {
+      return mini(18) + ' Bejelentkezve erre a kosárra kb. <b>' + Math.round(total / 33) + ' pont</b> jár. <a href="#" data-rrt="1">Hűségszintek: akár 9% pont</a>';
+    }
+    var N = nextOf(m.L), R = levelOf(m.spend + total);
+    if (R.r > m.L.r) {
+      return gem(R.k, 22) + ' Ezzel a rendeléssel <b>' + R.n + '</b> szintre lépsz: erre a kosárra kb. <b>' + Math.round(total * R.r / 100) + ' pont</b> (' + R.r + '%).';
+    }
+    return gem(m.L.k, 22) + ' <b>' + m.L.n + '</b> szint: erre a kosárra kb. <b>' + Math.round(total * m.L.r / 100) + ' pont</b> (' + m.L.r + '%).' +
+      (N ? ' Még <b>' + ft(N.at - m.spend - total) + '</b> ' + art(N.n) + ' <b>' + N.n + '</b> szintig.' : '');
+  }
+  function popup() {   /* Shoprenter's "Kosárba raktad!" box (fancybox) */
+    var boxes = document.querySelectorAll('.cart-popup__box');
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (b.querySelector('.rr-tier-pop')) { continue; }
+      var d = document.createElement('div'), close = b.querySelector('.message-close'), row = close && close.parentNode;
+      d.className = 'rr-tier-pop';
+      if (row && row.parentNode && b.contains(row)) { row.parentNode.insertBefore(d, row); } else { b.appendChild(d); }
+      d.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-rrt]')) { e.preventDefault(); open(); } });
+      (function (d) { cartTotal(function (tot) { get(function (m) { d.innerHTML = summary(tot, m); }); }); })(d);
+    }
+  }
+  if (window.MutationObserver) {
+    var pt = null;
+    new MutationObserver(function () {   /* the popup fills in a moment after its container appears */
+      clearTimeout(pt); pt = setTimeout(popup, 250); setTimeout(popup, 900); setTimeout(popup, 2000);
+    }).observe(document.body, { childList: true });
+  }
   function user() { var c = window.ShopRenter && ShopRenter.customer; return c && Number(c.userId) > 0 && c.email ? c : null; }
   function hex(buf) { var a = new Uint8Array(buf), s = ''; for (var i = 0; i < a.length; i++) { s += ('0' + a[i].toString(16)).slice(-2); } return s; }
   function load(cb) {
@@ -5712,6 +5766,7 @@
       if (li && li.parentNode && li.parentNode.lastElementChild !== li) { li.parentNode.appendChild(li); }
       var txt = (nav.textContent || '').trim() || 'Hűségprogram';
       nav.innerHTML = '<span class="rr-tier-n"></span><span class="rr-tier-nt"></span>';
+      nav.classList.add('rr-tier-link');
       nav.lastChild.textContent = txt;
       spot(nav, nav.firstChild, nav.lastChild, 29);
     }
@@ -5730,33 +5785,38 @@
   var st = document.createElement('style');
   st.textContent =
     '.rr-gem{display:inline-block;vertical-align:middle;flex:none}' +
-    '.rr-tier-n{display:inline-block;vertical-align:middle;margin:-5px 7px 0 0;line-height:0}' +
+    '.rr-tier-n{display:inline-block;vertical-align:middle;margin:-9px 7px -9px 0;line-height:0}' +   /* no extra line height */
     '#js-cart .rr-tier-m,.rr-tier-m{display:none!important;position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:4px;padding:4px;line-height:0;z-index:2}' +
     '.rr-tier-m:hover .rr-gem,.nav-link:hover .rr-tier-n .rr-gem{filter:brightness(1.15)}' +
     '@media (max-width:991px){#js-cart .rr-tier-m,.rr-tier-m{display:block!important}}' +
     '.rr-tmini{display:inline-flex;gap:2px;vertical-align:middle;margin-right:4px}' +
-    '.rr-tl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}' +
-    '.rr-tl-i{text-align:center;padding:10px 2px 8px;border:1px solid #1d4361;border-radius:8px;background:#041a2c}' +
-    '.rr-tl-i.on{border-color:#9fd6f7;background:#0b3456}' +
-    '.rr-tl-i b{display:block;color:#fff;font-size:13px;margin-top:6px}.rr-tl-i span{display:block;color:#9fd6f7;font-weight:700;font-size:13px}' +
-    '.rr-tl-i i{display:block;font-style:normal;color:#7f93a6;font-size:11px;line-height:1.3}' +
+    '.rr-tlad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}' +
+    '.rr-tlad-i{text-align:center;padding:10px 2px 8px;border:1px solid #1d4361;border-radius:8px;background:#041a2c}' +
+    '.rr-tlad-i.on{border-color:#9fd6f7;background:#0b3456}' +
+    '.rr-tlad-i b{display:block;color:#fff;font-size:13px;margin-top:6px}.rr-tlad-i span{display:block;color:#9fd6f7;font-weight:700;font-size:13px}' +
+    '.rr-tlad-i i{display:block;font-style:normal;color:#7f93a6;font-size:11px;line-height:1.3}' +
     '.rr-tp-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100001;display:flex;align-items:center;justify-content:center;padding:16px}' +
     '.rr-tp{position:relative;background:#06243b;border:1px solid #3a7aa6;border-radius:12px;max-width:460px;width:100%;max-height:88vh;overflow:auto;' +
-      'padding:22px 20px 18px;color:#c9d8e6;font-size:15px;line-height:1.55;box-shadow:0 12px 40px rgba(0,0,0,.6);text-align:left}' +
+      'padding:22px 20px 18px;color:#c9d8e6;font-size:15px;line-height:1.55;box-shadow:0 12px 40px rgba(0,0,0,.6);text-align:center}' +
     '.rr-tp h3{color:#fff;font-size:20px;margin:0 0 12px;padding-right:28px}.rr-tp p{margin:0 0 10px}.rr-tp b{color:#fff}' +
     '.rr-tp-x{position:absolute;top:8px;right:10px;background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}' +
-    '.rr-tp-me{display:flex;align-items:center;gap:14px;margin:0 0 10px}.rr-tp-me b{display:block;font-size:19px}' +
+    '.rr-tp-me{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 10px;text-align:left}.rr-tp-me b{display:block;font-size:19px}' +
     '.rr-tp-me span{display:block;color:#9fd6f7;font-weight:700}.rr-tp-me i{display:block;font-style:normal;color:#9fb3c6;font-size:14px}' +
     '.rr-tp-next .rr-gem{margin:-3px 0 0}.rr-tp-bar{height:8px;border-radius:4px;background:#041a2c;border:1px solid #1d4361;overflow:hidden;margin:0 0 6px}' +
     '.rr-tp-bar span{display:block;height:100%;background:linear-gradient(90deg,#3a7aa6,#9fd6f7)}' +
     '.rr-tp-f{font-size:13px;color:#9fb3c6}' +
-    '.rr-tp-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}' +
+    '.rr-tp-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}' +
+    '.rr-tier-pop{margin:12px 0 4px;padding:10px 14px;border-radius:8px;background:#f4f8fb;border:1px solid #d3e2ee;border-left:4px solid #c99418;' +
+      'color:#1f3448;font-size:14px;line-height:1.5;text-align:left}.rr-tier-pop b{color:#0b2239}.rr-tier-pop a{color:#0b5e9c;font-weight:700;text-decoration:underline}' +
+    '.rr-tier-pop .rr-gem{margin:-3px 3px 0 0}.rr-tier-pop:empty{display:none}' +
+    '.rr-lrow{display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0 2px}.rr-lrow>span{display:inline-flex;align-items:center;gap:7px}' +
+    '.rr-lrow>span>span{display:flex;flex-direction:column;line-height:1.2}.rr-lrow b{font-size:14px}.rr-lrow i{font-style:normal;font-size:12px;opacity:.75}' +
     '.rr-tp-btns a{display:inline-block;padding:10px 14px;border-radius:6px;font-weight:bold;font-size:14px;text-decoration:none!important}' +
     '.rr-tp-btns a.p{background:#e52421;color:#fff!important}.rr-tp-btns a.s{border:1px solid #7fc4ea;color:#fff!important}' +
     '.rr-tp-more{display:block;margin-top:12px;color:#9fd6f7!important;text-decoration:underline!important}';
   (document.head || document.documentElement).appendChild(st);
 
-  window.RRTIER = { LEVELS: LEVELS, gem: gem, ladder: ladder, mini: mini, get: get, open: open, levelOf: levelOf, nextOf: nextOf,
+  window.RRTIER = { LEVELS: LEVELS, gem: gem, ladder: ladder, mini: mini, lrow: lrow, summary: summary, art: art, get: get, open: open, levelOf: levelOf, nextOf: nextOf,
     ft: ft, me: function () { return me; } };
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', badge); } else { badge(); }
 })();
@@ -5815,7 +5875,7 @@
     var row = el.closest('.product-parameter__loyaltypoints') || el.parentNode, line = document.createElement('div');
     var nums = (row.textContent || '').replace(/[\s.\u00a0]/g, '').match(/\d+/g), base = nums ? Number(nums[nums.length - 1]) : 0;
     line.className = 'rr-tier-pl';
-    line.innerHTML = RRTIER.mini() + '<a href="#" role="button">Hűségszintek: akár 9% pont</a>';
+    line.innerHTML = RRTIER.mini(26) + '<a href="#" role="button">Hűségszintek: akár 9% pont</a>';
     line.addEventListener('click', function (e) { e.preventDefault(); RRTIER.open(); });
     if (row.tagName === 'TR') {   /* the points row is a table row: the line gets a full-width row of its own */
       var tr = document.createElement('tr'), td = document.createElement('td');
@@ -5824,7 +5884,7 @@
     } else { row.parentNode.insertBefore(line, row.nextSibling); }
     RRTIER.get(function (m) {
       if (!m || m.L.r <= 3 || !base) { return; }
-      line.innerHTML = RRTIER.gem(m.L.k, 21) + ' <a href="#" role="button"><b>' + m.L.n + '</b> szinten kb. <b>' + Math.round(base * m.L.r / 3) + ' pont</b> jár erre a termékre</a>';
+      line.innerHTML = RRTIER.gem(m.L.k, 27) + ' <a href="#" role="button"><b>' + m.L.n + '</b> szinten kb. <b>' + Math.round(base * 33 * m.L.r / 100) + ' pont</b> jár erre a termékre</a>';   /* base = price / 33; tier_bonus.py pays rate% of the price */
     });
   }
   var tries = 0;
@@ -5836,6 +5896,7 @@
     el.removeAttribute('data-tippy-content');   /* the theme reads it only when it builds the tooltip */
     if (el._tippy) { el._tippy.destroy(); }
     el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('aria-label', 'Hűségpontok: részletek');
+    el.textContent = '?';   /* owner 2026-11-17: a question mark, not an i */
     el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); open(); }, true);
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     tierLine(el);
@@ -5960,8 +6021,8 @@
       return ['g' + n, '<p>' + (n
         ? 'Bejelentkezve erre a rendelésre kb. <b>' + n + ' hűségpontot</b> kapnál (<b>' + ft(n) + ' kedvezmény</b> a következő vásárlásodnál).'
         : 'Bejelentkezve erre a rendelésre is <b>hűségpontot</b> kapnál, amit a következő vásárlásodnál kedvezményként beválthatsz.') +
-        '</p>' + (window.RRTIER ? '<p class="rr-loy-t">' + RRTIER.mini() + 'Hűségszintek: egy év vásárlásai alapján akár <b>9% pont</b>. ' +
-        '<a href="#" data-rr="tiers">Részletek</a></p>' : '') + '<p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
+        '</p>' + (window.RRTIER ? '<p class="rr-loy-t"><b>Hűségszintek:</b> egy év vásárlásai alapján akár <b>9% pont</b>. ' +
+        '<a href="#" data-rr="tiers">Részletek</a></p>' + RRTIER.lrow(26) : '') + '<p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
     }
     var p = points(), t = tier(paidNow());
     if (!p || !p.have || p.used) { return t; }
@@ -5990,10 +6051,10 @@
     N = RRTIER.nextOf(m.L);
     R = RRTIER.levelOf(m.spend + sum);   /* one order can jump more than one level */
     if (R.r > m.L.r) {
-      return ['T' + R.k, '<p class="rr-loy-t">' + RRTIER.gem(R.k, 22) + 'Ezzel a rendeléssel <b>' + R.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
+      return ['T' + R.k, '<p class="rr-loy-t">' + RRTIER.gem(R.k, 28) + 'Ezzel a rendeléssel <b>' + R.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
         R.r + '% pont</b> jár. <a href="#" data-rr="tiers">Részletek</a></p>'];
     }
-    return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 22) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
+    return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 28) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
       (N ? 'Ezzel a kosárral együtt még <b>' + ft(N.at - m.spend - sum) + '</b> hiányzik ' + (/^[AEIOUÁÉÍÓÖŐÚÜŰ]/.test(N.n) ? 'az' : 'a') + ' <b>' + N.n + '</b> szinthez (' + N.r + '%). ' : '') +
       '<a href="#" data-rr="tiers">Részletek</a></p>'];
   }
@@ -6059,12 +6120,15 @@
   var st = document.createElement('style');
   st.id = 'rr-loy-css';
   st.textContent =
-    '.rr-loy{background:#06243b;border:1px solid #3a7aa6;border-left:3px solid #e52421;border-radius:8px;padding:10px 14px;margin:0 0 16px;' +
-      'color:#c9d8e6;font-size:14px;line-height:1.5;text-align:left;text-transform:none;letter-spacing:normal}' +
-    '.rr-loy p{margin:0;color:#c9d8e6;font-size:14px;line-height:1.5}.rr-loy b{color:#fff;font-weight:700}' +
-    '.rr-loy .rr-loy-a{margin-top:6px}.rr-loy .rr-loy-t{margin-top:6px}.rr-loy .rr-gem{margin:-3px 5px 0 0}' +
-    '.rr-loy a{color:#9fd6f7!important;font-weight:700;text-decoration:underline!important;margin-right:18px}.rr-loy a:hover{color:#fff!important}' +
-    '.sr-cart-page-body .rr-loy{max-width:520px;margin:6px 0 16px auto}' +
+    '.rr-loy{background:#f4f8fb;border:1px solid #d3e2ee;border-left:4px solid #c99418;border-radius:10px;padding:16px 20px;margin:0 0 16px;' +
+      'color:#1f3448;font-size:15px;line-height:1.55;text-align:left;text-transform:none;letter-spacing:normal}' +
+    '.rr-loy p{margin:0;color:#1f3448;font-size:15px;line-height:1.55}.rr-loy b{color:#0b2239;font-weight:700}' +
+    '.rr-loy .rr-loy-t{margin-top:8px}.rr-loy .rr-gem{margin:-4px 6px 0 0}.rr-loy .rr-lrow .rr-gem{margin:0}' +
+    '.rr-loy a{color:#0b5e9c!important;font-weight:700;text-decoration:underline!important}.rr-loy a:hover{color:#e52421!important}' +
+    '.rr-loy .rr-loy-a{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}' +
+    '.rr-loy .rr-loy-a a[data-rr=login],.rr-loy .rr-loy-a a[data-rr=register]{display:inline-block;padding:8px 18px;border-radius:6px;text-decoration:none!important;font-size:14px}' +
+    '.rr-loy .rr-loy-a a[data-rr=login]{background:#0b2d4a;color:#fff!important}.rr-loy .rr-loy-a a[data-rr=register]{border:1px solid #0b2d4a;color:#0b2d4a!important}' +
+    '.sr-cart-page-body .rr-loy{max-width:none;margin:12px 0 18px}' +
     '.rr-loy-hl{outline:2px solid #e52421;outline-offset:2px;border-radius:4px}' +
     '@media (max-width:767px){.sr-cart-page-body .rr-loy{max-width:none;margin:6px 0 14px}}' +
     '@media (min-width:992px){#app .rr-loy{margin:26px 0 0}}';   /* checkout, desktop: clear of the step labels */
