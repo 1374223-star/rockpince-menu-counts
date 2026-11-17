@@ -3042,7 +3042,7 @@
     /* hover pause only with a real mouse: on phones the browser keeps the strip "hovered" after a touch, so it never restarted */
     '.rr-bands.paused .rr-bands-track,.rr-bands.off .rr-bands-track{animation-play-state:paused}' +
     '@media (hover:hover) and (pointer:fine){.rr-bands:hover .rr-bands-track{animation-play-state:paused}' +
-    '.rr-blogo:hover img{filter:brightness(1.6) drop-shadow(0 0 6px rgba(127,196,234,.95)) drop-shadow(0 0 14px rgba(127,196,234,.6))}}' +
+    '.rr-blogo:hover img{filter:brightness(1.3) drop-shadow(0 0 5px #7fc4ea) drop-shadow(0 0 12px rgba(56,168,240,1)) drop-shadow(0 0 20px rgba(56,168,240,.85))}}' +
     '@keyframes rrbands{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}' +
     /* owner 2026-11-15: no visible buttons - the logo itself is the link, tight around it */
     '.rr-blogo{flex:none;display:block;margin-right:28px;opacity:.88;transition:opacity .15s,transform .15s}' +
@@ -5086,6 +5086,8 @@
   if (window.__rrSteel) { return; }
   window.__rrSteel = true;
   var T = '.header-top .headermenu-list a,.header-top .headermenu-list a *,.header-top .rr-phonetop,.header-top .rr-phonetop *,.header-top .rr-mailtop,.header-top .rr-mailtop *';
+  var GLOW = 'brightness(1.3) drop-shadow(0 0 1px rgba(3,18,34,.95)) drop-shadow(0 0 1px rgba(3,18,34,.95)) drop-shadow(0 0 5px #7fc4ea) ' +
+    'drop-shadow(0 0 12px rgba(56,168,240,1)) drop-shadow(0 0 20px rgba(56,168,240,.85))';
   var st = document.createElement('style'); st.id = 'rr-steel';
   st.textContent =
     T + '{color:#fff!important;-webkit-text-fill-color:#fff!important;background-image:none!important;text-shadow:none!important}' +
@@ -5100,9 +5102,16 @@
     'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.03) 1px 3px),linear-gradient(180deg,#d9dfe4,#aab5bf)!important}' +
     'html body .rr-bands .rr-bands-vp{-webkit-mask-image:linear-gradient(90deg,transparent 0,transparent 30px,#000 140px,#000 calc(100% - 140px),transparent calc(100% - 30px));' +
     'mask-image:linear-gradient(90deg,transparent 0,transparent 30px,#000 140px,#000 calc(100% - 140px),transparent calc(100% - 30px))}' +
-    'html body .rr-bands .rr-bands-track{filter:invert(1) brightness(.28)}' +
-    'html body .rr-bands .rr-blogo,html body .rr-bands .rr-blogo:hover{opacity:.92!important}' +
-    'html body .rr-bands .rr-blogo:hover img,html body .rr-bands .rr-blogo:active img{filter:none!important}' +
+    /* dark logos on the steel: the darkening sits on each logo, not on the whole row, so the hovered one can drop it
+       (owner 2026-11-17: "make the band name glow up with lightblue strong when hovered"): it turns white with a thin
+       dark edge (readable on the light steel) and a strong light blue glow */
+    'html body .rr-bands .rr-blogo img{filter:invert(1) brightness(.28)}' +
+    'html body .rr-bands .rr-blogo{opacity:.92!important}' +
+    'html body .rr-bands .rr-blogo:active img{filter:' + GLOW + '!important}' +
+    '}' +
+    '@media (min-width:992px) and (hover:hover) and (pointer:fine){' +
+    'html body .rr-bands .rr-blogo:hover{opacity:1!important}' +
+    'html body .rr-bands .rr-blogo:hover img{filter:' + GLOW + '!important}' +
     '}';
   (document.head || document.documentElement).appendChild(st);
 })();
