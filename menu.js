@@ -4991,8 +4991,11 @@
   var ZEN = '/ruhazat_cipo-14031/zenekaros-14040';
   /* href ends with /zenekarok on any domain (2026-11-17: was the exact www.rockpince.hu address, would break in January) */
   var Z = 'a[href$="/zenekarok"]';
+  /* 2026-11-17: the Innocent banner landing page (INNOCENT CLOTHING, cat 20131) is hidden from every menu too */
+  var I = 'a[href$="/innocent-clothing"]';
   var st = document.createElement('style'); st.id = 'rr-bandpages';
-  st.textContent = '#cat_19526,li:has(> ' + Z + '),li:has(> div > ' + Z + '),li:has(> span > ' + Z + '){display:none!important}';
+  st.textContent = '#cat_19526,li:has(> ' + Z + '),li:has(> div > ' + Z + '),li:has(> span > ' + Z + '),' +
+    '#cat_20131,li:has(> ' + I + '),li:has(> div > ' + I + '),li:has(> span > ' + I + '){display:none!important}';
   (document.head || document.documentElement).appendChild(st);
   if (/^\/zenekarok\/?$/.test(location.pathname)) { location.replace(ZEN); return; }
   function crumbs() {
