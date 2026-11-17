@@ -857,7 +857,7 @@
 })();
 
 /* Free-shipping progress bar (2026-11-04): on the basket page and in the "Kosárba raktad!" popup.
-   Free shipping from 30 000 Ft (GLS, as on the site); total = gross basket value (ShopRenter.cart). */
+   Free shipping from 30 000 Ft (GLS, as on the site); total = gross basket value (ShopRenter.cart). */
 (function () {
   'use strict';
   if (window.__rrShipBar) { return; }
@@ -869,7 +869,7 @@
     for (var i = 0; i < items.length; i++) { sum += Number(items[i].totalNumber || 0); }
     return Math.round(sum);
   }
-  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
   function html(sum) {
     var left = LIMIT - sum, pct = Math.max(4, Math.min(100, Math.round(sum / LIMIT * 100))), done = left <= 0;
     var text = done ? '<strong>Ingyenes a szállítás!</strong> A kosarad értéke elérte a ' + ft(LIMIT) + '-ot.'
@@ -1217,7 +1217,7 @@
     /* Experiment 3 (owner 2026-11-17): honest delivery time, the owner's own figures */
     ['clock', 'Raktárról 1-2 munkanap alatt nálad, beszerzéssel általában kb. 2 hét'],
     ['shop', 'Ingyenes személyes átvétel budapesti boltunkban'],
-    ['truck', 'Ingyenes szállítás 30 000 Ft felett'],
+    ['truck', 'Ingyenes szállítás 30 000 Ft felett'],
     ['lock', 'Biztonságos online bankkártyás fizetés (SimplePay)']
   ];
   function build() {
@@ -1692,7 +1692,7 @@
   var isCart = /route=checkout\/cart/.test(location.search) || /\/kosar/.test(location.pathname);
   var phone = function () { return window.innerWidth < 768; };
 
-  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) { e.className = cls; } if (html != null) { e.innerHTML = html; } return e; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function store(kind) { try { var s = window[kind]; s.setItem('rr-t', '1'); s.removeItem('rr-t'); return s; } catch (e) { return null; } }
@@ -3012,7 +3012,7 @@
     /* hover pause only with a real mouse: on phones the browser keeps the strip "hovered" after a touch, so it never restarted */
     '.rr-bands.paused .rr-bands-track,.rr-bands.off .rr-bands-track{animation-play-state:paused}' +
     '@media (hover:hover) and (pointer:fine){.rr-bands:hover .rr-bands-track{animation-play-state:paused}' +
-    '.rr-blogo:hover img{filter:drop-shadow(0 0 5px rgba(140,205,245,.85)) drop-shadow(0 0 12px rgba(90,170,230,.45))}}' +
+    '.rr-blogo:hover img{filter:brightness(1.6) drop-shadow(0 0 6px rgba(127,196,234,.95)) drop-shadow(0 0 14px rgba(127,196,234,.6))}}' +
     '@keyframes rrbands{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}' +
     /* owner 2026-11-15: no visible buttons - the logo itself is the link, tight around it */
     '.rr-blogo{flex:none;display:block;margin-right:28px;opacity:.88;transition:opacity .15s,transform .15s}' +
@@ -4427,7 +4427,7 @@
   var st = document.createElement('style'); st.id = 'rr-cartpanel'; st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
   var box, tab, cart, data = null, dataCount = -1, closeT = null, want = null;
-  function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function fmt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function count() { var q = document.querySelector('#js-cart .header-quantity-box'); return q ? parseInt(q.textContent, 10) || 0 : 0; }
   function load(cb) {
@@ -4903,8 +4903,8 @@
    - home: store details (address, opening hours, phone, map point, socials) and the site search box, as JSON-LD;
    - product pages: brand, shipping cost and return policy added to the shop's own Product / Offer markup.
      Brand = a known brand in the product name, otherwise none (owner: RagnaRock is never shown as a brand).
-     Shipping: GLS 1 850 Ft, free from 30 000 Ft. Returns: 14 days by GLS exchange parcel, free when it is our fault
-     (broken / wrong item), 1 500 Ft when it is the buyer's (wrong size);
+     Shipping: GLS 1 850 Ft, free from 30 000 Ft. Returns: 14 days by GLS exchange parcel, free when it is our fault
+     (broken / wrong item), 1 500 Ft when it is the buyer's (wrong size);
    - product photos without a description get the product name as alt text;
    - page 2+ of a category: "noindex, follow" instead of "noindex, nofollow", so Google still follows the products. */
 (function () {
@@ -4928,7 +4928,7 @@
       logo: 'https://1374223-star.github.io/rockpince-menu-counts/assets/mail/logo.png',
       image: ['https://1374223-star.github.io/rockpince-menu-counts/assets/shop/uzletunk_bolt_2026.webp'],
       description: 'Magyarország legnagyobb rock és alternatív ruházati webshopja és boltja: zenekaros pólók, pulóverek, bakancsok, kiegészítők és dísztárgyak Budapesten.',
-      telephone: '+36705882134', email: 'info@ragnarock.hu', priceRange: '990-150 000 Ft', currenciesAccepted: 'HUF',
+      telephone: '+36705882134', email: 'info@ragnarock.hu', priceRange: '990-150 000 Ft', currenciesAccepted: 'HUF',
       address: { '@type': 'PostalAddress', streetAddress: 'Dózsa György út 19.', addressLocality: 'Budapest', postalCode: '1146', addressRegion: 'Budapest', addressCountry: 'HU' },
       geo: { '@type': 'GeoCoordinates', latitude: 47.50566, longitude: 19.08687 },
       hasMap: 'https://www.google.com/maps?q=47.50566,19.08687',
@@ -4978,7 +4978,7 @@
       var ht = scope(dt, 'handlingTime', 'QuantitativeValue'); meta(ht, 'minValue', '0'); meta(ht, 'maxValue', '14'); meta(ht, 'unitCode', 'DAY');
       var tt = scope(dt, 'transitTime', 'QuantitativeValue'); meta(tt, 'minValue', '1'); meta(tt, 'maxValue', '2'); meta(tt, 'unitCode', 'DAY');
       var rp = scope(offer, 'hasMerchantReturnPolicy', 'MerchantReturnPolicy');
-      /* Search Console 2026-11-17: "Hiányzó mező: returnFees". The customer pays the return shipping (GLS, 1 500 Ft) */
+      /* Search Console 2026-11-17: "Hiányzó mező: returnFees". The customer pays the return shipping (GLS, 1 500 Ft) */
       link(rp, 'returnFees', 'https://schema.org/ReturnShippingFees');
       var rf = scope(rp, 'returnShippingFeesAmount', 'MonetaryAmount'); meta(rf, 'value', '1500'); meta(rf, 'currency', 'HUF');
       meta(rp, 'applicableCountry', 'HU');
@@ -5290,7 +5290,7 @@
   var phone = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
   if (!phone) { return; }
   var FREE = 30000;
-  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' Ft'; }
   function num(t) { var m = String(t || '').replace(/\s/g, '').match(/(\d[\d.]*)Ft/); return m ? Number(m[1].replace(/\./g, '')) : 0; }
 
   /* Exp 1 */
@@ -5613,7 +5613,7 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
 })();
 
-/* Hűségszintek (owner 2026-11-17: Bronz / Ezüst 30 000 / Arany 60 000 / Gyémánt 90 000 Ft in 12 months -> 3 / 5 / 7 / 9%
+/* Hűségszintek (owner 2026-11-17: Bronz / Ezüst 30 000 / Arany 60 000 / Gyémánt 90 000 Ft in 12 months -> 3 / 5 / 7 / 9%
    points; "nice looking little logos visible all the time everywhere"). Faceted rhombus gems from
    site-changes/2026-11-17_tiers/gems.py. window.RRTIER is shared with the hűségpont info box and the cart / checkout notice.
    Header (every page): a gem left of the cart button. Guests see the Gyémánt gem; logged-in customers see their own
@@ -5635,7 +5635,7 @@
     { k: 'arany', n: 'Arany', r: 7, at: 60000 }, { k: 'gyemant', n: 'Gyémánt', r: 9, at: 90000 }];
   var me = null, loaded = false, waiting = [];
 
-  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }   /* never broken across lines */
   var gid = 0;   /* every copy gets its own gradient ids: a gradient inside a hidden copy would blank the others */
   function gem(k, h) { gid++; return GEMS[k].replace(/§/g, '_' + gid).replace('<svg ', '<svg class="rr-gem" width="' + Math.round(h * 40 / 48) + '" height="' + h + '" '); }
   function levelOf(spend) { var L = LEVELS[0]; for (var i = 0; i < LEVELS.length; i++) { if (spend >= LEVELS[i].at) { L = LEVELS[i]; } } return L; }
@@ -5869,7 +5869,7 @@
       (window.RRTIER ? '<p style="margin:12px 0 0"><b>Hűségszintek:</b> minél többet vásárolsz egy év alatt, annál több pont jár.</p>' + RRTIER.ladder() : '') +
       '<ul><li>Minden termék után jár pont, akciós terméknél az akciós ár után. A termék oldalán látod, mennyi. A szállítási díjra nem jár pont.</li>' +
       '<li>A pontokat a <b>bejelentkezve</b> leadott rendelések után írjuk jóvá, amint megkaptad a rendelésed.</li>' +
-      '<li>Beváltás: 5 000 Ft feletti kosárértéknél, a pénztárban, bejelentkezve kiválaszthatod, hány pontot használsz fel. Egy rendelés összegének legfeljebb a fele fizethető pontokkal.</li></ul>' +
+      '<li>Beváltás: 5 000 Ft feletti kosárértéknél, a pénztárban, bejelentkezve kiválaszthatod, hány pontot használsz fel. Egy rendelés összegének legfeljebb a fele fizethető pontokkal.</li></ul>' +
       '<div class="rr-lp-btns"><a class="p" href="/customer/login">Belépés</a><a class="s" href="/customer/register">Regisztráció</a></div>' +
       '<a class="rr-lp-more" href="/husegprogram">A hűségprogram részletei</a></div>';
     function close() { bg.remove(); document.removeEventListener('keydown', key); }
@@ -5921,10 +5921,10 @@
    1. guest: "Bejelentkezve erre a rendelésre kb. N hűségpontot kapnál ..." + Belépés / Regisztráció. N = the shop's own
       "+ N" row ("Ennyi hűségpontot kapnál regisztrált vásárlóként"), else product total / 50. Cart: above the checkout
       buttons. Checkout: top of the first step (Elérhetőség); Belépés there opens the checkout's own login box.
-   2. logged in, has points, basket >= 5 000 Ft, no points used yet: "N hűségpontod van ...". Shoprenter redeems points
+   2. logged in, has points, basket >= 5 000 Ft, no points used yet: "N hűségpontod van ...". Shoprenter redeems points
       in the pénztár ("Hűségpont megadása" field), not in the cart, so the text says so; in the checkout a link jumps to
       the field.
-   3. logged in, has points, basket < 5 000 Ft: one short line.
+   3. logged in, has points, basket < 5 000 Ft: one short line.
    Logged in = ShopRenter.customer.userId > 0 (cart) / the checkout store's isAuthenticated. Balance = loyalty_points
    .usercanuse: in the checkout from its store, on the cart page from the checkout's own GET /checkout/cart (asked only
    for logged-in visitors). The guest box is checked on the live site; the logged-in boxes follow Shoprenter's checkout
@@ -6162,8 +6162,8 @@
   window.__rrSizeSwap = true;
   var ICON = 'https://1374223-star.github.io/rockpince-menu-counts/assets/icons/meretcsere.svg';
   var SPOTS = [
-    { grid: '.advantages-grid', p: 'advantages-item', title: 'MÉRETCSERE', text: 'GLS cserecsomaggal 1 500 Ft, csak címre szállítva' },
-    { grid: '.product-advantages-grid', p: 'product-advantages-item', title: 'MÉRETCSERE', text: 'Nem jó a méret? GLS cserecsomaggal 1 500 Ft, csak címre szállítva.' }
+    { grid: '.advantages-grid', p: 'advantages-item', title: 'MÉRETCSERE', text: 'GLS cserecsomaggal 1 500 Ft, csak címre szállítva' },
+    { grid: '.product-advantages-grid', p: 'product-advantages-item', title: 'MÉRETCSERE', text: 'Nem jó a méret? GLS cserecsomaggal 1 500 Ft, csak címre szállítva.' }
   ];
   var st = document.createElement('style');
   st.textContent =
@@ -6171,9 +6171,22 @@
     '@media (min-width:1200px){.advantages-grid.rr-adv4,.product-advantages-grid.rr-adv4{grid-template-columns:repeat(4,1fr)!important}}' +
     /* owner 2026-11-17: "same sized in all dimensions": every row as tall as the tallest box, boxes fill their cell */
     '.advantages-grid,.product-advantages-grid{grid-auto-rows:1fr!important;align-items:stretch!important}' +
+    '.rr-adv-gems{display:block;margin:2px 0 4px;line-height:0}' +
     '.advantages-grid>.advantages-item,.product-advantages-grid>.product-advantages-item{height:100%!important;align-items:center!important;box-sizing:border-box}';
   (document.head || document.documentElement).appendChild(st);
+  function levels() {   /* the points box of the same rows: levels instead of the old text */
+    var items = document.querySelectorAll('.advantages-item, .product-advantages-item');
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i], h = it.querySelector('[class$="__title"]'), tx = it.querySelector('[class$="__text"]');
+      if (!h || !tx || !/PONTOKAT/i.test(h.textContent) || it.querySelector('.rr-adv-gems')) { continue; }
+      tx.innerHTML = (window.RRTIER ? '<span class="rr-adv-gems">' + RRTIER.mini(20) + '</span>' : '') +
+        'Akár 9% pont vissza minden rendelésed után: Bronz, Ezüst, Arany és Gyémánt szint.';
+      it.style.cursor = 'pointer';
+      it.addEventListener('click', function () { if (window.RRTIER) { RRTIER.open(); } else { location.href = '/husegprogram'; } });
+    }
+  }
   function add() {
+    levels();
     for (var i = 0; i < SPOTS.length; i++) {
       var s = SPOTS[i], grid = document.querySelector(s.grid);
       if (!grid || grid.querySelector('.rr-swap') || grid.children.length < 1) { continue; }
@@ -6190,4 +6203,32 @@
     }
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', add); } else { add(); }
+})();
+
+
+/* Hover glow (owner 2026-11-17: "every button and clickable things glow up with a fitting lightblue glow rather than the
+   underline"). Text links glow, buttons and cards get a light blue halo, icons a drop-shadow; the theme's sliding
+   underline bars (top bar, main menu) are gone. Hover only, no animation loop (phone performance). */
+(function () {
+  'use strict';
+  if (window.__rrGlow) { return; }
+  window.__rrGlow = true;
+  var G = 'rgba(127,196,234,', st = document.createElement('style');
+  st.id = 'rr-glow';
+  st.textContent =
+    'a,button,.btn,[role=button],input[type=submit],input[type=button]{transition:box-shadow .18s ease,text-shadow .18s ease,filter .18s ease}' +
+    'a:hover,a:focus-visible{text-decoration:none!important}' +
+    '.headermenu-list .nav-link::before,.headermenu-list .nav-link::after,li.category-list>a.nav-link::before{display:none!important}' +
+    'a:hover{text-shadow:0 0 8px ' + G + '.9),0 0 18px ' + G + '.45)}' +
+    'html body .btn:hover,html body a.btn:hover,html body button.btn:hover,html body .button:hover,html body input[type=submit]:hover,html body input[type=button]:hover,' +
+    'html body .rr-cb .go:hover,html body .rr-lp-btns a:hover,html body .rr-tp-btns a:hover,html body .rr-loy .rr-loy-a a:hover{' +
+      'box-shadow:0 0 0 2px ' + G + '.9),0 0 18px rgba(64,160,225,.7)!important;text-shadow:none!important}' +
+    'html body .product-card:hover,html body .advantages-item:hover,html body .product-advantages-item:hover{' +
+      'box-shadow:0 0 0 2px ' + G + '.8),0 0 22px ' + G + '.65)!important}' +
+    /* no text glow on the white areas (product cards, cart, checkout, popups): it looks hazy there; the card / button halo does it */
+    '.product-card a:hover,.sr-cart-page-body .cart-page-vue a:hover,#app a:hover,.cart-popup a:hover,.rr-loy a:hover,.rr-tier-pop a:hover{text-shadow:none!important}' +
+    '.social-link:hover,.rr-social-top a:hover,.header-middle-right-box-link:hover svg,.cart-dropdown-toggle:hover svg,#rr-tier-m:hover,.rr-tier-link:hover .rr-gem{' +
+      'filter:drop-shadow(0 0 6px ' + G + '.95)) drop-shadow(0 0 12px ' + G + '.5))}' +
+    'a:hover img:not(.product-card img):not(.card img){filter:drop-shadow(0 0 6px ' + G + '.8))}';
+  (document.head || document.documentElement).appendChild(st);
 })();
