@@ -6414,3 +6414,56 @@
   var t = null;
   window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(go, 200); });
 })();
+
+
+/* Google sign-in button (owner 2026-11-17: "dont like how the google button looks like stylistically"): Shoprenter's
+   blue box becomes Google's own dark button style (dark fill, thin grey border, the coloured G, Hungarian text) at the
+   height of the shop's buttons, and the formal "Vagy használja a közösségi regisztrációt:" line becomes a VAGY divider.
+   The link itself (Shoprenter's Google sign-in URL) is untouched. */
+(function () {
+  'use strict';
+  if (window.__rrGoogleBtn) { return; }
+  window.__rrGoogleBtn = true;
+  var st = document.createElement('style');
+  st.id = 'rr-gbtn';
+  st.textContent =
+    'html body #sociallogin .social-login-link.is-google{display:flex!important;align-items:center!important;justify-content:center!important;gap:12px;' +
+      'width:300px;max-width:100%;height:46px;margin:0 auto!important;padding:0 18px!important;box-sizing:border-box;background:#131314!important;' +
+      'border:1px solid #8e918f!important;border-radius:4px!important;color:#e3e3e3!important;font:600 14px/1 Poppins,Arial,sans-serif!important;' +
+      'letter-spacing:.2px;text-decoration:none!important;text-transform:none!important;transition:box-shadow .18s ease,border-color .18s ease}' +
+    'html body #sociallogin .social-login-link.is-google *{background:transparent!important;border:0!important;box-shadow:none!important}' +
+    'html body #sociallogin .social-login-link.is-google .icon{display:flex!important;width:20px;height:20px;padding:0!important;margin:0!important;flex:0 0 20px}' +
+    'html body #sociallogin .social-login-link.is-google .icon svg{width:20px!important;height:20px!important}' +
+    'html body #sociallogin .social-login-link.is-google .rr-gtxt{color:#e3e3e3!important;font:600 14px/1 Poppins,Arial,sans-serif!important;white-space:nowrap}' +
+    'html body #sociallogin .social-login-link.is-google:hover{border-color:#9fd6f7!important;box-shadow:0 0 0 1px rgba(127,196,234,.9),0 0 16px rgba(64,160,225,.6)!important}' +
+    'html body #sociallogin .social-link{width:100%;display:flex;justify-content:center}' +
+    '.rr-or{display:flex;align-items:center;gap:12px;width:300px;max-width:100%;margin:20px auto 14px;color:#9fb7cb;font:600 12px/1 Poppins,Arial,sans-serif;letter-spacing:.14em}' +
+    '.rr-or:before,.rr-or:after{content:"";flex:1;height:1px;background:rgba(159,183,203,.35)}';
+  (document.head || document.documentElement).appendChild(st);
+  function text() {
+    var c = document.body ? document.body.className : '';
+    if (/sr-register-page-body/.test(c)) { return 'Regisztráció Google-fiókkal'; }
+    if (/sr-login-page-body/.test(c)) { return 'Bejelentkezés Google-fiókkal'; }
+    return 'Folytatás Google-fiókkal';
+  }
+  var n = 0;
+  (function fix() {
+    var a = document.querySelector('#sociallogin .social-login-link.is-google');
+    if (a && !a.querySelector('.rr-gtxt')) {
+      var icon = a.querySelector('.icon');
+      var kids = [].slice.call(a.childNodes);
+      for (var i = 0; i < kids.length; i++) { if (kids[i] !== icon) { a.removeChild(kids[i]); } }
+      var t = document.createElement('span'); t.className = 'rr-gtxt'; t.textContent = text(); a.appendChild(t);
+      var sl = document.getElementById('sociallogin');
+      var ps = document.querySelectorAll('p');
+      for (var k = 0; k < ps.length; k++) {
+        if (/közösségi regisztráció/i.test(ps[k].textContent) && ps[k].textContent.length < 80) { ps[k].style.display = 'none'; }
+      }
+      if (sl && !document.querySelector('.rr-or')) {
+        var or = document.createElement('div'); or.className = 'rr-or'; or.textContent = 'VAGY';
+        sl.parentNode.insertBefore(or, sl);
+      }
+    }
+    if (n++ < 30) { setTimeout(fix, n < 10 ? 300 : 1000); }   /* the register form is Vue and may render late */
+  })();
+})();
