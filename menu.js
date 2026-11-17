@@ -6350,3 +6350,37 @@
     if (n++ < 40) { setTimeout(add, n < 10 ? 300 : 1000); }   /* the form is Vue: it can come late or redraw */
   })();
 })();
+
+
+/* Category tile captions (owner 2026-11-17: "AJÁNDÉKUTALVÁN / Y", "AJÁNDÉKTÁRGYA / K"): never break inside a word;
+   a caption whose longest word does not fit gets a smaller font instead. Measured once on load and on resize. */
+(function () {
+  'use strict';
+  if (window.__rrCapFit) { return; }
+  window.__rrCapFit = true;
+  var st = document.createElement('style');
+  st.textContent = '.subcategory__link{word-break:normal!important;overflow-wrap:normal!important}';
+  (document.head || document.documentElement).appendChild(st);
+  var cv = document.createElement('canvas').getContext('2d');
+  function fit() {
+    var ls = document.querySelectorAll('.subcategory__link');
+    for (var i = 0; i < ls.length; i++) {
+      var a = ls[i];
+      a.style.fontSize = '';
+      var s = getComputedStyle(a), fs = parseFloat(s.fontSize) || 14, txt = '';
+      for (var k = 0; k < a.childNodes.length; k++) { if (a.childNodes[k].nodeType === 3) { txt += a.childNodes[k].textContent; } }
+      if (s.textTransform === 'uppercase') { txt = txt.toUpperCase(); }
+      cv.font = s.fontWeight + ' ' + fs + 'px ' + s.fontFamily;
+      var sp = parseFloat(s.letterSpacing) || 0, words = txt.replace(/-/g, '- ').split(/\s+/), max = 0;   /* a hyphen is a fine place to wrap */
+      for (var w = 0; w < words.length; w++) { if (words[w]) { max = Math.max(max, cv.measureText(words[w]).width + sp * words[w].length); } }
+      var avail = a.clientWidth - (parseFloat(s.paddingLeft) || 0) - (parseFloat(s.paddingRight) || 0);
+      if (avail > 0 && max > avail) { a.style.fontSize = Math.max(9, Math.floor(fs * avail / max * 0.97 * 10) / 10) + 'px'; }
+    }
+  }
+  function go() { if (document.querySelector('.subcategory__link')) { fit(); } }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+  window.addEventListener('load', go);
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go); }
+  var t = null;
+  window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(go, 200); });
+})();
