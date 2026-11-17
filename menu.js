@@ -5598,6 +5598,170 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', run); } else { run(); }
 })();
 
+/* Hűségszintek (owner 2026-11-17: Bronz / Ezüst 30 000 / Arany 60 000 / Gyémánt 90 000 Ft in 12 months -> 3 / 5 / 7 / 9%
+   points; "nice looking little logos visible all the time everywhere"). Faceted rhombus gems from
+   site-changes/2026-11-17_tiers/gems.py. window.RRTIER is shared with the hűségpont info box and the cart / checkout notice.
+   Header (every page): a gem left of the cart button. Guests see the Gyémánt gem; logged-in customers see their own
+   level (with its name on desktop). Click opens the level panel: own level, 12-month total, distance to the next level,
+   the four levels. The level comes from the order tracker web app (GET ?rr=tier, LoyaltyTiers.js) with the account id
+   and the sha256 of the account email (no email leaves the browser), kept 6 hours in localStorage. The extra points are
+   paid by the PC nightly (rockoff-upload/src/loyalty/tier_bonus.py). No per-frame work. */
+(function () {
+  'use strict';
+  if (window.RRTIER || !document.body) { return; }
+  var APP = 'https://script.google.com/macros/s/AKfycbyZxl9EjPVUhT8_JxnLLPP6aswr6g62pXVs3MqyfdTOLYV3kC3UxfUy84emPbJ8sp34tw/exec';
+  var GEMS = {
+    bronz: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" style="overflow:visible" aria-hidden="true"><defs><linearGradient id="fr§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#ffe0bd"/><stop offset="0.18" style="stop-color:#e7a76c"/><stop offset="0.45" style="stop-color:#7a3d17"/><stop offset="0.62" style="stop-color:#b46a33"/><stop offset="0.8" style="stop-color:#7a3d17"/><stop offset="1" style="stop-color:#3d1c0a"/></linearGradient><linearGradient id="tl§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#e7a76c"/><stop offset="0.35" style="stop-color:#ffe0bd"/><stop offset="0.6" style="stop-color:#b46a33"/><stop offset="1" style="stop-color:#e7a76c"/></linearGradient><linearGradient id="tr§" x1="1" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#b46a33"/><stop offset="0.4" style="stop-color:#e7a76c"/><stop offset="0.7" style="stop-color:#b46a33"/><stop offset="1" style="stop-color:#7a3d17"/></linearGradient><linearGradient id="br§" x1="1" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:#3d1c0a"/><stop offset="0.5" style="stop-color:#7a3d17"/><stop offset="1" style="stop-color:#b46a33"/></linearGradient><linearGradient id="bl§" x1="0" y1="1" x2="1" y2="0"><stop offset="0" style="stop-color:#7a3d17"/><stop offset="0.45" style="stop-color:#b46a33"/><stop offset="0.75" style="stop-color:#e7a76c"/><stop offset="1" style="stop-color:#7a3d17"/></linearGradient><radialGradient id="glow§"><stop offset="0" style="stop-color:#ffffff;stop-opacity:.9"/><stop offset="1" style="stop-color:#ffffff;stop-opacity:0"/></radialGradient></defs><polygon points="20,1 39,24 20,47 1,24" style="fill:url(#fr§)"/><polygon points="20,5.6 20,24 4.8,24" style="fill:url(#tl§)"/><polygon points="20,5.6 35.2,24 20,24" style="fill:url(#tr§)"/><polygon points="20,24 35.2,24 20,42.4" style="fill:url(#br§)"/><polygon points="4.8,24 20,24 20,42.4" style="fill:url(#bl§)"/><polyline points="4.8,24 20,5.6 35.2,24" style="fill:none;stroke:#ffe0bd;stroke-width:.9;stroke-opacity:.9"/><polyline points="35.2,24 20,42.4 4.8,24" style="fill:none;stroke:#3d1c0a;stroke-width:.9;stroke-opacity:.8"/><path d="M20 5.6L20 24L20 42.4M4.8 24L35.2 24" style="stroke:#ffe0bd;stroke-width:.5;stroke-opacity:.45"/><polygon points="17.264,8.912 11.64,15.72 14.68,24 20,13.88" style="fill:#ffffff;opacity:.35"/><polygon points="20,1 39,24 20,47 1,24" style="fill:none;stroke:#0a1420;stroke-width:1.4;stroke-linejoin:round"/><polygon points="20,2.38 37.86,24 20,45.62 2.14,24" style="fill:none;stroke:#ffe0bd;stroke-width:.6;stroke-opacity:.55"/><circle cx="13.5" cy="15.5" r="3.52" style="fill:url(#glow§)"/><path d="M13.5 12.3C13.82 14.9667 14.0333 15.18 16.7 15.5C14.0333 15.82 13.82 16.0333 13.5 18.7C13.18 16.0333 12.9667 15.82 10.3 15.5C12.9667 15.18 13.18 14.9667 13.5 12.3Z" style="fill:#ffffff;opacity:0.95"/></svg>',
+    ezust: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" style="overflow:visible" aria-hidden="true"><defs><linearGradient id="fr§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#ffffff"/><stop offset="0.18" style="stop-color:#dfe6ec"/><stop offset="0.45" style="stop-color:#5f6a75"/><stop offset="0.62" style="stop-color:#9faab5"/><stop offset="0.8" style="stop-color:#5f6a75"/><stop offset="1" style="stop-color:#2e353c"/></linearGradient><linearGradient id="tl§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#dfe6ec"/><stop offset="0.35" style="stop-color:#ffffff"/><stop offset="0.6" style="stop-color:#9faab5"/><stop offset="1" style="stop-color:#dfe6ec"/></linearGradient><linearGradient id="tr§" x1="1" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#9faab5"/><stop offset="0.4" style="stop-color:#dfe6ec"/><stop offset="0.7" style="stop-color:#9faab5"/><stop offset="1" style="stop-color:#5f6a75"/></linearGradient><linearGradient id="br§" x1="1" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:#2e353c"/><stop offset="0.5" style="stop-color:#5f6a75"/><stop offset="1" style="stop-color:#9faab5"/></linearGradient><linearGradient id="bl§" x1="0" y1="1" x2="1" y2="0"><stop offset="0" style="stop-color:#5f6a75"/><stop offset="0.45" style="stop-color:#9faab5"/><stop offset="0.75" style="stop-color:#dfe6ec"/><stop offset="1" style="stop-color:#5f6a75"/></linearGradient><radialGradient id="glow§"><stop offset="0" style="stop-color:#ffffff;stop-opacity:.9"/><stop offset="1" style="stop-color:#ffffff;stop-opacity:0"/></radialGradient></defs><polygon points="20,1 39,24 20,47 1,24" style="fill:url(#fr§)"/><polygon points="20,5.6 20,24 4.8,24" style="fill:url(#tl§)"/><polygon points="20,5.6 35.2,24 20,24" style="fill:url(#tr§)"/><polygon points="20,24 35.2,24 20,42.4" style="fill:url(#br§)"/><polygon points="4.8,24 20,24 20,42.4" style="fill:url(#bl§)"/><polyline points="4.8,24 20,5.6 35.2,24" style="fill:none;stroke:#ffffff;stroke-width:.9;stroke-opacity:.9"/><polyline points="35.2,24 20,42.4 4.8,24" style="fill:none;stroke:#2e353c;stroke-width:.9;stroke-opacity:.8"/><path d="M20 5.6L20 24L20 42.4M4.8 24L35.2 24" style="stroke:#ffffff;stroke-width:.5;stroke-opacity:.45"/><polygon points="17.264,8.912 11.64,15.72 14.68,24 20,13.88" style="fill:#ffffff;opacity:.35"/><polygon points="20,1 39,24 20,47 1,24" style="fill:none;stroke:#0a1420;stroke-width:1.4;stroke-linejoin:round"/><polygon points="20,2.38 37.86,24 20,45.62 2.14,24" style="fill:none;stroke:#ffffff;stroke-width:.6;stroke-opacity:.55"/><circle cx="13.5" cy="15.5" r="3.52" style="fill:url(#glow§)"/><path d="M13.5 12.3C13.82 14.9667 14.0333 15.18 16.7 15.5C14.0333 15.82 13.82 16.0333 13.5 18.7C13.18 16.0333 12.9667 15.82 10.3 15.5C12.9667 15.18 13.18 14.9667 13.5 12.3Z" style="fill:#ffffff;opacity:0.95"/></svg>',
+    arany: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" style="overflow:visible" aria-hidden="true"><defs><linearGradient id="fr§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#fff7c9"/><stop offset="0.18" style="stop-color:#f5d24f"/><stop offset="0.45" style="stop-color:#8a5f06"/><stop offset="0.62" style="stop-color:#c99418"/><stop offset="0.8" style="stop-color:#8a5f06"/><stop offset="1" style="stop-color:#4d3200"/></linearGradient><linearGradient id="tl§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#f5d24f"/><stop offset="0.35" style="stop-color:#fff7c9"/><stop offset="0.6" style="stop-color:#c99418"/><stop offset="1" style="stop-color:#f5d24f"/></linearGradient><linearGradient id="tr§" x1="1" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#c99418"/><stop offset="0.4" style="stop-color:#f5d24f"/><stop offset="0.7" style="stop-color:#c99418"/><stop offset="1" style="stop-color:#8a5f06"/></linearGradient><linearGradient id="br§" x1="1" y1="1" x2="0" y2="0"><stop offset="0" style="stop-color:#4d3200"/><stop offset="0.5" style="stop-color:#8a5f06"/><stop offset="1" style="stop-color:#c99418"/></linearGradient><linearGradient id="bl§" x1="0" y1="1" x2="1" y2="0"><stop offset="0" style="stop-color:#8a5f06"/><stop offset="0.45" style="stop-color:#c99418"/><stop offset="0.75" style="stop-color:#f5d24f"/><stop offset="1" style="stop-color:#8a5f06"/></linearGradient><radialGradient id="glow§"><stop offset="0" style="stop-color:#ffffff;stop-opacity:.9"/><stop offset="1" style="stop-color:#ffffff;stop-opacity:0"/></radialGradient></defs><polygon points="20,1 39,24 20,47 1,24" style="fill:url(#fr§)"/><polygon points="20,5.6 20,24 4.8,24" style="fill:url(#tl§)"/><polygon points="20,5.6 35.2,24 20,24" style="fill:url(#tr§)"/><polygon points="20,24 35.2,24 20,42.4" style="fill:url(#br§)"/><polygon points="4.8,24 20,24 20,42.4" style="fill:url(#bl§)"/><polyline points="4.8,24 20,5.6 35.2,24" style="fill:none;stroke:#fff7c9;stroke-width:.9;stroke-opacity:.9"/><polyline points="35.2,24 20,42.4 4.8,24" style="fill:none;stroke:#4d3200;stroke-width:.9;stroke-opacity:.8"/><path d="M20 5.6L20 24L20 42.4M4.8 24L35.2 24" style="stroke:#fff7c9;stroke-width:.5;stroke-opacity:.45"/><polygon points="17.264,8.912 11.64,15.72 14.68,24 20,13.88" style="fill:#ffffff;opacity:.35"/><polygon points="20,1 39,24 20,47 1,24" style="fill:none;stroke:#0a1420;stroke-width:1.4;stroke-linejoin:round"/><polygon points="20,2.38 37.86,24 20,45.62 2.14,24" style="fill:none;stroke:#fff7c9;stroke-width:.6;stroke-opacity:.55"/><circle cx="13.5" cy="15.5" r="3.52" style="fill:url(#glow§)"/><path d="M13.5 12.3C13.82 14.9667 14.0333 15.18 16.7 15.5C14.0333 15.82 13.82 16.0333 13.5 18.7C13.18 16.0333 12.9667 15.82 10.3 15.5C12.9667 15.18 13.18 14.9667 13.5 12.3Z" style="fill:#ffffff;opacity:0.95"/></svg>',
+    gyemant: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" style="overflow:visible" aria-hidden="true"><defs><radialGradient id="glow§"><stop offset="0" style="stop-color:#ffffff;stop-opacity:.95"/><stop offset=".35" style="stop-color:#d8f6ff;stop-opacity:.55"/><stop offset="1" style="stop-color:#9fe3ff;stop-opacity:0"/></radialGradient><radialGradient id="halo§"><stop offset=".55" style="stop-color:#7fd6ff;stop-opacity:.45"/><stop offset="1" style="stop-color:#7fd6ff;stop-opacity:0"/></radialGradient><linearGradient id="tb§" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:#ffffff"/><stop offset="0.45" style="stop-color:#d4f3ff"/><stop offset="0.7" style="stop-color:#ffffff"/><stop offset="1" style="stop-color:#9fdcfb"/></linearGradient></defs><ellipse cx="20" cy="24" rx="23" ry="27" style="fill:url(#halo§)"/><polygon points="20,1 10.5,12.5 20,12.5" style="fill:#ffffff"/><polygon points="10.5,12.5 10.5,24 20,12.5" style="fill:#bfeaff"/><polygon points="10.5,12.5 1,24 10.5,24" style="fill:#e6f8ff"/><polygon points="20,1 20,12.5 29.5,12.5" style="fill:#bfeaff"/><polygon points="29.5,12.5 20,12.5 29.5,24" style="fill:#ffffff"/><polygon points="29.5,12.5 29.5,24 39,24" style="fill:#8fd6f8"/><polygon points="39,24 29.5,24 29.5,35.5" style="fill:#5cb8ee"/><polygon points="29.5,35.5 29.5,24 20,35.5" style="fill:#8fd6f8"/><polygon points="29.5,35.5 20,35.5 20,47" style="fill:#2f86d0"/><polygon points="1,24 10.5,35.5 10.5,24" style="fill:#8fd6f8"/><polygon points="10.5,35.5 20,35.5 10.5,24" style="fill:#bfeaff"/><polygon points="10.5,35.5 20,47 20,35.5" style="fill:#5cb8ee"/><polygon points="20,12.5 29.5,24 20,35.5 10.5,24" style="fill:url(#tb§)"/><polygon points="20,12.5 20,24 10.5,24" style="fill:#ffffff;opacity:.55"/><polygon points="20,24 29.5,24 20,35.5" style="fill:#5cb8ee;opacity:.35"/><polygon points="29.5,14.8 33.775,17.675 34.25,24" style="fill:#ffd2f2;opacity:.75"/><polygon points="10.5,32.05 6.225,24 5.75,29.75" style="fill:#fff2a8;opacity:.7"/><polygon points="26.65,35.5 23.8,42.4 20,41.25" style="fill:#c9ffe8;opacity:.6"/><path d="M20 1L20 12.5M39 24L29.5 24M20 47L20 35.5M1 24L10.5 24M10.5 12.5L20 12.5M10.5 12.5L10.5 24M29.5 12.5L20 12.5M29.5 12.5L29.5 24M29.5 35.5L29.5 24M29.5 35.5L20 35.5M10.5 35.5L20 35.5M10.5 35.5L10.5 24" style="stroke:#ffffff;stroke-width:.45;stroke-opacity:.7"/><polygon points="20,12.5 29.5,24 20,35.5 10.5,24" style="fill:none;stroke:#ffffff;stroke-width:.7;stroke-opacity:.9"/><polygon points="20,1 39,24 20,47 1,24" style="fill:none;stroke:#0a1420;stroke-width:1.3;stroke-linejoin:round"/><circle cx="13" cy="13" r="6.05" style="fill:url(#glow§)"/><path d="M13 7.5C13.55 12.0833 13.9167 12.45 18.5 13C13.9167 13.55 13.55 13.9167 13 18.5C12.45 13.9167 12.0833 13.55 7.5 13C12.0833 12.45 12.45 12.0833 13 7.5Z" style="fill:#ffffff;opacity:1.0"/><circle cx="31" cy="31" r="3.52" style="fill:url(#glow§)"/><path d="M31 27.8C31.32 30.4667 31.5333 30.68 34.2 31C31.5333 31.32 31.32 31.5333 31 34.2C30.68 31.5333 30.4667 31.32 27.8 31C30.4667 30.68 30.68 30.4667 31 27.8Z" style="fill:#ffffff;opacity:0.9"/><circle cx="30" cy="9" r="2.64" style="fill:url(#glow§)"/><path d="M30 6.6C30.24 8.6 30.4 8.76 32.4 9C30.4 9.24 30.24 9.4 30 11.4C29.76 9.4 29.6 9.24 27.6 9C29.6 8.76 29.76 8.6 30 6.6Z" style="fill:#ffffff;opacity:0.85"/><circle cx="10.5" cy="34" r="2.2" style="fill:url(#glow§)"/><path d="M10.5 32C10.7 33.6667 10.8333 33.8 12.5 34C10.8333 34.2 10.7 34.3333 10.5 36C10.3 34.3333 10.1667 34.2 8.5 34C10.1667 33.8 10.3 33.6667 10.5 32Z" style="fill:#ffffff;opacity:0.8"/></svg>',
+  };
+  var LEVELS = [{ k: 'bronz', n: 'Bronz', r: 3, at: 0 }, { k: 'ezust', n: 'Ezüst', r: 5, at: 30000 },
+    { k: 'arany', n: 'Arany', r: 7, at: 60000 }, { k: 'gyemant', n: 'Gyémánt', r: 9, at: 90000 }];
+  var me = null, loaded = false, waiting = [];
+
+  function ft(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
+  var gid = 0;   /* every copy gets its own gradient ids: a gradient inside a hidden copy would blank the others */
+  function gem(k, h) { gid++; return GEMS[k].replace(/§/g, '_' + gid).replace('<svg ', '<svg class="rr-gem" width="' + Math.round(h * 40 / 48) + '" height="' + h + '" '); }
+  function levelOf(spend) { var L = LEVELS[0]; for (var i = 0; i < LEVELS.length; i++) { if (spend >= LEVELS[i].at) { L = LEVELS[i]; } } return L; }
+  function nextOf(L) { var i = LEVELS.indexOf(L); return i >= 0 && i < LEVELS.length - 1 ? LEVELS[i + 1] : null; }
+  function ladder(cur) {
+    var h = '<div class="rr-tl">';
+    for (var i = 0; i < LEVELS.length; i++) {
+      var L = LEVELS[i];
+      h += '<div class="rr-tl-i' + (cur && cur.k === L.k ? ' on' : '') + '">' + gem(L.k, 34) + '<b>' + L.n + '</b><span>' + L.r +
+        '% pont</span><i>' + (L.at ? ft(L.at) + '-tól' : 'regisztrációval') + '</i></div>';
+    }
+    return h + '</div>';
+  }
+  function mini() { var h = ''; for (var i = 0; i < LEVELS.length; i++) { h += gem(LEVELS[i].k, 16); } return '<span class="rr-tmini">' + h + '</span>'; }
+  function user() { var c = window.ShopRenter && ShopRenter.customer; return c && Number(c.userId) > 0 && c.email ? c : null; }
+  function hex(buf) { var a = new Uint8Array(buf), s = ''; for (var i = 0; i < a.length; i++) { s += ('0' + a[i].toString(16)).slice(-2); } return s; }
+  function load(cb) {
+    var u = user(), key, raw = null;
+    if (!u) { cb(null); return; }
+    key = 'rr-tier-' + u.userId;
+    function done(s) { me = { spend: s, L: levelOf(s) }; cb(me); }
+    try { raw = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { raw = null; }
+    if (raw && typeof raw.s === 'number' && Date.now() - raw.t < 6 * 3600000) { done(raw.s); return; }
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder || !window.fetch) { cb(null); return; }
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(u.email).trim().toLowerCase())).then(function (b) {
+      return fetch(APP + '?rr=tier&u=' + encodeURIComponent(u.userId) + '&h=' + hex(b));
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      var s = d && typeof d.spend === 'number' ? d.spend : 0;
+      try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), s: s })); } catch (e) { /* private mode */ }
+      done(s);
+    }).catch(function () { cb(null); });
+  }
+  function get(cb) {
+    if (loaded) { cb(me); return; }
+    waiting.push(cb);
+    if (waiting.length > 1) { return; }
+    load(function (m) { loaded = true; var w = waiting; waiting = []; for (var i = 0; i < w.length; i++) { w[i](m); } });
+  }
+
+  function open() {
+    get(function (m) {
+      var bg = document.createElement('div'), N = m && nextOf(m.L), body;
+      if (m) {
+        body = '<div class="rr-tp-me">' + gem(m.L.k, 58) + '<div><b>' + m.L.n + ' szint</b><span>' + m.L.r +
+          '% pont minden rendelésed után</span><i>Az elmúlt 12 hónapban: ' + ft(m.spend) + '</i></div></div>' +
+          (N ? '<p class="rr-tp-next">Még <b>' + ft(N.at - m.spend) + '</b>, és ' + gem(N.k, 18) + ' <b>' + N.n + '</b> szintre lépsz (' + N.r + '% pont).</p>' +
+            '<div class="rr-tp-bar"><span style="width:' + Math.max(3, Math.min(100, Math.round((m.spend - m.L.at) / (N.at - m.L.at) * 100))) + '%"></span></div>'
+            : '<p class="rr-tp-next">A legmagasabb szinten vagy. Köszönjük, hogy velünk vagy!</p>');
+      } else {
+        body = '<p>Minden bejelentkezve leadott rendelésed után hűségpont jár, és minél többet vásárolsz egy év alatt, annál több.</p>';
+      }
+      bg.className = 'rr-tp-bg';
+      bg.innerHTML = '<div class="rr-tp" role="dialog" aria-modal="true" aria-label="Hűségszintek">' +
+        '<button type="button" class="rr-tp-x" aria-label="Bezárás">×</button><h3>Hűségszintek</h3>' + body + ladder(m && m.L) +
+        '<p class="rr-tp-f">A szinted az elmúlt 12 hónapban bejelentkezve leadott és megkapott rendeléseid összegétől függ. ' +
+        'Már az a rendelés is a magasabb szint szerint kap pontot, amelyikkel átléped a határt. 1 pont = 1 Ft.</p>' +
+        (m ? '' : '<div class="rr-tp-btns"><a class="p" href="/customer/login">Belépés</a><a class="s" href="/customer/register">Regisztráció</a></div>') +
+        '<a class="rr-tp-more" href="/husegprogram">A hűségprogram részletei</a></div>';
+      function close() { bg.remove(); document.removeEventListener('keydown', key); }
+      function key(e) { if (e.key === 'Escape') { close(); } }
+      bg.addEventListener('click', function (e) { if (e.target === bg || e.target.classList.contains('rr-tp-x')) { close(); } });
+      document.addEventListener('keydown', key);
+      document.body.appendChild(bg);
+      try { if (window.gtag) { window.gtag('event', 'rr_tier_open', { rr_tier: m ? m.L.k : 'guest' }); } } catch (x) { /* */ }
+    });
+  }
+
+  /* desktop: the gem on the "Hűségprogram" link of the top bar (logged in: "<level> szint"); phones: the gem floats left of
+     the cart button (#js-cart is position:relative and stays; only the cart inside it is re-rendered by AJAX) */
+  var tries = 0, spots = [];
+  function paint(m) {
+    for (var i = 0; i < spots.length; i++) {
+      var s = spots[i];
+      s.g.innerHTML = gem(m ? m.L.k : 'gyemant', s.h);
+      if (s.t) { s.t.textContent = m ? m.L.n + ' szint' : s.orig; }
+      s.a.title = m ? m.L.n + ' szint: ' + m.L.r + '% pont' : 'Hűségszintek: akár 9% pont';
+    }
+  }
+  function spot(a, g, t, h) {
+    spots.push({ a: a, g: g, t: t, h: h, orig: t ? t.textContent : '' });
+    a.addEventListener('click', function (e) { e.preventDefault(); open(); });
+  }
+  function badge() {
+    if (document.getElementById('rr-tier-m')) { return; }
+    var nav = document.querySelector('a.nav-link[href*="husegprogram"]'), box = document.getElementById('js-cart');
+    if (!box) { if (tries++ < 20) { setTimeout(badge, 400); } return; }
+    if (nav && !nav.querySelector('.rr-tier-n')) {
+      var li = nav.closest('li');   /* owner 2026-11-17: the last item of the top bar, after Kapcsolat */
+      if (li && li.parentNode && li.parentNode.lastElementChild !== li) { li.parentNode.appendChild(li); }
+      var txt = (nav.textContent || '').trim() || 'Hűségprogram';
+      nav.innerHTML = '<span class="rr-tier-n"></span><span class="rr-tier-nt"></span>';
+      nav.lastChild.textContent = txt;
+      spot(nav, nav.firstChild, nav.lastChild, 24);
+    }
+    var a = document.createElement('a');
+    a.id = 'rr-tier-m';
+    a.className = 'rr-tier-m';
+    a.href = '/husegprogram';
+    a.setAttribute('aria-label', 'Hűségszintek');
+    a.appendChild(document.createElement('span'));
+    box.insertBefore(a, box.firstChild);
+    spot(a, a.firstChild, null, 26);
+    paint(null);
+    get(function (m) { if (m) { paint(m); } });
+  }
+
+  var st = document.createElement('style');
+  st.textContent =
+    '.rr-gem{display:inline-block;vertical-align:middle;flex:none}' +
+    '.rr-tier-n{display:inline-block;vertical-align:middle;margin:-5px 7px 0 0;line-height:0}' +
+    '#js-cart .rr-tier-m,.rr-tier-m{display:none!important;position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:6px;padding:6px;line-height:0;z-index:2}' +
+    '.rr-tier-m:hover .rr-gem,.nav-link:hover .rr-tier-n .rr-gem{filter:brightness(1.15)}' +
+    '@media (max-width:991px){#js-cart .rr-tier-m,.rr-tier-m{display:block!important}}' +
+    '.rr-tmini{display:inline-flex;gap:2px;vertical-align:middle;margin-right:4px}' +
+    '.rr-tl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}' +
+    '.rr-tl-i{text-align:center;padding:10px 2px 8px;border:1px solid #1d4361;border-radius:8px;background:#041a2c}' +
+    '.rr-tl-i.on{border-color:#9fd6f7;background:#0b3456}' +
+    '.rr-tl-i b{display:block;color:#fff;font-size:13px;margin-top:6px}.rr-tl-i span{display:block;color:#9fd6f7;font-weight:700;font-size:13px}' +
+    '.rr-tl-i i{display:block;font-style:normal;color:#7f93a6;font-size:11px;line-height:1.3}' +
+    '.rr-tp-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100001;display:flex;align-items:center;justify-content:center;padding:16px}' +
+    '.rr-tp{position:relative;background:#06243b;border:1px solid #3a7aa6;border-radius:12px;max-width:460px;width:100%;max-height:88vh;overflow:auto;' +
+      'padding:22px 20px 18px;color:#c9d8e6;font-size:15px;line-height:1.55;box-shadow:0 12px 40px rgba(0,0,0,.6);text-align:left}' +
+    '.rr-tp h3{color:#fff;font-size:20px;margin:0 0 12px;padding-right:28px}.rr-tp p{margin:0 0 10px}.rr-tp b{color:#fff}' +
+    '.rr-tp-x{position:absolute;top:8px;right:10px;background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}' +
+    '.rr-tp-me{display:flex;align-items:center;gap:14px;margin:0 0 10px}.rr-tp-me b{display:block;font-size:19px}' +
+    '.rr-tp-me span{display:block;color:#9fd6f7;font-weight:700}.rr-tp-me i{display:block;font-style:normal;color:#9fb3c6;font-size:14px}' +
+    '.rr-tp-next .rr-gem{margin:-3px 0 0}.rr-tp-bar{height:8px;border-radius:4px;background:#041a2c;border:1px solid #1d4361;overflow:hidden;margin:0 0 6px}' +
+    '.rr-tp-bar span{display:block;height:100%;background:linear-gradient(90deg,#3a7aa6,#9fd6f7)}' +
+    '.rr-tp-f{font-size:13px;color:#9fb3c6}' +
+    '.rr-tp-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}' +
+    '.rr-tp-btns a{display:inline-block;padding:10px 14px;border-radius:6px;font-weight:bold;font-size:14px;text-decoration:none!important}' +
+    '.rr-tp-btns a.p{background:#e52421;color:#fff!important}.rr-tp-btns a.s{border:1px solid #7fc4ea;color:#fff!important}' +
+    '.rr-tp-more{display:block;margin-top:12px;color:#9fd6f7!important;text-decoration:underline!important}';
+  (document.head || document.documentElement).appendChild(st);
+
+  window.RRTIER = { LEVELS: LEVELS, gem: gem, ladder: ladder, mini: mini, get: get, open: open, levelOf: levelOf, nextOf: nextOf,
+    ft: ft, me: function () { return me; } };
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', badge); } else { badge(); }
+})();
+
+
 /* Hűségpont info (owner 2026-11-17: "unreadable for a while"). The theme's hover tooltip next to "Szerezhető
    hűségpontok" was 1,100 px tall (it ran off the top of the screen), could not be scrolled, and its links were white on
    white. The (i) now opens a short box on click / tap, with working links. No per-frame work. */
@@ -5617,7 +5781,14 @@
     '.rr-lp-btns a{display:inline-block;padding:10px 14px;border-radius:6px;font-weight:bold;font-size:14px;text-decoration:none!important}' +
     '.rr-lp-btns a.p{background:#e52421;color:#fff!important}.rr-lp-btns a.s{border:1px solid #7fc4ea;color:#fff!important}' +
     '.rr-lp-more{display:block;margin-top:12px;color:#9fd6f7!important;text-decoration:underline!important}' +
-    '.product-parameter__loyaltypoints .component-tooltip{cursor:pointer}';
+    '.product-parameter__loyaltypoints .component-tooltip{cursor:pointer;flex:none;margin-left:6px}' +
+    'tr.product-parameter__loyaltypoints>td{vertical-align:middle!important}' +
+    'tr.product-parameter__loyaltypoints .product-parameter__label{white-space:nowrap}' +
+    'tr.product-parameter__loyaltypoints .product-parameter__value{font-size:18px!important;font-weight:700!important;color:#fff!important;white-space:nowrap}' +
+    'tr.product-parameter__loyaltypoints .product-parameter__value:after{content:" pont";font-size:14px;font-weight:400;color:#9fd6f7}' +
+    '.rr-tier-pl{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 8px;font-size:14px;line-height:1.35}' +
+    'td.rr-tier-pl-td{padding-top:0!important;border:0!important}' +
+    '.rr-tier-pl a{color:#9fd6f7!important;text-decoration:underline!important}.rr-tier-pl b{color:#fff}';
   (document.head || document.documentElement).appendChild(st);
 
   function open() {
@@ -5627,6 +5798,7 @@
       '<button type="button" class="rr-lp-x" aria-label="Bezárás">×</button>' +
       '<h3>Hűségpontok</h3>' +
       '<p><b>1 pont = 1 Ft</b> kedvezmény a következő rendelésedből.</p>' +
+      (window.RRTIER ? '<p style="margin:12px 0 0"><b>Hűségszintek:</b> minél többet vásárolsz egy év alatt, annál több pont jár.</p>' + RRTIER.ladder() : '') +
       '<ul><li>Minden termék után jár pont, akciós terméknél az akciós ár után. A termék oldalán látod, mennyi. A szállítási díjra nem jár pont.</li>' +
       '<li>A pontokat a <b>bejelentkezve</b> leadott rendelések után írjuk jóvá, amint megkaptad a rendelésed.</li>' +
       '<li>Beváltás: 5 000 Ft feletti kosárértéknél, a pénztárban, bejelentkezve kiválaszthatod, hány pontot használsz fel. Egy rendelés összegének legfeljebb a fele fizethető pontokkal.</li></ul>' +
@@ -5637,6 +5809,23 @@
     bg.addEventListener('click', function (e) { if (e.target === bg || e.target.classList.contains('rr-lp-x')) { close(); } });
     document.addEventListener('keydown', key);
     document.body.appendChild(bg);
+  }
+  function tierLine(el) {   /* Hűségszintek (owner 2026-11-17): guests see the four gems, higher levels their own points */
+    if (!window.RRTIER || document.querySelector('.rr-tier-pl')) { return; }
+    var row = el.closest('.product-parameter__loyaltypoints') || el.parentNode, line = document.createElement('div');
+    var nums = (row.textContent || '').replace(/[\s.\u00a0]/g, '').match(/\d+/g), base = nums ? Number(nums[nums.length - 1]) : 0;
+    line.className = 'rr-tier-pl';
+    line.innerHTML = RRTIER.mini() + '<a href="#" role="button">Hűségszintek: akár 9% pont</a>';
+    line.addEventListener('click', function (e) { e.preventDefault(); RRTIER.open(); });
+    if (row.tagName === 'TR') {   /* the points row is a table row: the line gets a full-width row of its own */
+      var tr = document.createElement('tr'), td = document.createElement('td');
+      td.colSpan = 2; td.className = 'rr-tier-pl-td'; td.appendChild(line); tr.appendChild(td);
+      row.parentNode.insertBefore(tr, row.nextSibling);
+    } else { row.parentNode.insertBefore(line, row.nextSibling); }
+    RRTIER.get(function (m) {
+      if (!m || m.L.r <= 3 || !base) { return; }
+      line.innerHTML = RRTIER.gem(m.L.k, 16) + ' <a href="#" role="button"><b>' + m.L.n + '</b> szinten kb. <b>' + Math.round(base * m.L.r / 3) + ' pont</b> jár erre a termékre</a>';
+    });
   }
   var tries = 0;
   function hook() {
@@ -5649,6 +5838,7 @@
     el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('aria-label', 'Hűségpontok: részletek');
     el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); open(); }, true);
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    tierLine(el);
     /* the theme may build its tooltip after us: remove it again when it appears */
     var n = 0;
     (function late() { if (el._tippy) { el._tippy.destroy(); } else if (n++ < 20) { setTimeout(late, 500); } })();
@@ -5770,19 +5960,34 @@
       return ['g' + n, '<p>' + (n
         ? 'Bejelentkezve erre a rendelésre kb. <b>' + n + ' hűségpontot</b> kapnál (<b>' + ft(n) + ' kedvezmény</b> a következő vásárlásodnál).'
         : 'Bejelentkezve erre a rendelésre is <b>hűségpontot</b> kapnál, amit a következő vásárlásodnál kedvezményként beválthatsz.') +
-        '</p><p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
+        '</p>' + (window.RRTIER ? '<p class="rr-loy-t">' + RRTIER.mini() + 'Hűségszintek: egy év vásárlásai alapján akár <b>9% pont</b>. ' +
+        '<a href="#" data-rr="tiers">Részletek</a></p>' : '') + '<p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
     }
-    var p = points();
-    if (!p || !p.have || p.used) { return null; }
+    var p = points(), t = tier(sum);
+    if (!p || !p.have || p.used) { return t; }
     if (sum < MIN) {
-      return ['m' + p.have + '/' + sum, '<p><b>' + p.have + ' hűségpontod</b> van, ezeket ' + ft(MIN) + ' feletti kosárnál tudod beváltani. ' +
-        'Ehhez még <b>' + ft(MIN - sum) + '</b> hiányzik.</p>'];
+      return ['m' + p.have + '/' + sum + (t ? t[0] : ''), '<p><b>' + p.have + ' hűségpontod</b> van, ezeket ' + ft(MIN) + ' feletti kosárnál tudod beváltani. ' +
+        'Ehhez még <b>' + ft(MIN - sum) + '</b> hiányzik.</p>' + (t ? t[1] : '')];
     }
     var field = isCheckout && !!document.querySelector('.ac-test-loyalty-point-input, .loyalty-point input');
-    return ['u' + p.have + (field ? 'f' : ''), '<p><b>' + p.have + ' hűségpontod</b> van, ez <b>' + ft(p.have) + ' kedvezmény</b>. ' +
+    return ['u' + p.have + (field ? 'f' : '') + (t ? t[0] : ''), '<p><b>' + p.have + ' hűségpontod</b> van, ez <b>' + ft(p.have) + ' kedvezmény</b>. ' +
       (isCheckout ? 'Itt, a <b>Hűségpont megadása</b> mezőben beválthatod.' : 'A pénztárban, a <b>Hűségpont megadása</b> mezőben beválthatod.') +
       (p.have * 2 > sum ? ' Egy rendelés összegének legfeljebb a fele fizethető pontokkal.' : '') +   /* shop setting maxPercent 50 (owner 2026-11-17) */
-      '</p>' + (field ? '<p class="rr-loy-a"><a href="#" data-rr="field">Mutasd a mezőt</a></p>' : '')];
+      '</p>' + (field ? '<p class="rr-loy-a"><a href="#" data-rr="field">Mutasd a mezőt</a></p>' : '') + (t ? t[1] : '')];
+  }
+  var tierAsked = false;
+  function tier(sum) {   /* Hűségszintek (owner 2026-11-17): [key, html] of the level line for a logged-in customer */
+    if (!window.RRTIER) { return null; }
+    var m = RRTIER.me(), N;
+    if (!m) { if (!tierAsked) { tierAsked = true; RRTIER.get(function () { ensure(); }); } return null; }
+    N = RRTIER.nextOf(m.L);
+    if (N && m.spend + sum >= N.at) {
+      return ['T' + N.k, '<p class="rr-loy-t">' + RRTIER.gem(N.k, 18) + 'Ezzel a rendeléssel <b>' + N.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
+        N.r + '% pont</b> jár. <a href="#" data-rr="tiers">Részletek</a></p>'];
+    }
+    return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 18) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
+      (N ? 'Ezzel a kosárral együtt még <b>' + ft(N.at - m.spend - sum) + '</b> hiányzik ' + (/^[AEIOUÁÉÍÓÖŐÚÜŰ]/.test(N.n) ? 'az' : 'a') + ' <b>' + N.n + '</b> szinthez (' + N.r + '%). ' : '') +
+      '<a href="#" data-rr="tiers">Részletek</a></p>'];
   }
   function anchor() {   /* the box goes right before this element */
     if (isCart) {
@@ -5822,6 +6027,7 @@
     k = a.getAttribute('data-rr');
     try { if (window.gtag) { window.gtag('event', 'rr_loyalty_click', { rr_loy: k, rr_page: isCart ? 'cart' : 'checkout' }); } } catch (x) { /* */ }
     if (k === 'field') { e.preventDefault(); goField(); return; }
+    if (k === 'tiers' && window.RRTIER) { e.preventDefault(); RRTIER.open(); return; }
     var m = k === 'login' && isCheckout ? document.querySelector('.login-modal-button') : null;
     if (m) { e.preventDefault(); m.click(); }
   }
@@ -5848,7 +6054,7 @@
     '.rr-loy{background:#06243b;border:1px solid #3a7aa6;border-left:3px solid #e52421;border-radius:8px;padding:10px 14px;margin:0 0 16px;' +
       'color:#c9d8e6;font-size:14px;line-height:1.5;text-align:left;text-transform:none;letter-spacing:normal}' +
     '.rr-loy p{margin:0;color:#c9d8e6;font-size:14px;line-height:1.5}.rr-loy b{color:#fff;font-weight:700}' +
-    '.rr-loy .rr-loy-a{margin-top:6px}' +
+    '.rr-loy .rr-loy-a{margin-top:6px}.rr-loy .rr-loy-t{margin-top:6px}.rr-loy .rr-gem{margin:-3px 5px 0 0}' +
     '.rr-loy a{color:#9fd6f7!important;font-weight:700;text-decoration:underline!important;margin-right:18px}.rr-loy a:hover{color:#fff!important}' +
     '.sr-cart-page-body .rr-loy{max-width:520px;margin:6px 0 16px auto}' +
     '.rr-loy-hl{outline:2px solid #e52421;outline-offset:2px;border-radius:4px}' +
