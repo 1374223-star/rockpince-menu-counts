@@ -4972,7 +4972,15 @@
       var sd = scope(offer, 'shippingDetails', 'OfferShippingDetails');
       var rate = scope(sd, 'shippingRate', 'MonetaryAmount'); meta(rate, 'value', price >= 30000 ? '0' : '1850'); meta(rate, 'currency', 'HUF');
       meta(scope(sd, 'shippingDestination', 'DefinedRegion'), 'addressCountry', 'HU');
+      /* Search Console 2026-11-17: "Hiányzó mező: deliveryTime". Handling 0-14 days (stock or procurement) + GLS 1-2 days,
+         the same 1-16 days as the Merchant Center shipping setting */
+      var dt = scope(sd, 'deliveryTime', 'ShippingDeliveryTime');
+      var ht = scope(dt, 'handlingTime', 'QuantitativeValue'); meta(ht, 'minValue', '0'); meta(ht, 'maxValue', '14'); meta(ht, 'unitCode', 'DAY');
+      var tt = scope(dt, 'transitTime', 'QuantitativeValue'); meta(tt, 'minValue', '1'); meta(tt, 'maxValue', '2'); meta(tt, 'unitCode', 'DAY');
       var rp = scope(offer, 'hasMerchantReturnPolicy', 'MerchantReturnPolicy');
+      /* Search Console 2026-11-17: "Hiányzó mező: returnFees". The customer pays the return shipping (GLS, 1 500 Ft) */
+      link(rp, 'returnFees', 'https://schema.org/ReturnShippingFees');
+      var rf = scope(rp, 'returnShippingFeesAmount', 'MonetaryAmount'); meta(rf, 'value', '1500'); meta(rf, 'currency', 'HUF');
       meta(rp, 'applicableCountry', 'HU');
       link(rp, 'returnPolicyCategory', 'https://schema.org/MerchantReturnFiniteReturnWindow');
       meta(rp, 'merchantReturnDays', '14');
