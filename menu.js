@@ -325,7 +325,11 @@
     /* first: shown first and in bold, before the A-Z list */
     /* depth: how many subfolder levels show under each folder (owner 2026-11-03: KIEGÉSZÍTŐK
        shows only its own folders on hover, the subfolders stay on the category pages) */
-    '14130': { expand: [], extra: [], first: ['14454'], depth: 3 },
+    /* groups (owner 2026-11-17): fixed columns with a heading each; folders not listed go to the last column */
+    '14130': { expand: [], extra: [], first: ['14454'], depth: 3, groups: [
+      ['SZOBROK / DÍSZEK', ['14454', '18750']],
+      ['OTTHON / LAKÁS', ['14460', '14451', '14469', '14445', '14151', '14409', '14283', '14478', '15276', '14748']],
+      ['AJÁNDÉK / EGYÉB', ['14490', '14559', '14505', '18922', '14652', '14133', '20196', '20199']]] },
     '14025': { expand: [], extra: [], first: ['19518'], depth: 0 }
   };
   var HU = '0123456789abcdefghijklmnoöpqrstuüvwxyz';
@@ -410,9 +414,28 @@
         }
       }
       var columns = [[], [], []];
-      for (b = 0; b < blocks.length; b += 1) {
-        var into = b < cut1 ? 0 : (b < cut2 ? 1 : 2);
-        for (j = 0; j < blocks[b].length; j += 1) { columns[into].push(blocks[b][j]); }
+      if (cfg.groups) {
+        /* fixed groups: heading, then its folders in the listed order; unlisted folders join the last group */
+        var placed = {};
+        for (i = 0; i < cfg.groups.length; i += 1) {
+          columns[i].push({ heading: cfg.groups[i][0] });
+          for (j = 0; j < cfg.groups[i][1].length; j += 1) {
+            for (b = 0; b < blocks.length; b += 1) {
+              if (blocks[b][0].id === cfg.groups[i][1][j]) {
+                for (x = 0; x < blocks[b].length; x += 1) { columns[i].push(blocks[b][x]); }
+                placed[b] = true;
+              }
+            }
+          }
+        }
+        for (b = 0; b < blocks.length; b += 1) {
+          if (!placed[b]) { for (x = 0; x < blocks[b].length; x += 1) { columns[cfg.groups.length - 1].push(blocks[b][x]); } }
+        }
+      } else {
+        for (b = 0; b < blocks.length; b += 1) {
+          var into = b < cut1 ? 0 : (b < cut2 ? 1 : 2);
+          for (j = 0; j < blocks[b].length; j += 1) { columns[into].push(blocks[b][j]); }
+        }
       }
       row = document.createElement('div');
       row.className = 'row custom-dropdown-menu';
@@ -424,6 +447,12 @@
         for (j = 0; j < columns[i].length; j += 1) {
           var e = columns[i][j];
           item = document.createElement('li');
+          if (e.heading) {  /* group heading (not a link) */
+            item.textContent = e.heading;
+            item.style.cssText = 'font-size:11px!important;letter-spacing:.08em;opacity:.6;margin:0 0 8px!important;font-weight:700';
+            ul.appendChild(item);
+            continue;
+          }
           a = document.createElement('a');
           a.href = window.location.protocol + '//' + window.location.host + data[e.id][3];
           a.textContent = data[e.id][0];
