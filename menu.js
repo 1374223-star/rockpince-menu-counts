@@ -4495,6 +4495,11 @@
     cart.addEventListener('mouseenter', function () { open('cart'); }); cart.addEventListener('mouseleave', later);
     tab.addEventListener('mouseenter', function () { open('tab'); }); tab.addEventListener('mouseleave', later);
     box.addEventListener('mouseenter', function () { clearTimeout(closeT); }); box.addEventListener('mouseleave', later);
+    /* the "Hűségszintek" link in the tier line opens the levels window (owner 2026-11-17: it "lead me nowhere") */
+    box.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('[data-rrt]');
+      if (t && window.RRTIER) { e.preventDefault(); want = null; box.classList.remove('open'); RRTIER.open(); }
+    });
     addEventListener('scroll', function () { if (box.classList.contains('open') && want === 'cart') { want = null; box.classList.remove('open'); } }, { passive: true });
     function syncTab() {
       var n = count();
@@ -5670,7 +5675,7 @@
   function summary(total, m) {   /* one line for small places (add-to-cart popup, mini cart); m = own level or null */
     if (!total) { return ''; }
     if (!m) {
-      return mini(18) + ' Bejelentkezve erre a kosárra kb. <b>' + Math.round(total / 33) + ' pont</b> jár. <a href="#" data-rrt="1">Hűségszintek: akár 9% pont</a>';
+      return mini(18) + ' Bejelentkezve erre a kosárra kb. <b>' + Math.round(total / 33) + ' pont</b> jár. <a href="/husegprogram" data-rrt="1">Hűségszintek: akár 9% pont</a>';
     }
     var N = nextOf(m.L), R = levelOf(m.spend + total);
     if (R.r > m.L.r) {
@@ -6229,6 +6234,119 @@
     '.product-card a:hover,.sr-cart-page-body .cart-page-vue a:hover,#app a:hover,.cart-popup a:hover,.rr-loy a:hover,.rr-tier-pop a:hover{text-shadow:none!important}' +
     '.social-link:hover,.rr-social-top a:hover,.header-middle-right-box-link:hover svg,.cart-dropdown-toggle:hover svg,#rr-tier-m:hover,.rr-tier-link:hover .rr-gem{' +
       'filter:drop-shadow(0 0 6px ' + G + '.95)) drop-shadow(0 0 12px ' + G + '.5))}' +
-    'a:hover img:not(.product-card img):not(.card img){filter:drop-shadow(0 0 6px ' + G + '.8))}';
+    'a:hover img:not(.product-card img):not(.card img){filter:drop-shadow(0 0 6px ' + G + '.8))}' +
+    /* top row (owner 2026-11-17 "the glow doesnt seem to work ... in the top row"): the steel header block keeps that row's
+       text flat with text-shadow:none!important, so its hover glow needs the stronger selector; the phone / mail pills
+       get the button halo too */
+    'html body .header-top .headermenu-list a:hover,html body .header-top .headermenu-list a:hover *,' +
+    'html body .header-top .rr-phonetop:hover,html body .header-top .rr-phonetop:hover *,html body .header-top .rr-mailtop:hover,html body .header-top .rr-mailtop:hover *{' +
+      'text-shadow:0 0 8px ' + G + '.95),0 0 18px ' + G + '.55)!important}' +
+    'html body .header-top .rr-phonetop:hover,html body .header-top .rr-mailtop:hover{box-shadow:0 0 0 1px ' + G + '.9),0 0 14px rgba(64,160,225,.6)!important}' +
+    'html body .header-top .rr-phonetop:hover svg,html body .header-top .rr-mailtop:hover svg{filter:drop-shadow(0 0 5px ' + G + '.95))}';
   (document.head || document.documentElement).appendChild(st);
+})();
+
+
+/* Product page buy box (owner 2026-11-17: "a bit over the place ... sizes and distances between objects, unharmonic,
+   textbutton isnt centered"): one column on one rhythm. Labels (Méret, Mennyiség) sit above their controls in the same
+   small caps, Mérettáblázat on the label row at the right, the select full width, quantity + KOSÁRBA on one row (KOSÁRBA
+   under it when the box is narrow), every control 50 px tall, the button text centred, the free-shipping line with a
+   normal line height. Also: the quick view drops its "Várható szállítás" row; the register / login pages hide the empty
+   "Közösségi bejelentkezés" block (no Facebook / Google app is connected to it). */
+(function () {
+  'use strict';
+  if (window.__rrBuyBox) { return; }
+  window.__rrBuyBox = true;
+  var B = 'body.product-page-body .product-cart-box ';
+  var LBL = 'display:block!important;margin:0!important;padding:0!important;font-size:12px!important;font-weight:600!important;letter-spacing:.06em!important;' +
+    'text-transform:uppercase!important;color:#9fb7cb!important;line-height:1.3!important';
+  var st = document.createElement('style');
+  st.id = 'rr-buybox';
+  st.textContent =
+    B + '.rr-fs{line-height:1.4!important;margin:10px 0 0!important}' + B + '.rr-fs .bar{margin-top:8px!important}' +
+    B + '.product-options{margin:20px 0 0!important}' +
+    B + '.product-option__item{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;gap:7px 12px!important;margin:0 0 14px!important}' +
+    B + '.product-option__name{order:1;' + LBL + '}' +
+    B + '.rr-sg{order:2;margin:0 0 0 auto!important;font-size:12px!important;line-height:1.3!important}' +
+    B + '.product-option__item>.product-option__select{order:3;flex:1 1 100%!important;width:100%!important;margin:0!important}' +
+    B + '.product-option__select select{width:100%!important;height:50px!important;max-width:none!important}' +
+    B + '.product-addtocart{margin:6px 0 0!important}' +
+    B + '.product-addtocart-wrapper{display:flex!important;flex-wrap:wrap!important;align-items:flex-end!important;gap:12px!important}' +
+    B + '.product-addtocart-wrapper>div:not(.product_table_quantity):not(.product_table_addtocartbtn){position:absolute!important}' +   /* an empty theme div took a gap */
+    B + '.product_table_quantity{flex:0 0 108px!important;width:108px!important;margin:0!important}' +
+    B + '.quantity-text{' + LBL + ';margin:0 0 7px!important}' +
+    B + '.js-input-spinner-wrapper{display:flex!important;flex-wrap:nowrap!important;width:100%!important;height:50px!important;margin:0!important}' +
+    B + '.js-input-spinner-wrapper .js-input-spinner-btn{flex:0 0 36px!important;width:36px!important;height:100%!important;margin:0!important;padding:0!important}' +
+    B + '.js-input-spinner-wrapper input{flex:1 1 auto!important;min-width:0!important;width:auto!important;height:100%!important;margin:0!important;padding:0!important;text-align:center!important}' +
+    B + '.product_table_addtocartbtn{flex:1 1 140px!important;min-width:0!important;max-width:none!important;margin:0!important}' +
+    'html ' + B + '#add_to_cart.button-add-to-cart{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;' +
+      'width:100%!important;min-width:0!important;height:50px!important;padding:0 16px!important;margin:0!important;box-sizing:border-box!important}' +
+    'html ' + B + '#add_to_cart.button-add-to-cart span{margin:0!important;text-align:center!important}' +
+    B + '.rr-trust{margin-top:22px!important}' +
+    /* quick view: no "Várható szállítás" row (owner 2026-11-17) */
+    '.product-quickview .product-parameter-shipping-time{display:none!important}' +
+    /* empty social login block (no provider connected) */
+    '#sociallogin:not(:has(.social-login-content *)){display:none!important}';
+  (document.head || document.documentElement).appendChild(st);
+
+  /* the "Vagy használja a közösségi regisztrációt:" line above the empty block */
+  if (/sr-(register|login)-page-body/.test(document.body ? document.body.className : '') || /customer\/(register|login)|account\/(register|login)/.test(location.href)) {
+    var n = 0;
+    (function hide() {
+      var sl = document.getElementById('sociallogin'), c = sl && sl.querySelector('.social-login-content');
+      if (sl && c && !c.firstElementChild) {
+        sl.style.display = 'none';
+        var ps = document.querySelectorAll('p');
+        for (var i = 0; i < ps.length; i++) { if (/közösségi regisztráció/i.test(ps[i].textContent) && ps[i].textContent.length < 80) { ps[i].style.display = 'none'; } }
+      }
+      if (n++ < 20) { setTimeout(hide, 500); }
+    })();
+  }
+})();
+
+/* Register page (owner 2026-11-17: "add here the 10% coupon for signing up the newsletter, and mention the
+   hüségrendszer"): two perks under the title, and a "+10% kupon" tag on the newsletter checkbox. Ticking it at
+   registration makes a newsletter subscriber within seconds, so NewsletterCoupon.js sends the code as usual. */
+(function () {
+  'use strict';
+  if (window.__rrRegPerks) { return; }
+  window.__rrRegPerks = true;
+  if (!document.body || !/sr-register-page-body/.test(document.body.className)) { return; }
+  var st = document.createElement('style');
+  st.id = 'rr-regp';
+  st.textContent =
+    '.rr-regp{display:grid;grid-template-columns:1fr;gap:10px;max-width:750px;margin:0 auto 26px;text-align:left}' +
+    '.rr-regp .it{display:flex;gap:16px;align-items:center;padding:14px 18px;border:1px solid rgba(127,196,234,.35);border-radius:8px;background:rgba(4,16,28,.55)}' +
+    '.rr-regp .ic{flex:0 0 64px;height:64px;display:flex;align-items:center;justify-content:center}' +
+    '.rr-regp .pc{width:64px;height:64px;border-radius:50%;background:#e52421;color:#fff;font:800 19px/64px Poppins,Arial,sans-serif;text-align:center;letter-spacing:-.02em}' +
+    '.rr-regp b{display:block;color:#fff;font-size:15px;line-height:1.3;margin:0 0 4px}' +
+    '.rr-regp span{display:block;color:#c9d8e6;font-size:13px;line-height:1.45}' +
+    '.rr-regp span b{display:inline;font-size:13px;margin:0}' +
+    '.rr-reg-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:3px;background:#e52421;color:#fff!important;font-size:11px;font-weight:800;' +
+      'letter-spacing:.04em;text-transform:uppercase;line-height:1.5;vertical-align:1px;white-space:nowrap}' +
+    '@media (max-width:767px){.rr-regp{margin-bottom:20px}.rr-regp .it{padding:13px 14px}.rr-regp .ic{flex-basis:52px;height:52px}' +
+      '.rr-regp .pc{width:52px;height:52px;line-height:52px;font-size:16px}}';
+  (document.head || document.documentElement).appendChild(st);
+  function gem() { return window.RRTIER ? RRTIER.gem('gyemant', 52) : ''; }
+  var n = 0;
+  (function add() {
+    var head = document.querySelector('.sr-register .page-head'), box = document.querySelector('.rr-regp');
+    if (head && !box) {
+      box = document.createElement('div');
+      box.className = 'rr-regp';
+      box.innerHTML =
+        '<div class="it"><div class="ic"><div class="pc">-10%</div></div><div><b>10% kupon a hírlevélért</b>' +
+        '<span>Pipáld be lent a hírlevelet, és e-mailben küldjük az egyszer használható 10%-os kuponkódodat.</span></div></div>' +
+        '<div class="it"><div class="ic rr-regp-gem">' + gem() + '</div><div><b>Hűségpont minden rendelésed után</b>' +
+        '<span>Alapból <b>3%</b>, és ahogy egy év alatt többet vásárolsz, Ezüst, Arany, majd Gyémánt szinten <b>akár 9%</b>. 1 pont = 1 Ft kedvezmény.</span></div></div>';
+      head.parentNode.insertBefore(box, head.nextSibling);
+    }
+    var g = box && box.querySelector('.rr-regp-gem');
+    if (g && !g.firstChild && window.RRTIER) { g.innerHTML = gem(); }
+    var lab = document.querySelector('label[for="newsletter_id"]');
+    if (lab && !lab.querySelector('.rr-reg-tag')) {
+      var t = document.createElement('span'); t.className = 'rr-reg-tag'; t.textContent = '+10% kupon'; lab.appendChild(t);
+    }
+    if (n++ < 40) { setTimeout(add, n < 10 ? 300 : 1000); }   /* the form is Vue: it can come late or redraw */
+  })();
 })();
