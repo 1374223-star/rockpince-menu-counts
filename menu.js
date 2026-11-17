@@ -5963,7 +5963,7 @@
         '</p>' + (window.RRTIER ? '<p class="rr-loy-t">' + RRTIER.mini() + 'Hűségszintek: egy év vásárlásai alapján akár <b>9% pont</b>. ' +
         '<a href="#" data-rr="tiers">Részletek</a></p>' : '') + '<p class="rr-loy-a"><a href="/customer/login" data-rr="login">Belépés</a><a href="/customer/register" data-rr="register">Regisztráció</a></p>'];
     }
-    var p = points(), t = tier(sum);
+    var p = points(), t = tier(paidNow());
     if (!p || !p.have || p.used) { return t; }
     if (sum < MIN) {
       return ['m' + p.have + '/' + sum + (t ? t[0] : ''), '<p><b>' + p.have + ' hűségpontod</b> van, ezeket ' + ft(MIN) + ' feletti kosárnál tudod beváltani. ' +
@@ -5976,14 +5976,22 @@
       '</p>' + (field ? '<p class="rr-loy-a"><a href="#" data-rr="field">Mutasd a mezőt</a></p>' : '') + (t ? t[1] : '')];
   }
   var tierAsked = false;
+  function paidNow() {   /* what the level counts: products after coupons and redeemed points (owner 2026-11-17) */
+    var t = totals(), sum = basket();
+    for (var i = 0; i < t.length; i++) {
+      if (t[i] && /coupon|loyaltypointstouse/i.test(String(t[i].type || ''))) { sum -= Math.abs(Number(t[i].value) || 0); }
+    }
+    return Math.max(0, Math.round(sum));
+  }
   function tier(sum) {   /* Hűségszintek (owner 2026-11-17): [key, html] of the level line for a logged-in customer */
     if (!window.RRTIER) { return null; }
-    var m = RRTIER.me(), N;
+    var m = RRTIER.me(), N, R;
     if (!m) { if (!tierAsked) { tierAsked = true; RRTIER.get(function () { ensure(); }); } return null; }
     N = RRTIER.nextOf(m.L);
-    if (N && m.spend + sum >= N.at) {
-      return ['T' + N.k, '<p class="rr-loy-t">' + RRTIER.gem(N.k, 22) + 'Ezzel a rendeléssel <b>' + N.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
-        N.r + '% pont</b> jár. <a href="#" data-rr="tiers">Részletek</a></p>'];
+    R = RRTIER.levelOf(m.spend + sum);   /* one order can jump more than one level */
+    if (R.r > m.L.r) {
+      return ['T' + R.k, '<p class="rr-loy-t">' + RRTIER.gem(R.k, 22) + 'Ezzel a rendeléssel <b>' + R.n + '</b> szintre lépsz: erre a rendelésre már <b>' +
+        R.r + '% pont</b> jár. <a href="#" data-rr="tiers">Részletek</a></p>'];
     }
     return ['T' + m.L.k + (N ? N.at - m.spend - sum : ''), '<p class="rr-loy-t">' + RRTIER.gem(m.L.k, 22) + '<b>' + m.L.n + '</b> szint, ' + m.L.r + '% pont. ' +
       (N ? 'Ezzel a kosárral együtt még <b>' + ft(N.at - m.spend - sum) + '</b> hiányzik ' + (/^[AEIOUÁÉÍÓÖŐÚÜŰ]/.test(N.n) ? 'az' : 'a') + ' <b>' + N.n + '</b> szinthez (' + N.r + '%). ' : '') +
