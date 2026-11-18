@@ -2323,6 +2323,9 @@
     if (!head) { return; }
     /* owner 2026-11-14: this text only, in caps (the .rr-xmas style is uppercase) */
     var bar = el('div', 'rr-xmas', '<span class="rr-xmas-text">Rendeld meg időben az ajándékokat, hogy karácsonyra megérkezzenek!</span>');
+    /* same text; a tap leads to the gift finder (owner 2026-11-18) */
+    bar.style.cursor = 'pointer'; bar.setAttribute('role', 'link'); bar.setAttribute('aria-label', 'Ajándékkereső');
+    bar.addEventListener('click', function () { location.href = '/ajandekkereso'; });
     var top = head.closest('.section-wrapper') || head;
     top.parentNode.insertBefore(bar, top);
   }
@@ -6621,6 +6624,29 @@
   function go() {
     if (!document.body || !(/\bproduct-page-body\b/.test(document.body.className) || /^\/zenekarok\/[^\/]+\/?$/.test(location.pathname))) { return; }
     if (window.requestIdleCallback) { requestIdleCallback(add, { timeout: 3000 }); } else { setTimeout(add, 1500); }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();
+
+/* Gift finder (owner 2026-11-18): page /ajandekkereso (information page 105), code in assets/gifts/gifts.js.
+   Also a plain link in the top menu row, next to Hűségprogram. */
+(function () {
+  if (window.__rrGfLoad) { return; }
+  window.__rrGfLoad = true;
+  function go() {
+    if (document.getElementById('rrgf-app')) {
+      var s = document.createElement('script'); s.async = true;
+      s.src = 'https://1374223-star.github.io/rockpince-menu-counts/assets/gifts/gifts.js';
+      document.head.appendChild(s);
+    }
+    var nav = document.querySelector('.headermenu-list a.nav-link[href*="husegprogram"]') || document.querySelector('a.nav-link[href*="husegprogram"]');
+    var item = nav && nav.closest('li');
+    if (item && !document.querySelector('a.nav-link[href$="/ajandekkereso"]')) {
+      var c = item.cloneNode(false), a = nav.cloneNode(false);
+      a.setAttribute('href', '/ajandekkereso'); a.removeAttribute('title'); a.textContent = 'Ajándékkereső';
+      c.appendChild(a);
+      item.parentNode.insertBefore(c, item);
+    }
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
 })();
