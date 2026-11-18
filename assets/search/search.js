@@ -443,8 +443,9 @@
     '@media(min-width:992px){html:has(.rrsx-side) #fb_header_box{transform:translateX(calc(100vw - 275px))}html:has(.rrsx-side) #fb_content_box{transform:translateX(calc(100vw - 375px))}}',   /* the consumer badge moves to the other corner, off the filter */
     '.rrsx-side{background:var(--panel);border:1px solid var(--line);border-radius:8px;scrollbar-width:thin;overflow:auto;overscroll-behavior:contain}',
     '.rrsx-wrap .rrsx-side{position:sticky;top:calc(var(--rrsx-top,0px) + 12px);max-height:calc(100vh - var(--rrsx-top,0px) - 24px)}',
-    '#rrsx-dock{position:absolute;left:10px;right:10px;top:20px;z-index:6}html.rrsx-eng #rrsx-dock{position:sticky;top:calc(var(--rrsx-top,0px) + 12px);left:auto;right:auto;margin:20px 0 0;height:0}',
-    '#rrsx-dock .rrsx-side{max-height:calc(100vh - 150px)}html.rrsx-eng #rrsx-dock .rrsx-side{max-height:calc(100vh - var(--rrsx-top,0px) - 24px)}',
+    '#rrsx-dock{position:sticky;top:calc(var(--rrsx-top,0px) - 8px);margin:0 10px;height:0;z-index:6}#rrsx-dock .rrsx-side{margin-top:20px}html.rrsx-dockon .column-left>:not(#rrsx-dock){visibility:hidden!important}',
+    '#rrsx-dock .rrsx-side{max-height:calc(100vh - var(--rrsx-top,0px) - 24px)}',
+    '.rrsx-sw span{white-space:nowrap}.rrsx-row[disabled],.rrsx-col[disabled],.rrsx-chip[disabled],.rrsx-sw[disabled]{opacity:.38;cursor:default}.rrsx-row[disabled]:hover,.rrsx-col[disabled]:hover{background:none}',
     '.rrsx-side-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:14px 15px 12px;border-bottom:1px solid var(--line)}',
     '.rrsx-side-h h2{margin:0;font-size:17px;line-height:1.2;font-weight:800;color:#fff;text-transform:uppercase;white-space:nowrap}.rrsx-sc{font-size:12px;color:var(--mut);white-space:nowrap}',
     '.rrsx-close{display:none;width:44px;height:44px;margin:-8px -8px -8px 0;background:none;border:0;font-size:28px!important;line-height:1;cursor:pointer}',
@@ -467,7 +468,7 @@
     '.rrsx-chip.on{background:var(--red);border-color:var(--red);color:#fff!important}.rrsx-chip small{opacity:.8;font-size:11px;margin-left:4px}',
     '.rrsx-cols{display:flex;flex-wrap:wrap;gap:2px 6px}.rrsx-col{display:flex;align-items:center;gap:6px;flex:0 0 auto;max-width:100%;min-height:34px;padding:3px;background:none;border:0;border-radius:5px;cursor:pointer;text-align:left}',
     '.rrsx-col:hover{background:rgba(127,196,234,.1)}.rrsx-col i{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.55)}.rrsx-col.on i{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--red)}',
-    '.rrsx-col span{white-space:nowrap}.rrsx-col b{font-weight:400;font-size:11px;color:var(--mut)}',
+    '.rrsx-col span{white-space:nowrap}.rrsx-col b{min-width:27px;font-weight:400;font-size:11px;color:var(--mut)}',
     '.rrsx-hist{display:flex;align-items:flex-end;gap:1px;height:44px;margin-bottom:-1px}.rrsx-hist u{flex:1;min-height:0;background:#2f6488;text-decoration:none}.rrsx-hist u.in{background:var(--ice)}',
     '.rrsx-range{position:relative;height:30px}.rrsx-range:before{content:"";position:absolute;left:0;right:0;top:13px;height:3px;background:#2f6488}',
     '.rrsx-range input{position:absolute;left:0;top:0;width:100%;height:30px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}',
@@ -518,7 +519,7 @@
   var HEAD = PREVIEW || CAT_PAGE ? null : document.getElementById('filter_keyword');
   var M = null, W = null, root = null, side = null, dock = null, shade = null, styleEl = null, pill = null, $ = {}, secs = {}, seq = 0, shown = 0, total = 0, last = null;
   var restore = null, timer = 0, ready = false, busy = false, engaged = false, opener = null, wantSheet = false, started = false, guard = 0, ro = null, sideDirty = false, wired = false;
-  var lo = 0, hi = 0, topPx = 0;
+  var lo = 0, hi = 0, topPx = 0, fitting = false, wantEng = false, swKept = {};
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function n(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
@@ -547,7 +548,7 @@
     M.facets.forEach(function (f, fi) {
       list('f.' + f[0]).forEach(function (x) { var i = M.values.findIndex(function (v) { return v[0] === fi && v[1] === x; }); if (i >= 0) { S.vals.push(i); } });
     });
-    S.min = +h.get('min') || 0; S.max = +h.get('max') || 0; S.sale = h.get('akcio') === '1'; S.gone = h.get('elfogyott') === '1'; S.fresh = h.get('uj') === '1' && M.hasDays;
+    S.min = +h.get('min') || 0; S.max = +h.get('max') || 0; S.sale = h.get('akcio') === '1'; S.gone = false; S.fresh = h.get('uj') === '1' && M.hasDays;
     S.sort = SORTS.some(function (x) { return x[0] === h.get('s'); }) ? h.get('s') : 'new';
   }
   function url() {
@@ -560,7 +561,7 @@
       if (v.length) { h.set('f.' + f[0], v.join('|')); }
     });
     if (S.min) { h.set('min', S.min); } if (S.max) { h.set('max', S.max); }
-    if (S.sale) { h.set('akcio', '1'); } if (S.fresh) { h.set('uj', '1'); } if (S.gone) { h.set('elfogyott', '1'); }
+    if (S.sale) { h.set('akcio', '1'); } if (S.fresh) { h.set('uj', '1'); }
     if (S.sort !== 'new' && (!CAT_PAGE || filterCount())) { h.set('s', S.sort); }
     var p = new URLSearchParams(location.search);
     if (SEARCH_PAGE) { if (S.text) { p.set(PREVIEW ? 'q' : 'keyword', S.text); } else { p.delete(PREVIEW ? 'q' : 'keyword'); } }
@@ -571,13 +572,15 @@
   /* ---------- talking to the worker ---------- */
   function ask(add) {
     busy = true;
-    var size = !CAT_PAGE || engaged ? (add ? PAGE : Math.max(PAGE, restore ? restore.shown : 0)) : 0;
+    var size = !CAT_PAGE || wantEng ? (add ? PAGE : Math.max(PAGE, restore ? restore.shown : 0)) : 0;
     window.__rrsxAsk = performance.now();
     W.postMessage({ id: ++seq, add: !!add, text: CAT_PAGE ? '' : S.text, types: S.types, bands: S.bands, genders: S.genders, vals: S.vals, min: S.min, max: S.max,
       sale: S.sale, gone: S.gone, fresh: S.fresh, sort: S.sort, from: add ? shown : 0, size: size });
   }
   function setEngaged(on) {
-    if (!CAT_PAGE || on === engaged) { return; }
+    if (!CAT_PAGE) { return; }
+    wantEng = on;
+    if (on === engaged) { return; }
     engaged = on;
     document.documentElement.classList.toggle('rrsx-eng', on);
     if (!on) { shown = 0; $.grid.innerHTML = ''; }
@@ -588,7 +591,7 @@
     timer = setTimeout(function () {
       var was = engaged;
       if (CAT_PAGE) {
-        setEngaged(filterCount() > 0);
+        if (filterCount() > 0) { wantEng = true; } else { setEngaged(false); }
         if (was && !engaged) { S.sort = 'new'; $.sort.value = 'new'; var head = document.querySelector('.column-right>.page-head'); if (head && head.getBoundingClientRect().top < 0) { head.scrollIntoView(); } }
       }
       history.replaceState(null, '', url());
@@ -596,7 +599,49 @@
     }, wait || 0);
   }
 
-  /* ---------- drawing ---------- */
+  /* ---------- drawing: existing buttons and cards are updated in place, so nothing flashes or jumps ---------- */
+  function morph(a, b) {
+    if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { a.parentNode.replaceChild(b, a); return; }
+    if (a.nodeType === 3) { if (a.data !== b.data) { a.data = b.data; } return; }
+    if (a.nodeType !== 1) { return; }
+    var keepOpen = a.nodeName === 'DETAILS', i, at;
+    for (i = 0; i < b.attributes.length; i++) { at = b.attributes[i]; if (!(keepOpen && at.name === 'open') && a.getAttribute(at.name) !== at.value) { a.setAttribute(at.name, at.value); } }
+    for (i = a.attributes.length - 1; i >= 0; i--) { at = a.attributes[i]; if (!(keepOpen && at.name === 'open') && !b.hasAttribute(at.name)) { a.removeAttribute(at.name); } }
+    morphKids(a, b);
+  }
+  function morphKids(a, b) {
+    var x = [].slice.call(a.childNodes), y = [].slice.call(b.childNodes), i;
+    for (i = 0; i < y.length; i++) { if (x[i]) { morph(x[i], y[i]); } else { a.appendChild(y[i]); } }
+    for (i = y.length; i < x.length; i++) { a.removeChild(x[i]); }
+  }
+  function setHtml(el, html) { var t = document.createElement('template'); t.innerHTML = html; morphKids(el, t.content); }
+  function ordered(s, rows) {     /* the first order of a list stays for good: buttons never change places */
+    s.order = s.order || {}; s.nextOrder = s.nextOrder || 0;
+    rows.slice().sort(function (a, b) { return b[0] - a[0]; }).forEach(function (r) { if (s.order[r[4]] === undefined) { s.order[r[4]] = s.nextOrder++; } });
+    return rows.sort(function (a, b) { return s.order[a[4]] - s.order[b[4]]; });
+  }
+  function kept(s, key) { return !!(s.order && s.order[key] !== undefined); }
+  function showCards(items, id, done) {     /* cards still in the list keep their loaded pictures; the swap waits briefly for the new ones */
+    var old = {}, t = document.createElement('template'), fresh = [];
+    [].forEach.call($.grid.querySelectorAll('.rrsx-card'), function (c) { old[c.getAttribute('href')] = c; });
+    var nodes = items.map(function (x) {
+      t.innerHTML = card(x);
+      var c = t.content.firstChild, k = c.getAttribute('href');
+      if (old[k]) { var r = old[k]; delete old[k]; return r; }
+      fresh.push(c); return c;
+    });
+    var ready = fresh.slice(0, 10).map(function (c) { var i = c.querySelector('img'); i.loading = 'eager'; return i.decode ? i.decode().catch(function () {}) : null; });
+    var finished = false;
+    function swap() {
+      if (finished || id !== seq) { return; }
+      finished = true;
+      var f = document.createDocumentFragment(); nodes.forEach(function (c) { f.appendChild(c); });
+      $.grid.textContent = ''; $.grid.appendChild(f);
+      if (CAT_PAGE && wantEng) { setEngaged(true); }
+      done();
+    }
+    Promise.all(ready).then(swap); setTimeout(swap, fresh.length ? 200 : 0);
+  }
   function card(x) {
     var pct = x[3] ? Math.round((1 - x[3] / x[2]) * 100) : 0, t = esc(nice(x[1])), src = IMG + x[6].split('/').map(encodeURIComponent).join('/') + '.webp';
     var badge = !x[4] ? '<span class="rrsx-badge out">Elfogyott</span>' : pct ? '<span class="rrsx-badge">-' + pct + '%</span>' : x[7] ? '<span class="rrsx-badge new">Új</span>' : '';
@@ -606,7 +651,7 @@
       (x[3] ? '<span class="rrsx-p sale">' + ft(x[3]) + '<s>' + ft(x[2]) + '</s></span>' : '<span class="rrsx-p">' + ft(x[2]) + '</span>') + '</span></a>';
   }
   function row(kind, id, label, count, on) {
-    return '<button type="button" class="rrsx-row' + (on ? ' on' : '') + '" data-k="' + kind + '" data-v="' + id + '" aria-pressed="' + !!on + '"><i aria-hidden="true"></i><span>' + esc(label) + '</span><b>' + (count ? n(count) : '') + '</b></button>';
+    return '<button type="button" class="rrsx-row' + (on ? ' on' : '') + '" data-k="' + kind + '" data-v="' + id + '" aria-pressed="' + !!on + '"' + (count || on ? '' : ' disabled') + '><i aria-hidden="true"></i><span>' + esc(label) + '</span><b>' + n(count || 0) + '</b></button>';
   }
   function sec(key, title, body, isOpen) {
     return '<details class="rrsx-f" data-sec="' + key + '"' + (isOpen ? ' open' : '') + ' hidden><summary><h3>' + esc(title) + '</h3><em class="rrsx-fn" style="font-style:normal"></em></summary><div class="rrsx-fb">' + body + '</div></details>';
@@ -629,19 +674,18 @@
     });
   }
   function buildSections() {
+    var order = facetOrder(), colour = order.filter(function (fi) { return M.facets[fi][0] === 'colour'; });
+    function facetSec(fi) { var f = M.facets[fi]; return sec('f' + fi, f[1], f[0] === 'colour' ? '<div class="rrsx-cols" data-l></div>' : findBox('f' + fi, f[1] + ' keresése') + '<div data-l></div>', f[0] === 'colour'); }
     var h = '<div class="rrsx-tog" data-sec="tog">' +
       '<button type="button" class="rrsx-sw" data-tg="sale" aria-pressed="false"><span>Csak akciós</span><b></b><i aria-hidden="true"></i></button>' +
-      '<button type="button" class="rrsx-sw" data-tg="fresh" aria-pressed="false" hidden><span>Új termék (30 nap)</span><b></b><i aria-hidden="true"></i></button>' +
-      '<button type="button" class="rrsx-sw" data-tg="gone" aria-pressed="false"><span>Elfogyottak is</span><b></b><i aria-hidden="true"></i></button></div>';
+      '<button type="button" class="rrsx-sw" data-tg="fresh" aria-pressed="false" hidden><span>Új termékek</span><b></b><i aria-hidden="true"></i></button></div>';
+    colour.forEach(function (fi) { h += facetSec(fi); });
     h += sec('types', 'Termék típusa', findBox('types', 'Típus keresése') + '<div data-l></div>', true);
-    bandGroups().forEach(function (g, i) { h += sec(g.key, g.label, findBox(g.key, g.label + ' keresése') + '<div data-l></div>', i === 0); });
-    h += sec('gen', 'Kinek', '<div class="rrsx-chips" data-l></div>', true);
     h += sec('price', 'Ár', '<div class="rrsx-hist" data-p="hist" aria-hidden="true">' + new Array(BUCKETS + 1).join('<u></u>') + '</div><div class="rrsx-range"><input data-p="r1" type="range" min="0" max="1000" value="0" aria-label="Legalacsonyabb ár"><input data-p="r2" type="range" min="0" max="1000" value="1000" aria-label="Legmagasabb ár"></div>' +
       '<div class="rrsx-pr"><input data-p="p1" type="number" inputmode="numeric" min="0" aria-label="Ár ettől (Ft)"><span>és</span><input data-p="p2" type="number" inputmode="numeric" min="0" aria-label="Ár eddig (Ft)"><span>Ft</span></div>', true);
-    facetOrder().forEach(function (fi, i) {
-      var f = M.facets[fi];
-      h += sec('f' + fi, f[1], (f[0] === 'colour' ? '<div class="rrsx-cols" data-l></div>' : findBox('f' + fi, f[1] + ' keresése') + '<div data-l></div>'), f[0] === 'colour' || i < 2);
-    });
+    h += sec('gen', 'Kinek', '<div class="rrsx-chips" data-l></div>', true);
+    bandGroups().forEach(function (g, i) { h += sec(g.key, g.label, findBox(g.key, g.label + ' keresése') + '<div data-l></div>', i === 0); });
+    order.forEach(function (fi) { if (colour.indexOf(fi) < 0) { h += facetSec(fi); } });
     $.body.innerHTML = h;
     secs = {};
     $.body.querySelectorAll('[data-sec]').forEach(function (e) { secs[e.getAttribute('data-sec')] = { el: e, list: e.querySelector('[data-l]'), find: e.querySelector('[data-find]'), q: '', all: false, dirty: true }; });
@@ -651,53 +695,55 @@
     wirePrice();
   }
   function setSec(s, show, selected) {
-    if (s.el.hidden === show) { s.el.hidden = !show; }
+    s.on = s.on || show;      /* a group that has appeared stays: the panel never jumps */
+    if (s.el.hidden === !!s.on) { s.el.hidden = !s.on; }
     var badge = s.el.querySelector('.rrsx-fn');
     if (badge) { var t = selected ? String(selected) : ''; if (badge.textContent !== t) { badge.textContent = t; } }
   }
-  function drawLongList(s, rows, limit) {     /* rows: [count, html, label, selected] */
-    var q = plain(s.q), sel = rows.filter(function (r) { return r[3]; });
-    var rest = rows.filter(function (r) { return !r[3] && (!q || plain(r[2]).indexOf(q) >= 0); }).sort(function (a, b) { return b[0] - a[0]; });
-    var lim = s.all || q ? 80 : limit, more = rest.length - lim;
+  function drawLongList(s, rows, limit) {     /* rows: [count, html, label, selected, key] */
+    var q = plain(s.q), all = ordered(s, rows).filter(function (r) { return r[3] || !q || plain(r[2]).indexOf(q) >= 0; });
+    var lim = s.all || q ? 80 : limit, list = all.filter(function (r, i) { return i < lim || r[3]; }), more = all.length - list.length;
     if (s.find) { var long = rows.length > limit + 2; if (s.find.hidden === long) { s.find.hidden = !long; } }
-    s.list.innerHTML = sel.concat(rest.slice(0, lim)).map(function (r) { return r[1]; }).join('') +
+    setHtml(s.list, list.map(function (r) { return r[1]; }).join('') +
       (more > 0 ? '<button type="button" class="rrsx-more" data-more="1">Több mutatása (' + n(more) + ')</button>' : '') +
-      (!sel.length && !rest.length ? '<div class="rrsx-mt">Nincs találat</div>' : '');
+      (!all.length ? '<div class="rrsx-mt">Nincs találat</div>' : ''));
   }
   function drawTypes(s, m) {
-    var groups = [], by = {}, count = 0, q = plain(s.q);
+    var groups = [], by = {}, rows = [], q = plain(s.q);
     M.types.forEach(function (t, i) {
-      var c = m.cT[i + 1], on = S.types.indexOf(i) >= 0;
-      if (!c && !on) { return; }
-      count++;
+      var c = m.cT[i + 1], on = S.types.indexOf(i) >= 0, key = 't' + i;
+      if (!c && !on && !kept(s, key)) { return; }
+      var r = [c, row('t', i, t[0], c, on), t[0], on, key];
+      rows.push(r);
       if (q && plain(t[0]).indexOf(q) < 0 && !on) { return; }
       if (!by[t[1]]) { by[t[1]] = { name: t[1], sum: 0, rows: [], on: false }; groups.push(by[t[1]]); }
-      by[t[1]].sum += c; by[t[1]].on = by[t[1]].on || on; by[t[1]].rows.push([c, row('t', i, t[0], c, on)]);
+      by[t[1]].sum += c; by[t[1]].on = by[t[1]].on || on; by[t[1]].rows.push(r);
     });
-    groups.sort(function (a, b) { return b.sum - a.sum; });
-    if (s.find) { var long = count > 12; if (s.find.hidden === long) { s.find.hidden = !long; } }
-    if (count <= 10 && !q) {
-      var flat = []; groups.forEach(function (g) { flat = flat.concat(g.rows); });
-      flat.sort(function (a, b) { return b[0] - a[0]; });
-      s.list.innerHTML = flat.map(function (r) { return r[1]; }).join('');
-      return;
-    }
+    ordered(s, rows);
+    if (s.flat === undefined) { s.flat = rows.length <= 10; }
+    s.gOrder = s.gOrder || {}; s.nextG = s.nextG || 0;
+    groups.slice().sort(function (a, b) { return b.sum - a.sum; }).forEach(function (g) { if (s.gOrder[g.name] === undefined) { s.gOrder[g.name] = s.nextG++; } });
+    groups.sort(function (a, b) { return s.gOrder[a.name] - s.gOrder[b.name]; });
+    groups.forEach(function (g) { g.rows.sort(function (a, b) { return s.order[a[4]] - s.order[b[4]]; }); });
+    if (s.find) { var long = rows.length > 12; if (s.find.hidden === long) { s.find.hidden = !long; } }
+    if (s.flat && !q) { setHtml(s.list, rows.map(function (r) { return r[1]; }).join('')); return; }
     s.groups = s.groups || {};
-    s.list.innerHTML = groups.map(function (g, i) {
+    setHtml(s.list, groups.map(function (g, i) {
       var isOpen = q || (s.groups[g.name] !== undefined ? s.groups[g.name] : (g.on || i === 0));
-      g.rows.sort(function (a, b) { return b[0] - a[0]; });
       return '<details class="rrsx-g" data-g="' + esc(g.name) + '"' + (isOpen ? ' open' : '') + '><summary><span>' + esc(g.name) + '</span><b>' + n(g.sum) + '</b></summary>' + g.rows.map(function (r) { return r[1]; }).join('') + '</details>';
-    }).join('') || '<div class="rrsx-mt">Nincs találat</div>';
+    }).join('') || '<div class="rrsx-mt">Nincs találat</div>');
+    [].forEach.call(s.list.querySelectorAll('.rrsx-g'), function (d) { var name = d.getAttribute('data-g'); if (s.groups[name] === undefined) { s.groups[name] = d.open; } });
   }
   function drawBands(g, s, m) {
     var rows = [], kinds = M.kinds || [], picked = 0;
     M.bands.forEach(function (b, i) {
       var inGroup = g.kind ? kinds[i] === g.kind : KIND_LABELS.indexOf(kinds[i]) < 0;
       if (!inGroup) { return; }
-      var c = m.cB[i + 1], on = S.bands.indexOf(i) >= 0;
+      var c = m.cB[i + 1], on = S.bands.indexOf(i) >= 0, key = 'b' + i;
       if (on) { picked++; }
-      if (c || on) { rows.push([c, row('b', i, b, c, on), b, on]); }
+      if (c || on || kept(s, key)) { rows.push([c, row('b', i, b, c, on), b, on, key]); }
     });
+    ordered(s, rows);
     setSec(s, rows.length > 1 || picked > 0, picked);
     if (!s.el.hidden && s.el.open) { drawLongList(s, rows, 8); s.dirty = false; } else { s.dirty = true; }
   }
@@ -705,22 +751,23 @@
     var rows = [], picked = 0, f = M.facets[fi], isCol = f[0] === 'colour', vals = [];
     M.values.forEach(function (v, i) { if (v[0] === fi) { vals.push(i); } });
     vals.forEach(function (i) {
-      var c = m.cV[i], on = S.vals.indexOf(i) >= 0, label = M.values[i][1];
+      var c = m.cV[i], on = S.vals.indexOf(i) >= 0, label = M.values[i][1], key = 'v' + i;
       if (on) { picked++; }
-      if (!c && !on) { return; }
+      if (!c && !on && !kept(s, key)) { return; }
       var html;
       if (isCol) {
-        html = '<button type="button" class="rrsx-col' + (on ? ' on' : '') + '" data-k="v" data-v="' + i + '" aria-pressed="' + on + '" aria-label="' + esc(label) + ', ' + n(c) + ' termék"><i aria-hidden="true" style="background:' + (SWATCH[label] || 'repeating-linear-gradient(45deg,#777 0 4px,#aaa 4px 8px)') + '"></i><span>' + esc(label) + '</span><b>' + n(c) + '</b></button>';
+        html = '<button type="button" class="rrsx-col' + (on ? ' on' : '') + '" data-k="v" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + ' aria-label="' + esc(label) + ', ' + n(c) + ' termék"><i aria-hidden="true" style="background:' + (SWATCH[label] || 'repeating-linear-gradient(45deg,#777 0 4px,#aaa 4px 8px)') + '"></i><span>' + esc(label) + '</span><b>' + n(c) + '</b></button>';
       } else { html = row('v', i, label, c, on); }
-      rows.push([c, html, label, on]);
+      rows.push([c, html, label, on, key]);
     });
-    var relevant = picked > 0 || (rows.length > 1 && m.cover[fi] >= Math.max(3, m.total * 0.05));
+    ordered(s, rows);
+    var relevant = picked > 0 || (isCol ? rows.length > 0 : rows.length > 1 && m.cover[fi] >= Math.max(3, m.total * 0.05));
     setSec(s, relevant, picked);
     if (s.el.hidden || !s.el.open) { s.dirty = true; return; }
     s.dirty = false;
     if (isCol) {
       rows.sort(function (a, b) { return COLOUR_ORDER.indexOf(a[2]) - COLOUR_ORDER.indexOf(b[2]); });
-      s.list.innerHTML = rows.map(function (r) { return r[1]; }).join('');
+      setHtml(s.list, rows.map(function (r) { return r[1]; }).join(''));
     } else { drawLongList(s, rows, 8); }
   }
   function drawPrice(m) {
@@ -744,14 +791,14 @@
     S.types.forEach(function (i) { a.push(['t', i, M.types[i][0]]); }); S.bands.forEach(function (i) { a.push(['b', i, M.bands[i]]); });
     S.genders.forEach(function (i) { a.push(['g', i, M.genders[i]]); }); S.vals.forEach(function (i) { a.push(['v', i, M.values[i][1]]); });
     if (S.min || S.max) { a.push(['p', 0, (S.min ? ft(S.min) + ' felett' : '') + (S.min && S.max ? ', ' : '') + (S.max ? ft(S.max) + ' alatt' : '')]); }
-    if (S.sale) { a.push(['s', 0, 'Akciós']); } if (S.fresh) { a.push(['n', 0, 'Új termék']); } if (S.gone) { a.push(['o', 0, 'Elfogyottak is']); }
+    if (S.sale) { a.push(['s', 0, 'Akciós']); } if (S.fresh) { a.push(['n', 0, 'Új termék']); }
     return a;
   }
   function drawActive() {
     var a = chips(), filters = a.length, label = 'Szűrők' + (filters ? ' (' + filters + ')' : '');
     if (HEAD && S.text) { a.unshift(['q', 0, 'Keresés: ' + S.text]); }
-    $.act.innerHTML = a.map(function (x) { return '<button type="button" class="rrsx-tag" data-rk="' + x[0] + '" data-rv="' + x[1] + '" aria-label="Szűrő törlése: ' + esc(x[2]) + '">' + esc(x[2]) + '</button>'; }).join('') +
-      (filters > 1 ? '<button type="button" class="rrsx-tag clr" data-rk="all">Szűrők törlése</button>' : '');
+    setHtml($.act, a.map(function (x) { return '<button type="button" class="rrsx-tag" data-rk="' + x[0] + '" data-rv="' + x[1] + '" aria-label="Szűrő törlése: ' + esc(x[2]) + '">' + esc(x[2]) + '</button>'; }).join('') +
+      (filters > 1 ? '<button type="button" class="rrsx-tag clr" data-rk="all">Szűrők törlése</button>' : ''));
     $.open.textContent = label;
     if (pill) { pill.textContent = label; }
   }
@@ -769,23 +816,27 @@
     var genCount = 0; M.genders.forEach(function (x, i) { if (m.cG[i + 1]) { genCount++; } });
     setSec(g, genCount > 1 || S.genders.length > 0, S.genders.length);
     if (!g.el.hidden) {
-      g.list.innerHTML = M.genders.map(function (x, i) {
+      g.kept = g.kept || {};
+      setHtml(g.list, M.genders.map(function (x, i) {
         var on = S.genders.indexOf(i) >= 0, c = m.cG[i + 1];
-        return c || on ? '<button type="button" class="rrsx-chip' + (on ? ' on' : '') + '" data-k="g" data-v="' + i + '" aria-pressed="' + on + '">' + esc(x) + '<small>' + n(c) + '</small></button>' : '';
-      }).join('');
+        if (c) { g.kept[i] = 1; }
+        return c || on || g.kept[i] ? '<button type="button" class="rrsx-chip' + (on ? ' on' : '') + '" data-k="g" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + '>' + esc(x) + '<small>' + n(c) + '</small></button>' : '';
+      }).join(''));
     }
     drawPrice(m);
     M.facets.forEach(function (f, fi) { drawFacet(fi, secs['f' + fi], m); });
-    [['sale', S.sale, m.sale], ['fresh', S.fresh, m.fresh], ['gone', S.gone, m.gone]].forEach(function (x) {
-      var b = $.sw[x[0]], show = x[1] || x[2] > 0;
-      b.hidden = !show; b.className = 'rrsx-sw' + (x[1] ? ' on' : ''); b.setAttribute('aria-pressed', String(!!x[1])); b.querySelector('b').textContent = x[2] ? n(x[2]) : '';
+    [['sale', S.sale, m.sale], ['fresh', S.fresh, m.fresh]].forEach(function (x) {
+      var b = $.sw[x[0]];
+      swKept[x[0]] = swKept[x[0]] || x[1] || x[2] > 0;
+      b.hidden = !swKept[x[0]]; b.disabled = !x[1] && !x[2]; b.className = 'rrsx-sw' + (x[1] ? ' on' : ''); b.setAttribute('aria-pressed', String(!!x[1]));
+      var count = n(x[2] || 0), label = b.querySelector('b'); if (label.textContent !== count) { label.textContent = count; }
     });
     if (key) {
       var sel = key[2] ? '[data-tg="' + key[2] + '"]' : key[0] ? '[data-k="' + key[0] + '"][data-v="' + key[1] + '"]' : null, el = sel && side.querySelector(sel);
       if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); }
     }
     side.scrollTop = keepScroll;
-    cover();
+    fitSide();
   }
   function groupName(g) {
     if (g === 0) { return ['Termék típusa', 'T']; } if (g === 1) { return ['Zenekar, márka', 'B']; } if (g === 2) { return ['Kinek', 'G']; } if (g === 3) { return ['Ár', 'p']; }
@@ -793,7 +844,7 @@
     return [M.facets[g - 7][1], 'F' + (g - 7)];
   }
   function groupActive(g) {
-    return g === 0 ? S.types.length : g === 1 ? S.bands.length : g === 2 ? S.genders.length : g === 3 ? S.min || S.max : g === 4 ? S.sale : g === 5 ? !S.gone : g === 6 ? S.fresh :
+    return g === 0 ? S.types.length : g === 1 ? S.bands.length : g === 2 ? S.genders.length : g === 3 ? S.min || S.max : g === 4 ? S.sale : g === 5 ? 0 : g === 6 ? S.fresh :
       S.vals.some(function (v) { return M.values[v][0] === g - 7; });
   }
   function drawNone(m) {
@@ -825,19 +876,21 @@
     var fx = m.fixed ? Object.keys(m.fixed).map(function (k) { return m.fixed[k]; }) : null;
     $.note.innerHTML = fx && total ? 'Nem találtuk pontosan ezt, ezért erre keresünk: <b>' + esc(fx.join(', ')) + '</b>' : ''; $.note.style.display = fx && total ? '' : 'none';
     drawActive(); drawSide(m);
-    if (CAT_PAGE && !engaged) { return; }
+    if (CAT_PAGE && !wantEng) { return; }
+    function finish() {
+      busy = false;
+      $.load.style.display = shown < total ? '' : 'none';
+      $.none.style.display = total ? 'none' : '';
+      if (!total) { drawNone(m); }
+      window.__rrsxDone = performance.now();
+    }
     if (m.items) {
-      if (m.add) { append(m.items, m.id); }
-      else { $.grid.innerHTML = m.items.map(card).join(''); shown = m.items.length; }
-      afterCards(m);
+      if (m.add) { append(m.items, m.id); afterCards(m); finish(); }
+      else { busy = true; showCards(m.items, m.id, function () { shown = m.items.length; afterCards(m); finish(); }); }
     } else if (m.wait) {
-      busy = true;       /* the text file is on its way: no second page request meanwhile */
-      if (!m.add) { $.grid.innerHTML = skeleton(m.wait); shown = 0; afterCards(m); }
-    } else if (!m.add) { $.grid.innerHTML = ''; shown = 0; }
-    $.load.style.display = m.items && shown < total ? '' : 'none';
-    $.none.style.display = total ? 'none' : '';
-    if (!total) { drawNone(m); }
-    window.__rrsxDone = performance.now();
+      busy = true;       /* the text file is on its way: the current list stays on screen until it is ready */
+      if (!m.add && !$.grid.children.length && (engaged || !CAT_PAGE)) { $.grid.innerHTML = skeleton(m.wait); shown = 0; afterCards(m); }
+    } else if (!m.add) { $.grid.textContent = ''; shown = 0; finish(); }
   }
   function append(items, id) {     /* endless list: a few cards per task, so scrolling never stalls on a slow phone */
     shown += items.length;
@@ -851,11 +904,9 @@
   }
   function fill(m) {
     if (m.id !== seq) { return; }
-    if (m.add) { append(m.items, m.id); }
-    else { $.grid.innerHTML = m.items.map(card).join(''); shown = m.items.length; }
-    busy = false;
-    $.load.style.display = shown < total ? '' : 'none';
-    window.__rrsxDone = performance.now();
+    function finish() { busy = false; $.load.style.display = shown < total ? '' : 'none'; $.none.style.display = total ? 'none' : ''; window.__rrsxDone = performance.now(); }
+    if (m.add) { append(m.items, m.id); finish(); }
+    else { showCards(m.items, m.id, function () { shown = m.items.length; afterCards(m); finish(); }); }
   }
 
   /* ---------- the phone sheet ---------- */
@@ -912,16 +963,18 @@
     else { target = root.querySelector('.rrsx-wrap'); }
     if (target && side.parentNode !== target) { if (target === root.querySelector('.rrsx-wrap')) { target.insertBefore(side, target.firstChild); } else { target.appendChild(side); } }
     if (!MOBILE.matches) { sheet(false); }
-    cover();
+    document.documentElement.classList.toggle('rrsx-dockon', !!CAT_PAGE && !MOBILE.matches && side.parentNode === dock);
+    fitSide();
   }
-  function cover() {     /* desktop category page: the panel floats over the sidebar, so nothing moves; boxes it would cut are hidden */
-    if (!CAT_PAGE || !dock || !dock.parentNode || engaged) { return; }     /* while filtering, CSS hides the whole sidebar column */
-    var kids = dock.parentNode.children, on = !MOBILE.matches && side.parentNode === dock, bottom = on ? side.getBoundingClientRect().bottom : 0;
-    for (var i = 0; i < kids.length; i++) {
-      if (kids[i] === dock) { continue; }
-      kids[i].classList.toggle('rrsx-covered', on && kids[i].getBoundingClientRect().top < bottom + 8);
-    }
+  function cover() {}
+  function fitSide() {     /* the panel always ends inside the screen; it scrolls inside itself */
+    fitting = false;
+    if (!side) { return; }
+    if (MOBILE.matches) { if (side.style.maxHeight) { side.style.maxHeight = ''; } return; }
+    var h = Math.max(260, Math.floor(innerHeight - Math.max(side.getBoundingClientRect().top, topPx + 12) - 14)) + 'px';
+    if (side.style.maxHeight !== h) { side.style.maxHeight = h; }
   }
+  function queueFit() { if (!fitting && !MOBILE.matches) { fitting = true; requestAnimationFrame(fitSide); } }
   function css() { if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'rrsx-css'; styleEl.textContent = CSS; document.head.appendChild(styleEl); } }
   function build() {
     css();
@@ -1012,6 +1065,7 @@
       if (v !== lastTop) {     /* only on our own boxes: a variable on <html> would restyle the whole page on every header move */
         lastTop = v; topPx = v;
         [root, side, dock].forEach(function (e) { if (e) { e.style.setProperty('--rrsx-top', v + 'px'); } });
+        queueFit();
       }
     }
     place();
@@ -1047,14 +1101,13 @@
     new IntersectionObserver(function (en) { if (en[0].isIntersecting && ready && !busy && shown && shown < total && (!CAT_PAGE || engaged)) { ask(true); } }, { rootMargin: '700px 0px' }).observe($.end);
     root.addEventListener('error', function (e) { var i = e.target; if (i.tagName === 'IMG' && /\.webp$/.test(i.src)) { i.src = i.src.replace(/\.webp$/, ''); } }, true);
     window.addEventListener('hashchange', function () { readHash(); $.sort.value = S.sort; if (CAT_PAGE) { setEngaged(filterCount() > 0); } ask(false); });
-    if (window.ResizeObserver && CAT_PAGE) { ro = new ResizeObserver(cover); ro.observe(side); }
+    addEventListener('scroll', queueFit, { passive: true }); addEventListener('resize', queueFit, { passive: true });
     placeTop();
   }
   function giveUp(why) {
     clearTimeout(guard); clearTimeout(timer);
-    var cls = document.documentElement.classList; cls.remove('rrsx-on', 'rrsx-sheet', 'rrsx-eng');
+    var cls = document.documentElement.classList; cls.remove('rrsx-on', 'rrsx-sheet', 'rrsx-eng', 'rrsx-dockon');
     [root, side, dock, shade, pill].forEach(function (e) { if (e && e.parentNode) { e.parentNode.removeChild(e); } });
-    document.querySelectorAll('.rrsx-covered').forEach(function (e) { e.classList.remove('rrsx-covered'); });
     if (ro) { ro.disconnect(); }
     if (W) { W.terminate(); W = null; }
     window.RRSX_DEAD = why || 1;
