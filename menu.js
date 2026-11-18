@@ -6530,3 +6530,16 @@
   }
   if (window.requestIdleCallback) { requestIdleCallback(add, { timeout: 3000 }); } else { setTimeout(add, 1500); }
 })();
+
+/* Basket recommendations (owner 2026-11-18): assets/basket/basket.js, loaded on the basket page only. */
+(function () {
+  if (window.__rrBskLoad) { return; }
+  window.__rrBskLoad = true;
+  function go() {
+    if (!document.body || !/\bsr-cart-page-body\b/.test(document.body.className)) { return; }
+    var s = document.createElement('script'); s.async = true;
+    s.src = 'https://1374223-star.github.io/rockpince-menu-counts/assets/basket/basket.js';
+    document.head.appendChild(s);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();

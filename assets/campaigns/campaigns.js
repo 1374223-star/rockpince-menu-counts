@@ -52,6 +52,10 @@
     if (!/success/i.test(location.pathname + location.search + location.hash)) { return; }
     S.x.filter(function (x) { return Date.now() - x[2] < 7 * DAY; }).forEach(function (x) { send('rr_camp_purchase', x[0], x[1]); });
     S.x = []; save();
+    try {   /* basket recommendations (assets/basket/basket.js) are measured the same way */
+      var b = JSON.parse(localStorage.getItem('rr-bsk') || '{}');
+      if (b.t && Date.now() - b.t < 7 * DAY) { send('rr_camp_purchase', 'basket_recs', b.g); b.t = 0; localStorage.setItem('rr-bsk', JSON.stringify(b)); }
+    } catch (e) { /* */ }
   }
   purchase();
   addEventListener('hashchange', purchase);
