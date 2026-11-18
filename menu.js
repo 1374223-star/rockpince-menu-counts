@@ -6607,3 +6607,20 @@
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
 })();
+
+/* Band alerts (owner 2026-11-18): assets/alerts/alerts.js, on product pages and band pages, when the browser is idle.
+   A small link that opens an email field in place; opt-in with a confirmation email (BandAlerts.js). Never a popup. */
+(function () {
+  if (window.__rrBaLoad) { return; }
+  window.__rrBaLoad = true;
+  function add() {
+    var s = document.createElement('script'); s.async = true;
+    s.src = 'https://1374223-star.github.io/rockpince-menu-counts/assets/alerts/alerts.js';
+    document.head.appendChild(s);
+  }
+  function go() {
+    if (!document.body || !(/\bproduct-page-body\b/.test(document.body.className) || /^\/zenekarok\/[^\/]+\/?$/.test(location.pathname))) { return; }
+    if (window.requestIdleCallback) { requestIdleCallback(add, { timeout: 3000 }); } else { setTimeout(add, 1500); }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();
