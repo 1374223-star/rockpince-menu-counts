@@ -5,6 +5,8 @@
    Ideas taken from the big tools: an exit message built from what this visitor looked at (Dynamic Yield's affinity overlay),
    a small tab that brings back a closed sign-up offer (Klaviyo's teaser), and a control group to prove real lift.
    Preview on any page: add #rr-camp=cart_exit (or welcome_back, recent_back, browse_exit) to the address.
+   Limits (owner 2026-11-18: not too many popups): one per visit, 24 hours between any two (the newsletter pop-up counts too),
+   at most 2 messages in 7 days.
    Every message has a small, quiet "Ne mutass több ilyet" link (owner 2026-11-18): it ends these messages and the automatic
    newsletter pop-up for good in that browser.
    GA4 events: rr_camp_show, rr_camp_click, rr_camp_close, rr_camp_off, rr_camp_holdout, rr_camp_purchase (rr_camp, rr_group). */
@@ -89,10 +91,11 @@
   /* ---------- may a message appear now? ---------- */
   function blocked() {
     if (shownNow || sess('-done') === '1') { return true; }
-    if (Object.keys(S.c).some(function (k) { return Date.now() - S.c[k] < DAY; })) { return true; }
+    var when = Object.keys(S.c).map(function (k) { return Date.now() - S.c[k]; });
+    if (when.some(function (a) { return a < DAY; }) || when.filter(function (a) { return a < 7 * DAY; }).length >= 2) { return true; }
     var over = document.querySelectorAll('.rr-nl-bg, .fancybox-container, .modal.show, .nanobar-cookie-box');
     for (var i = 0; i < over.length; i++) { if (over[i].getClientRects().length && getComputedStyle(over[i]).visibility !== 'hidden') { return true; } }
-    try { var n = JSON.parse(localStorage.getItem('rr-nl-pop') || '{}'); if (n.shown && Date.now() - n.shown < 10 * MIN) { return true; } } catch (e) { /* */ }
+    try { var n = JSON.parse(localStorage.getItem('rr-nl-pop') || '{}'); if (n.shown && Date.now() - n.shown < DAY) { return true; } } catch (e) { /* */ }
     return !!(document.documentElement.classList.contains('rrsx-sheet'));
   }
   function group(id) {

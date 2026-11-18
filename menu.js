@@ -795,6 +795,10 @@
   window.__rrSizeGuard = true;
   var PLACEHOLDER = 'Válassz méretet';
   var WARNING = 'Kérjük, válassz méretet!';
+  function isVoucher(el) {   /* the gift voucher's "size" is its value */
+    var f = el.closest && el.closest('form'), i = f && f.querySelector('input[name="product_id"]');
+    return !!(i && i.value === '246284');
+  }
 
   function optionSelects(root) {
     return root ? Array.prototype.slice.call(root.querySelectorAll('select[name^="option["]')) : [];
@@ -805,7 +809,7 @@
     select.setAttribute('data-rr-placeholder', '1');
     var opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = PLACEHOLDER;
+    opt.textContent = isVoucher(select) ? 'Válassz összeget' : PLACEHOLDER;
     opt.disabled = true;
     select.insertBefore(opt, select.firstChild);
     select.value = '';
@@ -819,7 +823,7 @@
       var p = document.createElement('div');
       p.className = 'rr-size-warning';
       p.style.cssText = 'color:#ff5a55;font-weight:700;font-size:14px;margin-top:6px';
-      p.appendChild(document.createTextNode(WARNING));
+      p.appendChild(document.createTextNode(isVoucher(select) ? 'Kérjük, válassz összeget!' : WARNING));
       box.appendChild(p);
     }
     try { select.focus(); select.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* old browser */ }
@@ -2043,8 +2047,9 @@
       box.appendChild(wrap);
     } else {
       var s = el('select', 'excluded-extra');
-      s.innerHTML = '<option value="">Válassz méretet (' + data.opts.length + ')</option>' +
-        data.opts.map(function (o) { return '<option value="' + esc(o.v) + '">' + esc(o.l + (o.x ? ' ' + o.x : '')) + '</option>'; }).join('');
+      var isGift = !!card.querySelector('a[href$="-246284"]');   /* the gift voucher's options are amounts */
+      s.innerHTML = '<option value="">' + (isGift ? 'Válassz összeget' : 'Válassz méretet') + ' (' + data.opts.length + ')</option>' +
+        data.opts.map(function (o) { return '<option value="' + esc(o.v) + '">' + esc(isGift && o.x ? ft(Number(o.x.replace(/\D/g, ''))) : o.l + (o.x ? ' ' + o.x : '')) + '</option>'; }).join('');
       s.addEventListener('change', function () { pick(s.value); });
       box.appendChild(s);
     }
@@ -2102,7 +2107,7 @@
     if (!box || btn.getAttribute('data-rr-pass') === '1') { return; }
     ev.preventDefault();
     ev.stopImmediatePropagation();
-    if (!box.querySelector('.warn')) { box.appendChild(el('div', 'warn', 'Válassz méretet!')); }
+    if (!box.querySelector('.warn')) { box.appendChild(el('div', 'warn', box.closest('.product-card') && box.closest('.product-card').querySelector('a[href$="-246284"]') ? 'Válassz összeget!' : 'Válassz méretet!')); }
     box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
   }, true);
 
@@ -3030,14 +3035,21 @@
   var AUTO = true;  /* owner 2026-11-15: coupon emails live, pop-up on (false: only #rr-nl opens it) */
   if (!AUTO) { return; }
   var touch = window.matchMedia && matchMedia('(hover: none)').matches;
+  /* owner 2026-11-18: not too many popups, so it waits if an on-site message (assets/campaigns) was shown in the last 24 hours */
+  function auto() {
+    var c = {};
+    try { c = (JSON.parse(get('rr-camp') || '{}') || {}).c || {}; } catch (e) { c = {}; }
+    if (document.querySelector('.rrc') || Object.keys(c).some(function (k) { return Date.now() - c[k] < DAY; })) { return; }
+    open();
+  }
   if (touch) {
-    if (st.views >= 2) { setTimeout(open, 40000); }
+    if (st.views >= 2) { setTimeout(auto, 40000); }
   } else {
     var armedAt = Date.now() + 5000;
     document.addEventListener('mouseout', function leave(e) {
       if (e.relatedTarget || e.clientY > 8 || Date.now() < armedAt) { return; }
       document.removeEventListener('mouseout', leave);
-      open();
+      auto();
     });
   }
 })();
@@ -6542,4 +6554,56 @@
     document.head.appendChild(s);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();
+
+/* Gift voucher (owner 2026-11-18). The product is a 0 Ft item whose value is its option, so the page said "0 Ft" and
+   "Válassz méretet" and promised shipping. Here it shows the amount, and what the buyer really gets. */
+(function () {
+  'use strict';
+  if (window.__rrVoucher) { return; }
+  window.__rrVoucher = true;
+  var ID = '246284';
+  function ft(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + '\u00a0Ft'; }
+  function value(o) { var m = String(o.textContent).replace(/\s/g, '').match(/\+?(\d+)Ft$/); return m ? Number(m[1]) : 0; }
+  function cards() {
+    Array.prototype.forEach.call(document.querySelectorAll('a.product-card__title-link[href$="-' + ID + '"]'), function (a) {
+      var c = a.closest('.product-card'), p = c && c.querySelector('.snapshot-price, .product-price');
+      if (p) { p.textContent = ft(1000) + '-tól'; }
+    });
+    if (/ajandekutalvanyok-15430/.test(location.pathname)) {   /* the shop's internal 1 Ft item does not belong next to it */
+      Array.prototype.forEach.call(document.querySelectorAll('a.product-card__title-link[title="[WEBSHOP EGYÉB]"]'), function (a) {
+        var w = a.closest('.product-snapshot') || a.closest('.product-card'); if (w) { w.style.display = 'none'; }
+      });
+    }
+  }
+  function page() {
+    var id = document.querySelector('form#product input[name="product_id"]'), sel = document.querySelector('.product-cart-box select[name^="option["]');
+    if (!id || id.value !== ID || !sel) { return; }
+    document.documentElement.classList.add('rr-vch');
+    function prices(text) {
+      Array.prototype.forEach.call(document.querySelectorAll('.product-cart-box .product-page-price .product-price, .rr-sticky .t b'), function (p) { p.textContent = text; });
+    }
+    function paint() { var o = sel.options[sel.selectedIndex], v = o ? value(o) : 0; prices(v ? ft(v) : ft(1000) + '-tól'); }
+    [sel, document.querySelector('.rr-st-size')].forEach(function (s) {
+      if (!s) { return; }
+      Array.prototype.forEach.call(s.options, function (o) { var v = value(o); if (v) { o.textContent = ft(v); } else if (!o.value) { o.textContent = 'Válassz összeget'; } });
+    });
+    if (!sel.getAttribute('data-rr-vch')) { sel.setAttribute('data-rr-vch', '1'); sel.addEventListener('change', paint); }
+    paint();
+    var list = document.querySelector('.rr-trust');
+    if (list && !list.getAttribute('data-rr-vch')) {
+      list.setAttribute('data-rr-vch', '1');
+      var li = list.querySelectorAll('li');
+      [['A kódot e-mailben küldjük, a fizetés beérkezése után 1-2 munkanapon belül', 0], ['Nem jár le, online vásárlásnál váltható be', 1]].forEach(function (r) { if (li[r[1]]) { li[r[1]].lastChild.textContent = r[0]; } });
+      if (li[2]) { li[2].style.display = 'none'; }
+    }
+  }
+  function run() { cards(); page(); }
+  function start() {
+    var st = document.createElement('style');
+    st.textContent = 'html.rr-vch .rr-fs{display:none!important}';
+    document.head.appendChild(st);
+    run(); setTimeout(run, 400); setTimeout(run, 1500); setTimeout(run, 4000);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
 })();
