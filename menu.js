@@ -6663,7 +6663,7 @@
   if (window.__rrsxLoader) { return; }
   window.__rrsxLoader = true;
   var SRC = window.RRSX_SRC || 'https://1374223-star.github.io/rockpince-menu-counts/assets/search/search.js';
-  var PUBLIC = false, on = PUBLIC;
+  var PUBLIC = true, on = PUBLIC;
   try {
     var flag = new URLSearchParams(location.search).get('rrsx');
     if (flag === '0') { localStorage.removeItem('rrsx-test'); return; }
