@@ -2911,16 +2911,20 @@
   if (window.__rrNlPop) { return; }
   window.__rrNlPop = true;
   var path = location.pathname + location.search;
-  if (/checkout|kosar|route=account|success/i.test(path)) { return; }
+  if (/checkout|kosar|^\/cart(?:[/?]|$)|route=account|success/i.test(path)) { return; }   /* the basket's address is /cart */
   var KEY = 'rr-nl-pop', DAY = 864e5;
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
   var force = location.hash === '#rr-nl';
   var st = {};
   try { st = JSON.parse(get(KEY) || '{}') || {}; } catch (e) { st = {}; }
-  if (!force && (st.done || (st.shown && Date.now() - st.shown < 30 * DAY))) { return; }
-  st.views = (st.views || 0) + 1;
-  if (!force) { set(KEY, JSON.stringify(st)); }
+  if (!force && st.done) { return; }
+  /* owner 2026-11-18: in the 30 quiet days it does not open by itself, but the small -10% tab (assets/campaigns) can open it */
+  var quiet = !force && st.shown && Date.now() - st.shown < 30 * DAY;
+  if (!quiet) {
+    st.views = (st.views || 0) + 1;
+    if (!force) { set(KEY, JSON.stringify(st)); }
+  }
 
   var css =
     '.rr-nl-bg{position:fixed;inset:0;background:rgba(2,8,16,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s}' +
@@ -2955,7 +2959,7 @@
     '.rr-nl .ok h3{color:#e3f1fa}';
 
   function open() {
-    if (document.querySelector('.rr-nl-bg')) { return; }
+    if (window.__rrNlOff || document.querySelector('.rr-nl-bg')) { return; }
     st.shown = Date.now(); set(KEY, JSON.stringify(st));
     if (!document.getElementById('rr-nl-font')) {
       var fl = document.createElement('link'); fl.id = 'rr-nl-font'; fl.rel = 'stylesheet';
@@ -3020,7 +3024,9 @@
     });
   }
 
+  window.__rrNlOpen = open;
   if (force) { setTimeout(open, 600); return; }
+  if (quiet) { return; }
   var AUTO = true;  /* owner 2026-11-15: coupon emails live, pop-up on (false: only #rr-nl opens it) */
   if (!AUTO) { return; }
   var touch = window.matchMedia && matchMedia('(hover: none)').matches;
@@ -6509,4 +6515,18 @@
     }
     if (n++ < 30) { setTimeout(fix, n < 10 ? 300 : 1000); }   /* the register form is Vue and may render late */
   })();
+})();
+
+/* On-site messages (owner 2026-11-18, our own version of an OptiMonk-type tool): basket reminder, welcome back, recently viewed
+   and the small -10% tab. The code is in assets/campaigns/campaigns.js and loads when the browser is idle. */
+(function () {
+  if (window.__rrCampLoad) { return; }
+  window.__rrCampLoad = true;
+  window.RRCAMP_LIVE = true;
+  function add() {
+    var s = document.createElement('script'); s.async = true;
+    s.src = 'https://1374223-star.github.io/rockpince-menu-counts/assets/campaigns/campaigns.js';
+    document.head.appendChild(s);
+  }
+  if (window.requestIdleCallback) { requestIdleCallback(add, { timeout: 3000 }); } else { setTimeout(add, 1500); }
 })();
