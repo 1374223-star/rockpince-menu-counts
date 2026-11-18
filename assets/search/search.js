@@ -32,11 +32,18 @@
   /* ---------- the worker: downloads and parses the data, answers every query ---------- */
   function workerMain() {
     var FORMAT = 3, CACHE = 'rrsx-index-1', BUCKETS = 28, FRESH_DAYS = 30, EPOCH = Date.UTC(2020, 0, 1);
-    var BIT = { T: 1, B: 2, G: 4, P: 8, S: 16, O: 32, N: 64 }, FACET_SHIFT = 7;
+    var FACET_BASE = 7;     /* groups: 0 type, 1 band, 2 who, 3 price, 4 sale, 5 stock, 6 new, then one per facet */
     var D = null, N = 0, built = '', builtDay = 0, opts = null, split = false, base = '';
     var title, slug, img, hay = null, vocab = null, shardDone = {}, shardWait = {}, allText = null, active = 0, waiting = [];
     var scope = null, scopeN = 0, baseKey = null, baseList = null, baseLo = 0, baseHi = 0, lastFixed = null, lastTs = [];
-    var orders = {}, pass = null, latest = 0, cacheStore = null;
+    var orders = {}, pass = null, latest = 0, cacheStore = null, plan = null, planNo = 0;
+    /* which filter groups suit which kind of product, best first */
+    var PREF = { boot: ['heel', 'boot_height', 'boot_feature', 'toe', 'material', 'style', 'series'],
+      band: ['album', 'genre', 'era', 'origin', 'character', 'motif', 'print', 'fit', 'design'],
+      alt: ['style', 'pattern', 'neckline', 'sleeve', 'length', 'material', 'fit', 'occasion', 'motif', 'print'],
+      jewel: ['metal', 'stone', 'symbol', 'material', 'style'], fig: ['series', 'character', 'maker', 'recipient', 'material'],
+      gift: ['recipient', 'symbol', 'motif', 'material', 'series'], acc: ['symbol', 'material', 'metal', 'style', 'motif'] };
+    var MANY_BANDS = { genre: 1, era: 1, origin: 1 };
 
     function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[™®]/g, '').toLowerCase(); }
     function slugOf(t) { return String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
@@ -291,8 +298,48 @@
         if (ts.length) { var h = hay[i]; for (k = 0; k < ts.length; k++) { if (!test(h, ts[k])) { ok = 0; break; } } }
         if (ok) { out[n++] = i; var p = D.now[i]; if (p < lo) { lo = p; } if (p > hi) { hi = p; } }
       }
-      baseKey = text; baseList = out.subarray(0, n); baseLo = n ? lo : 0; baseHi = hi; lastFixed = fixed; lastTs = ts;
+      baseKey = text; baseList = out.subarray(0, n); baseLo = n ? lo : 0; baseHi = hi; lastFixed = fixed; lastTs = ts; plan = null;
       return baseList;
+    }
+    /* decided once for a page's or search's base results, from what is in stock there; clicks never change it */
+    function makePlan(list) {
+      var nF = D.facets.length, nV = D.values.length, nB = D.bands.length, vc = new Int32Array(nV), bc = new Int32Array(nB + 1), gc = new Int32Array(D.genders.length + 1), cov = new Int32Array(nF), seen = new Int32Array(nF).fill(-1);
+      var fam = { boot: 0, band: 0, alt: 0, jewel: 0, fig: 0, gift: 0, acc: 0 }, n = 0, anyKind = D.kinds.some(Boolean), i, k;
+      for (var x = 0; x < list.length; x++) {
+        i = list[x];
+        if (!D.stock[i]) { continue; }
+        n++;
+        var b = D.band[i], t = D.type[i], grp = t >= 0 ? D.types[t][1] : '', kind = b >= 0 ? D.kinds[b] : '';
+        var music = b >= 0 && (kind === 'Zenekar' || (!kind && !anyKind)), screen = kind === 'Film, anime, játék';
+        bc[b + 1]++; gc[D.gender[i] + 1]++;
+        if (grp === 'Lábbelik') { fam.boot++; } if (grp === 'Ékszerek') { fam.jewel++; } if (grp === 'Otthon és ajándék') { fam.gift++; } if (grp === 'Kiegészítők') { fam.acc++; }
+        if (grp === 'Figurák és anime' || screen) { fam.fig++; }
+        if (music) { fam.band++; } else if (grp === 'Ruhák' && !screen) { fam.alt++; }
+        for (k = D.vOff[i]; k < D.vOff[i + 1]; k++) { var v = D.vals[k], f = D.fOf[v]; vc[v]++; if (seen[f] !== i) { seen[f] = i; cov[f]++; } }
+      }
+      var bandItems = 0, bandsN = 0, rank = [], colour = false;
+      for (k = 1; k <= nB; k++) { bandItems += bc[k]; }
+      for (k = 1; k <= nB; k++) { if (bc[k] >= Math.max(2, bandItems * 0.01)) { bandsN++; } }
+      var wide = opts.adv ? 0.002 : 0.02, floor = n < 40 ? Math.max(3, n * 0.12) : Math.max(8, n * wide);
+      D.facets.forEach(function (fc, f) {
+        var key = fc[0], sum = 0, top = 0, kinds = 0, sq = 0, v;
+        for (v = 0; v < nV; v++) { if (D.fOf[v] === f && vc[v]) { sum += vc[v]; kinds++; if (vc[v] > top) { top = vc[v]; } sq += vc[v] * vc[v]; } }
+        if (key === 'colour') { colour = kinds > 1 && cov[f] >= Math.max(3, n * 0.05); return; }      /* a lone colour on a few products helps nobody */
+        if (cov[f] < floor) { return; }
+        if (kinds < 2 || top > cov[f] * 0.9 || top > n * 0.92) { return; }        /* one value covers nearly everything: nothing to choose */
+        if (MANY_BANDS[key] && (bandsN < 3 || fam.band < n * 0.25)) { return; }    /* a fact about the band: useless inside one band or away from band merch */
+        if (key === 'album' && (bandsN > 5 || !bandsN)) { return; }                /* album names only make sense for a few bands */
+        var fit = 0, share = 0;
+        Object.keys(PREF).forEach(function (name) {
+          var at = PREF[name].indexOf(key), part = n ? fam[name] / n : 0;
+          if (at >= 0 && part >= 0.08) { fit += part * Math.max(0.3, 1 - at * 0.07); share += part; }
+        });
+        var cs = cov[f] / n, spread = 1 - sq / (sum * sum), reach = Math.min(1, cs / Math.max(0.08, share || 1));
+        var value = fit ? fit * Math.sqrt(reach) * (0.4 + spread) : 0.05 * Math.sqrt(cs) * (0.4 + spread);
+        rank.push([f, value, fit >= 0.12 && reach >= 0.12 ? 1 : 0]);
+      });
+      rank.sort(function (a, b) { return b[1] - a[1] || a[0] - b[0]; });
+      return { no: ++planNo, n: n, vc: vc, bc: bc, gc: gc, colour: colour, rank: rank.map(function (r) { return [r[0], r[2]]; }) };
     }
     function score(i, ts, whole) {
       var t = ' ' + norm(title[i]) + ' ', s = 0, b = D.band[i], y = D.type[i];
@@ -342,13 +389,13 @@
     function run(q) {
       var t0 = performance.now(), list = getBase(q.text || ''), nT = D.types.length + 1, nB = D.bands.length + 1, nG = D.genders.length + 1, nV = D.values.length, nF = D.facets.length;
       var cT = new Int32Array(nT), cB = new Int32Array(nB), cG = new Int32Array(nG), cV = new Int32Array(nV), cover = new Int32Array(nF);
-      var relax = new Int32Array(FACET_SHIFT + nF), hist = new Int32Array(BUCKETS), sale = 0, gone = 0, fresh = 0, total = 0, sMin = 1e9, sMax = 0;
-      var sT = null, sB = null, sG = null, sV = null, need = 0, i;
+      var relax = new Int32Array(FACET_BASE + nF), hist = new Int32Array(BUCKETS), sale = 0, gone = 0, fresh = 0, total = 0, sMin = 1e9, sMax = 0;
+      var sT = null, sB = null, sG = null, sV = null, wanted = [], got = new Int32Array(nF).fill(-1), counted = new Int32Array(nF).fill(-1), i;
       function pick(a, n, off) { var s = new Uint8Array(n); a.forEach(function (v) { s[v + off] = 1; }); return s; }
       if (q.types.length) { sT = pick(q.types, nT, 1); }
       if (q.bands.length) { sB = pick(q.bands, nB, 1); }
       if (q.genders.length) { sG = pick(q.genders, nG, 1); }
-      if (q.vals.length) { sV = pick(q.vals, nV, 0); q.vals.forEach(function (v) { need |= (1 << (FACET_SHIFT + D.fOf[v])); }); }
+      if (q.vals.length) { sV = pick(q.vals, nV, 0); q.vals.forEach(function (v) { if (wanted.indexOf(D.fOf[v]) < 0) { wanted.push(D.fOf[v]); } }); }
       var min = q.min || 0, max = q.max || 1e12;
       if (q.max && min > max) { var sw = min; min = max; max = sw; }
       var freshFrom = D.hasDays ? builtDay - FRESH_DAYS : 1e9, span = Math.log((baseHi || 1) / (baseLo || 1)) || 1, lo = baseLo || 1;
@@ -356,46 +403,45 @@
       pass.fill(0);
       for (var n = 0; n < list.length; n++) {
         i = list[n];
-        var fail = 0, a = vOff[i], b = vOff[i + 1], v, k, p = now[i];
-        if (sT && !sT[type[i] + 1]) { fail |= 1; }
-        if (sB && !sB[band[i] + 1]) { fail |= 2; }
-        if (sG && !sG[gender[i] + 1]) { fail |= 4; }
-        if (p < min || p > max) { fail |= 8; }
-        if (q.sale && !sl[i]) { fail |= 16; }
-        if (!q.gone && !stock[i]) { fail |= 32; }
+        var fails = 0, group = -1, a = vOff[i], b = vOff[i + 1], v, k, p = now[i];     /* group: the one group this product fails */
+        if (sT && !sT[type[i] + 1]) { fails++; group = 0; }
+        if (sB && !sB[band[i] + 1]) { fails++; group = 1; }
+        if (sG && !sG[gender[i] + 1]) { fails++; group = 2; }
+        if (p < min || p > max) { fails++; group = 3; }
+        if (q.sale && !sl[i]) { fails++; group = 4; }
+        if (!q.gone && !stock[i]) { fails++; group = 5; }
         var isNew = days[i] >= freshFrom && days[i] > 0;
-        if (q.fresh && !isNew) { fail |= 64; }
-        if (need) {
-          var got = 0;
-          for (k = a; k < b; k++) { v = vals[k]; if (sV[v]) { got |= 1 << (FACET_SHIFT + fOf[v]); } }
-          fail |= need & ~got;
+        if (q.fresh && !isNew) { fails++; group = 6; }
+        if (fails > 1) { continue; }
+        if (wanted.length) {
+          for (k = a; k < b; k++) { v = vals[k]; if (sV[v]) { got[fOf[v]] = n; } }
+          for (k = 0; k < wanted.length; k++) { if (got[wanted[k]] !== n) { fails++; group = FACET_BASE + wanted[k]; } }
+          if (fails > 1) { continue; }      /* fails two groups: it counts nowhere */
         }
-        if (fail & (fail - 1)) { continue; }      /* fails two groups: it counts nowhere */
-        if (fail) { relax[31 - Math.clz32(fail)]++; }
-        if (!fail || fail === 1) { cT[type[i] + 1]++; }
-        if (!fail || fail === 2) { cB[band[i] + 1]++; }
-        if (!fail || fail === 4) { cG[gender[i] + 1]++; }
-        if (!fail || fail === 8) {
+        var ok = !fails;
+        if (fails) { relax[group]++; }
+        if (ok || group === 0) { cT[type[i] + 1]++; }
+        if (ok || group === 1) { cB[band[i] + 1]++; }
+        if (ok || group === 2) { cG[gender[i] + 1]++; }
+        if (ok || group === 3) {
           var h = Math.floor(Math.log(p / lo) / span * BUCKETS); hist[h >= BUCKETS ? BUCKETS - 1 : h < 0 ? 0 : h]++;
           if (p < sMin) { sMin = p; } if (p > sMax) { sMax = p; }
         }
-        if (sl[i] && (!fail || fail === 16)) { sale++; }
-        if (!stock[i] && (!fail || fail === 32)) { gone++; }
-        if (isNew && (!fail || fail === 64)) { fresh++; }
-        if (b > a) {
-          var mask = 0;
-          for (k = a; k < b; k++) {
-            v = vals[k];
-            var bit = 1 << (FACET_SHIFT + fOf[v]);
-            if (!fail || fail === bit) { cV[v]++; if (!(mask & bit)) { mask |= bit; cover[fOf[v]]++; } }
-          }
+        if (sl[i] && (ok || group === 4)) { sale++; }
+        if (!stock[i] && (ok || group === 5)) { gone++; }
+        if (isNew && (ok || group === 6)) { fresh++; }
+        for (k = a; k < b; k++) {
+          v = vals[k];
+          var fg = fOf[v];
+          if (ok || group === FACET_BASE + fg) { cV[v]++; if (counted[fg] !== n) { counted[fg] = n; cover[fg]++; } }
         }
-        if (!fail) { pass[i] = 1; total++; }
+        if (ok) { pass[i] = 1; total++; }
       }
       var sort = q.sort, chosen;
       if (sort === 'rel' && lastTs.length) { chosen = relevance(list, q); }
       else { chosen = picks(sort === 'new' || sort === 'rel' ? list : order(sort), q, total); }
-      var msg = { id: q.id, add: q.add, from: q.from, total: total, fixed: lastFixed, lo: baseLo, hi: baseHi, cT: cT, cB: cB, cG: cG, cV: cV, cover: cover, relax: relax,
+      if (!plan) { plan = makePlan(list); }
+      var msg = { id: q.id, plan: plan, add: q.add, from: q.from, total: total, fixed: lastFixed, lo: baseLo, hi: baseHi, cT: cT, cB: cB, cG: cG, cV: cV, cover: cover, relax: relax,
         hist: hist, sale: sale, gone: gone, fresh: fresh, sMin: total || sMax ? sMin : 0, sMax: sMax, ms: Math.round((performance.now() - t0) * 10) / 10 };
       var missing = {}, miss = false;
       chosen.forEach(function (p) { if (title[p] === undefined) { missing[shardOf(p)] = 1; miss = true; } });
@@ -456,6 +502,8 @@
     '.rrsx-f>summary:after{content:"";width:7px;height:7px;margin-right:3px;border:solid var(--ice);border-width:0 2px 2px 0;transform:rotate(45deg)}.rrsx-f[open]>summary:after{transform:rotate(225deg)}',
     '.rrsx-fn{min-width:20px;padding:0 6px;border-radius:10px;background:var(--red);font-size:12px;line-height:20px;text-align:center;letter-spacing:0;color:#fff}.rrsx-fn:empty{display:none}',
     '.rrsx-fb{padding:0 15px 13px}',
+    '.rrsx-xbtn{display:flex;align-items:center;gap:8px;width:100%;min-height:46px;padding:8px 15px;background:rgba(127,196,234,.08);border:0;border-bottom:1px solid var(--line);cursor:pointer;text-align:left;font-size:13px!important;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ice)!important}.rrsx-xbtn[hidden]{display:none}',
+    '.rrsx-xbtn span{flex:1}.rrsx-xbtn:after{content:"";width:7px;height:7px;margin-right:3px;border:solid var(--ice);border-width:0 2px 2px 0;transform:rotate(45deg)}.rrsx-xbtn[aria-expanded=true]:after{transform:rotate(225deg)}',
     '.rrsx-row{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:3px 2px;background:none;border:0;cursor:pointer;text-align:left;border-radius:4px}',
     '.rrsx-row:hover{background:rgba(127,196,234,.1)}.rrsx-row i{flex:none;width:17px;height:17px;border:1px solid #7fa3bb;border-radius:3px;background:var(--deep);position:relative}',
     '.rrsx-row.on i{background:var(--red);border-color:var(--red)}.rrsx-row.on i:after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}',
@@ -468,7 +516,7 @@
     '.rrsx-chip.on{background:var(--red);border-color:var(--red);color:#fff!important}.rrsx-chip small{opacity:.8;font-size:11px;margin-left:4px}',
     '.rrsx-cols{display:flex;flex-wrap:wrap;gap:2px 6px}.rrsx-col{display:flex;align-items:center;gap:6px;flex:0 0 auto;max-width:100%;min-height:34px;padding:3px;background:none;border:0;border-radius:5px;cursor:pointer;text-align:left}',
     '.rrsx-col:hover{background:rgba(127,196,234,.1)}.rrsx-col i{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.55)}.rrsx-col.on i{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--red)}',
-    '.rrsx-col span{white-space:nowrap}.rrsx-col b{min-width:27px;font-weight:400;font-size:11px;color:var(--mut)}',
+    '.rrsx-col span{white-space:nowrap}.rrsx-col b{min-width:27px;font-weight:400;font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}.rrsx-chip small{font-variant-numeric:tabular-nums}',
     '.rrsx-hist{display:flex;align-items:flex-end;gap:1px;height:44px;margin-bottom:-1px}.rrsx-hist u{flex:1;min-height:0;background:#2f6488;text-decoration:none}.rrsx-hist u.in{background:var(--ice)}',
     '.rrsx-range{position:relative;height:30px}.rrsx-range:before{content:"";position:absolute;left:0;right:0;top:13px;height:3px;background:#2f6488}',
     '.rrsx-range input{position:absolute;left:0;top:0;width:100%;height:30px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}',
@@ -520,7 +568,7 @@
   var M = null, W = null, root = null, side = null, dock = null, shade = null, styleEl = null, pill = null, $ = {}, secs = {}, seq = 0, shown = 0, total = 0, last = null;
   var restore = null, timer = 0, ready = false, busy = false, engaged = false, opener = null, wantSheet = false, started = false, guard = 0, ro = null, sideDirty = false, wired = false;
   var ADVANCED = location.hash === '#reszletes';
-  var lo = 0, hi = 0, topPx = 0, fitting = false, wantEng = false, swKept = {};
+  var lo = 0, hi = 0, topPx = 0, fitting = false, wantEng = false, swKept = {}, P = null, planSig = '', byFacet = [];
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function n(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
@@ -685,15 +733,58 @@
     h += sec('price', 'Ár', '<div class="rrsx-hist" data-p="hist" aria-hidden="true">' + new Array(BUCKETS + 1).join('<u></u>') + '</div><div class="rrsx-range"><input data-p="r1" type="range" min="0" max="1000" value="0" aria-label="Legalacsonyabb ár"><input data-p="r2" type="range" min="0" max="1000" value="1000" aria-label="Legmagasabb ár"></div>' +
       '<div class="rrsx-pr"><input data-p="p1" type="number" inputmode="numeric" min="0" aria-label="Ár ettől (Ft)"><span>és</span><input data-p="p2" type="number" inputmode="numeric" min="0" aria-label="Ár eddig (Ft)"><span>Ft</span></div>', true);
     h += sec('gen', 'Kinek', '<div class="rrsx-chips" data-l></div>', true);
-    bandGroups().forEach(function (g, i) { h += sec(g.key, g.label, findBox(g.key, g.label + ' keresése') + '<div data-l></div>', i === 0); });
-    order.forEach(function (fi) { if (colour.indexOf(fi) < 0) { h += facetSec(fi); } });
+    var rest = '';
+    bandGroups().forEach(function (g) { rest += sec(g.key, g.label, findBox(g.key, g.label + ' keresése') + '<div data-l></div>', false); });
+    order.forEach(function (fi) { if (colour.indexOf(fi) < 0) { rest += facetSec(fi); } });
+    h += '<div data-s="main"></div><button type="button" class="rrsx-xbtn" data-s="xbtn" aria-expanded="false" aria-controls="rrsx-xtra" hidden><span>További szűrők</span><em class="rrsx-fn" style="font-style:normal"></em></button>' +
+      '<div id="rrsx-xtra" data-s="xtra" hidden></div><div data-s="spare" hidden>' + rest + '</div>';
     $.body.innerHTML = h;
+    ['main', 'xbtn', 'xtra', 'spare'].forEach(function (k) { $[k] = $.body.querySelector('[data-s=' + k + ']'); });
+    byFacet = M.facets.map(function () { return []; }); M.values.forEach(function (v, i) { byFacet[v[0]].push(i); });
     secs = {};
     $.body.querySelectorAll('[data-sec]').forEach(function (e) { secs[e.getAttribute('data-sec')] = { el: e, list: e.querySelector('[data-l]'), find: e.querySelector('[data-find]'), q: '', all: false, dirty: true }; });
+    colour.forEach(function (fi) { secs['f' + fi].colour = true; });
     $.body.querySelectorAll('[data-p]').forEach(function (e) { $[e.getAttribute('data-p')] = e; });
     $.bars = [].slice.call($.hist.children);
     $.sw = {}; $.body.querySelectorAll('[data-tg]').forEach(function (e) { $.sw[e.getAttribute('data-tg')] = e; });
     wirePrice();
+  }
+  /* ---------- which groups this page offers: fixed when its results load, so a click never adds, removes or moves one ---------- */
+  function picked(fi) { return S.vals.filter(function (v) { return M.values[v][0] === fi; }).length; }
+  function bandPicked(g) { var kinds = M.kinds || []; return S.bands.filter(function (i) { return g.kind ? kinds[i] === g.kind : KIND_LABELS.indexOf(kinds[i]) < 0; }).length; }
+  function setXtra(on) { $.xtra.hidden = !on; $.xbtn.setAttribute('aria-expanded', String(on)); }
+  function promote(s) { s.allowed = true; if (s.el.parentNode !== $.main) { $.main.appendChild(s.el); } s.el.open = true; }
+  function promoteActive() {    /* a shared link can name a group this page would not offer by itself: it is always shown */
+    M.facets.forEach(function (f, fi) { var s = secs['f' + fi]; if (f[0] !== 'colour' && picked(fi)) { promote(s); } });
+    bandGroups().forEach(function (g) { if (bandPicked(g)) { promote(secs[g.key]); } });
+  }
+  function applyPlan(p) {
+    if (!p.n && P) { return; }       /* a search with no results keeps the panel as it is */
+    P = p;
+    var groups = bandGroups().map(function (g) {
+      var kinds = M.kinds || [], names = 0, sum = 0;
+      M.bands.forEach(function (b, i) { if (p.bc[i + 1] && (g.kind ? kinds[i] === g.kind : KIND_LABELS.indexOf(kinds[i]) < 0)) { names++; sum += p.bc[i + 1]; } });
+      return { g: g, names: names, sum: sum };
+    }).filter(function (x) { return x.names > 1; }).sort(function (a, b) { return b.sum - a.sum; });
+    var strong = p.rank.filter(function (r) { return r[1]; }), most = ADVANCED ? 6 : 4, lead = strong.slice(0, most).map(function (r) { return r[0]; });
+    var more = p.rank.map(function (r) { return r[0]; }).filter(function (f) { return lead.indexOf(f) < 0; }).slice(0, ADVANCED ? 24 : 8);
+    var sig = groups.map(function (x) { return x.g.key; }).join() + '|' + lead.join() + '|' + more.join();
+    if (sig === planSig) { return; }
+    planSig = sig;
+    Object.keys(secs).forEach(function (k) {
+      if (k[0] !== 'k' && !/^f\d/.test(k)) { return; }
+      var s = secs[k];
+      if (s.colour) { s.allowed = p.colour; s.order = null; s.nextOrder = 0; s.on = false; return; }
+      s.allowed = false; s.on = false; s.order = null; s.nextOrder = 0; s.all = false; s.el.hidden = true; s.el.open = false; s.dirty = true; $.spare.appendChild(s.el);
+    });
+    var phone = MOBILE.matches, opens = groups.length ? (phone ? 0 : 1) : (phone ? 1 : 2);
+    if (groups.length) { var first = secs[groups[0].g.key]; first.allowed = true; first.el.open = true; $.main.appendChild(first.el); }
+    lead.forEach(function (f, i) { var s = secs['f' + f]; s.allowed = true; s.el.open = i < opens; $.main.appendChild(s.el); });
+    groups.slice(1).forEach(function (x) { var s = secs[x.g.key]; s.allowed = true; $.xtra.appendChild(s.el); });
+    more.forEach(function (f) { var s = secs['f' + f]; s.allowed = true; $.xtra.appendChild(s.el); });
+    promoteActive();
+    $.xbtn.hidden = !$.xtra.children.length;
+    setXtra(ADVANCED && !!$.xtra.children.length);
   }
   function setSec(s, show, selected) {
     s.on = s.on || show;      /* a group that has appeared stays: the panel never jumps */
@@ -701,12 +792,13 @@
     var badge = s.el.querySelector('.rrsx-fn');
     if (badge) { var t = selected ? String(selected) : ''; if (badge.textContent !== t) { badge.textContent = t; } }
   }
-  function drawLongList(s, rows, limit) {     /* rows: [count, html, label, selected, key] */
+  function drawLongList(s, rows, limit, cap) {     /* rows: [count, html, label, selected, key] */
     var q = plain(s.q), all = ordered(s, rows).filter(function (r) { return r[3] || !q || plain(r[2]).indexOf(q) >= 0; });
-    var lim = s.all || q ? 80 : limit, list = all.filter(function (r, i) { return i < lim || r[3]; }), more = all.length - list.length;
+    var lim = s.all || q ? cap || 80 : limit, list = all.filter(function (r, i) { return i < lim || r[3]; }), more = all.length - list.length;
     if (s.find) { var long = rows.length > limit + 2; if (s.find.hidden === long) { s.find.hidden = !long; } }
     setHtml(s.list, list.map(function (r) { return r[1]; }).join('') +
-      (more > 0 ? '<button type="button" class="rrsx-more" data-more="1">Több mutatása (' + n(more) + ')</button>' : '') +
+      (more > 0 && !s.all && !q ? '<button type="button" class="rrsx-more" data-more="1">Több mutatása (' + n(more) + ')</button>' : '') +
+      (more > 0 && (s.all || q) ? '<div class="rrsx-mt">A többit a keresővel találod meg</div>' : '') +
       (!all.length ? '<div class="rrsx-mt">Nincs találat</div>' : ''));
   }
   function drawTypes(s, m) {
@@ -736,40 +828,38 @@
     [].forEach.call(s.list.querySelectorAll('.rrsx-g'), function (d) { var name = d.getAttribute('data-g'); if (s.groups[name] === undefined) { s.groups[name] = d.open; } });
   }
   function drawBands(g, s, m) {
-    var rows = [], kinds = M.kinds || [], picked = 0;
+    var count = bandPicked(g);
+    setSec(s, !!s.allowed || count > 0, count);
+    if (s.el.hidden || !s.el.open) { s.dirty = true; return; }
+    var rows = [], kinds = M.kinds || [];
     M.bands.forEach(function (b, i) {
-      var inGroup = g.kind ? kinds[i] === g.kind : KIND_LABELS.indexOf(kinds[i]) < 0;
-      if (!inGroup) { return; }
-      var c = m.cB[i + 1], on = S.bands.indexOf(i) >= 0, key = 'b' + i;
-      if (on) { picked++; }
-      if (c || on || kept(s, key)) { rows.push([c, row('b', i, b, c, on), b, on, key]); }
+      if (!(g.kind ? kinds[i] === g.kind : KIND_LABELS.indexOf(kinds[i]) < 0)) { return; }
+      var c = m.cB[i + 1], on = S.bands.indexOf(i) >= 0, key = 'b' + i, base = P ? P.bc[i + 1] : c;
+      if (c || on || base || kept(s, key)) { rows.push([base, row('b', i, b, c, on), b, on, key]); }
     });
-    ordered(s, rows);
-    setSec(s, rows.length > 1 || picked > 0, picked);
-    if (!s.el.hidden && s.el.open) { drawLongList(s, rows, 8); s.dirty = false; } else { s.dirty = true; }
+    s.dirty = false;
+    drawLongList(s, rows, 8);
   }
   function drawFacet(fi, s, m) {
-    var rows = [], picked = 0, f = M.facets[fi], isCol = f[0] === 'colour', vals = [];
-    M.values.forEach(function (v, i) { if (v[0] === fi) { vals.push(i); } });
-    vals.forEach(function (i) {
-      var c = m.cV[i], on = S.vals.indexOf(i) >= 0, label = M.values[i][1], key = 'v' + i;
-      if (on) { picked++; }
-      if (!c && !on && !kept(s, key)) { return; }
-      var html;
-      if (isCol) {
-        html = '<button type="button" class="rrsx-col' + (on ? ' on' : '') + '" data-k="v" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + ' aria-label="' + esc(label) + ', ' + n(c) + ' termék"><i aria-hidden="true" style="background:' + (SWATCH[label] || 'repeating-linear-gradient(45deg,#777 0 4px,#aaa 4px 8px)') + '"></i><span>' + esc(label) + '</span><b>' + n(c) + '</b></button>';
-      } else { html = row('v', i, label, c, on); }
-      rows.push([c, html, label, on, key]);
-    });
-    ordered(s, rows);
-    var relevant = picked > 0 || (isCol ? rows.length > 0 : rows.length > 1 && m.cover[fi] >= Math.max(3, m.total * 0.05));
-    setSec(s, relevant, picked);
+    var f = M.facets[fi], isCol = !!s.colour, count = picked(fi);
+    setSec(s, !!s.allowed || count > 0, count);
     if (s.el.hidden || !s.el.open) { s.dirty = true; return; }
     s.dirty = false;
+    var rows = [], album = f[0] === 'album';
+    byFacet[fi].forEach(function (i) {
+      var c = m.cV[i], on = S.vals.indexOf(i) >= 0, label = M.values[i][1], key = 'v' + i, base = P ? P.vc[i] : c;
+      if (!c && !on && !base && !kept(s, key)) { return; }
+      var html;
+      if (isCol) {
+        html = '<button type="button" class="rrsx-col' + (on ? ' on' : '') + '" data-k="v" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + ' aria-label="' + esc(label) + ', ' + n(c) + ' termék"><i aria-hidden="true" style="background:' + (SWATCH[label] || 'repeating-linear-gradient(45deg,#777 0 4px,#aaa 4px 8px)') + '"></i><span>' + esc(label) + '</span><b style="min-width:max(27px,' + n(Math.max(base, c)).length + 'ch)">' + n(c) + '</b></button>';
+      } else { html = row('v', i, label, c, on); }
+      rows.push([base, html, label, on, key]);
+    });
     if (isCol) {
+      ordered(s, rows);
       rows.sort(function (a, b) { return COLOUR_ORDER.indexOf(a[2]) - COLOUR_ORDER.indexOf(b[2]); });
       setHtml(s.list, rows.map(function (r) { return r[1]; }).join(''));
-    } else { drawLongList(s, rows, 8); }
+    } else { drawLongList(s, rows, album ? 6 : 8, album ? 40 : 80); }
   }
   function drawPrice(m) {
     lo = m.lo; hi = m.hi;
@@ -821,11 +911,13 @@
       setHtml(g.list, M.genders.map(function (x, i) {
         var on = S.genders.indexOf(i) >= 0, c = m.cG[i + 1];
         if (c) { g.kept[i] = 1; }
-        return c || on || g.kept[i] ? '<button type="button" class="rrsx-chip' + (on ? ' on' : '') + '" data-k="g" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + '>' + esc(x) + '<small>' + n(c) + '</small></button>' : '';
+        return c || on || g.kept[i] ? '<button type="button" class="rrsx-chip' + (on ? ' on' : '') + '" data-k="g" data-v="' + i + '" aria-pressed="' + on + '"' + (c || on ? '' : ' disabled') + '>' + esc(x) + '<small style="display:inline-block;min-width:' + n(Math.max(P ? P.gc[i + 1] : 0, c)).length + 'ch">' + n(c) + '</small></button>' : '';
       }).join(''));
     }
     drawPrice(m);
     M.facets.forEach(function (f, fi) { drawFacet(fi, secs['f' + fi], m); });
+    var inXtra = 0; [].forEach.call($.xtra.children, function (e) { var b = e.querySelector('.rrsx-fn'); inXtra += b ? +b.textContent || 0 : 0; });
+    var xb = $.xbtn.querySelector('.rrsx-fn'), xt = inXtra ? String(inXtra) : ''; if (xb.textContent !== xt) { xb.textContent = xt; }
     [['sale', S.sale, m.sale], ['fresh', S.fresh, m.fresh]].forEach(function (x) {
       var b = $.sw[x[0]];
       swKept[x[0]] = swKept[x[0]] || x[1] || x[2] > 0;
@@ -876,6 +968,7 @@
     if ($.sc) { $.sc.textContent = n(total) + ' termék'; }
     var fx = m.fixed ? Object.keys(m.fixed).map(function (k) { return m.fixed[k]; }) : null;
     $.note.innerHTML = fx && total ? 'Nem találtuk pontosan ezt, ezért erre keresünk: <b>' + esc(fx.join(', ')) + '</b>' : ''; $.note.style.display = fx && total ? '' : 'none';
+    if (m.plan) { applyPlan(m.plan); }
     drawActive(); drawSide(m);
     if (CAT_PAGE && !wantEng) { return; }
     function finish() {
@@ -1028,6 +1121,7 @@
     var k = b.getAttribute('data-k'), v = +b.getAttribute('data-v'), rk = b.getAttribute('data-rk'), tg = b.getAttribute('data-tg'), dens = b.getAttribute('data-dens');
     if (dens !== null) { density(+dens, true); return; }
     if (b === $.open) { sheet(true, b); return; }
+    if (b === $.xbtn) { setXtra($.xtra.hidden); return; }
     if (b === $.see || b.classList.contains('rrsx-close')) { sheet(false); return; }
     if (b === $.load) { if (!busy) { ask(true); } return; }
     if (!M) { return; }
@@ -1101,7 +1195,7 @@
     MOBILE.addEventListener('change', function () { placeSide(); if (last) { drawSide(last); } });
     new IntersectionObserver(function (en) { if (en[0].isIntersecting && ready && !busy && shown && shown < total && (!CAT_PAGE || engaged)) { ask(true); } }, { rootMargin: '700px 0px' }).observe($.end);
     root.addEventListener('error', function (e) { var i = e.target; if (i.tagName === 'IMG' && /\.webp$/.test(i.src)) { i.src = i.src.replace(/\.webp$/, ''); } }, true);
-    window.addEventListener('hashchange', function () { readHash(); $.sort.value = S.sort; if (CAT_PAGE) { setEngaged(filterCount() > 0); } ask(false); });
+    window.addEventListener('hashchange', function () { readHash(); promoteActive(); $.sort.value = S.sort; if (CAT_PAGE) { setEngaged(filterCount() > 0); } ask(false); });
     addEventListener('scroll', queueFit, { passive: true }); addEventListener('resize', queueFit, { passive: true });
     placeTop();
   }
@@ -1135,6 +1229,7 @@
     if (wantSheet) { sheet(true, document.getElementById('js-open-filter-btn') || pill); }
     window.RRSX_ADV = function () {     /* the Részletes keresés button, when this page is already open */
       var h = root.querySelector('.rrsx-h1'); if (h) { h.textContent = 'Részletes keresés'; }
+      if ($.xtra && $.xtra.children.length) { setXtra(true); }
       if (MOBILE.matches) { sheet(true); return; }
       side.scrollTop = 0; scrollTo(0, Math.max(0, root.getBoundingClientRect().top + scrollY - topPx - 12));
     };
@@ -1149,7 +1244,7 @@
       if (m.fill) { fill(m); return; }
       if (m.id === seq) { window.__rrsxMs = m.ms; result(m); }
     };
-    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', noSplit: !!window.RRSX_NO_SPLIT } });
+    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', adv: ADVANCED, noSplit: !!window.RRSX_NO_SPLIT } });
   }
 
   /* ---------- on phones nothing heavy starts until the filter button is used ---------- */
