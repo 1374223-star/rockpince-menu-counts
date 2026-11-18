@@ -951,7 +951,7 @@
   function makeSide() {
     side = document.createElement('aside');
     side.className = 'rrsx-side rrsx-ui'; side.setAttribute('aria-labelledby', 'rrsx-st');
-    side.innerHTML = '<div class="rrsx-side-h"><h2 id="rrsx-st">' + (CAT_PAGE ? 'Termék szűrés' : 'Szűrők') + '</h2><span class="rrsx-sc" data-s="sc"></span><button type="button" class="rrsx-close" aria-label="Szűrők bezárása">&times;</button></div>' +
+    side.innerHTML = '<div class="rrsx-side-h"><h2 id="rrsx-st">' + 'Szűrők' + '</h2><span class="rrsx-sc" data-s="sc"></span><button type="button" class="rrsx-close" aria-label="Szűrők bezárása">&times;</button></div>' +
       '<div data-s="body"><div class="rrsx-wait">Szűrők betöltése...</div></div><div class="rrsx-foot"><button type="button" data-s="see">Találatok mutatása</button></div>';
     $.sc = side.querySelector('[data-s=sc]'); $.body = side.querySelector('[data-s=body]'); $.see = side.querySelector('[data-s=see]');
     shade = document.createElement('div'); shade.className = 'rrsx-shade'; document.body.appendChild(shade);
