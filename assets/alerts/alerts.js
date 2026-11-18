@@ -71,7 +71,7 @@
     var x = new XMLHttpRequest();
     x.open('POST', APP + '?rr=ba', true);
     x.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
-    x.timeout = 25000;
+    x.timeout = 45000;   /* the order tracker sheet can be slow to answer */
     x.onload = function () { var r = null; try { r = JSON.parse(x.responseText); } catch (e) { /* bad */ } done(r || {}); };
     x.onerror = x.ontimeout = function () { done({}); };
     x.send(JSON.stringify(data));
