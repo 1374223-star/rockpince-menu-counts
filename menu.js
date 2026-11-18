@@ -4598,7 +4598,7 @@
    - "Utoljára megtekintett termékek" heading was black (unreadable) on the info pages.
    - Pinterest "Mentés" / Facebook "Megosztás" buttons hidden everywhere (info pages had them under the content).
    - Product page: "Küldd el egy barátodnak" buttons under the photo - Messenger, Instagram, TikTok. Phones open the
-     Messenger app directly, and the phone's own share sheet for Instagram / TikTok (neither has a share link). Desktop
+     Messenger app directly, and the phone's own share window for Instagram / TikTok (neither has a share link). Desktop
      copies the product link and opens that site's inbox to paste it in. */
 (function () {
   if (window.__rrFb17) { return; }
@@ -4640,27 +4640,30 @@
     else { prompt('Másold ki a linket:', u); }
     return w;
   }
-  /* owner 2026-11-17: on phones the system share sheet was too generic. Instagram and TikTok have no link that opens
-     a chat with text filled in, so the product link is copied first and then the app's own messages screen opens
-     (these https links open the installed app on phones, or the website if the app is missing). */
-  function share(site) {
+  /* owner 2026-11-18: on phones the button must lead to sending the product to a friend, like Messenger. Instagram and
+     TikTok have no public link that opens their "send to" screen, so the phone's own share window opens with the product
+     link attached: pick the app, then the friend. The link is copied as well, in case the app is not in that list.
+     Where the share window does not exist (in-app browsers), the link is copied and the app's messages screen opens. */
+  function share(site, hint) {
     if (!TOUCH) { copyOpen(site); return; }
-    var u = link(), go = function () { setTimeout(function () { location.href = site; }, 900); };
-    function copied() { toast('Link kimásolva - illeszd be az üzenetbe'); go(); }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(u).then(copied, function () {
-        if (navigator.share) { navigator.share({ title: title(), url: u }).catch(function () {}); } else { prompt('Másold ki a linket:', u); }
-      });
-    } else if (navigator.share) { navigator.share({ title: title(), url: u }).catch(function () {}); }
-    else { prompt('Másold ki a linket:', u); go(); }
+    var u = link(), data = { title: title(), url: u };
+    function inbox() {
+      function go() { toast('Link kimásolva - illeszd be az üzenetbe'); setTimeout(function () { location.href = site; }, 900); }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(go, function () { prompt('Másold ki a linket:', u); }); }
+      else { prompt('Másold ki a linket:', u); }
+    }
+    if (!navigator.share || (navigator.canShare && !navigator.canShare(data))) { inbox(); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).catch(function () {}); }
+    toast(hint);
+    navigator.share(data).catch(function (e) { if (!e || e.name !== 'AbortError') { inbox(); } });
   }
   var ACT = {
     m: function () {
       if (TOUCH) { location.href = 'fb-messenger://share/?link=' + encodeURIComponent(link()); return; }
       copyOpen('https://www.messenger.com/');
     },
-    i: function () { share('https://www.instagram.com/direct/inbox/'); },
-    t: function () { share('https://www.tiktok.com/messages'); }
+    i: function () { share('https://www.instagram.com/direct/inbox/', 'Válaszd az Instagramot, majd a barátodat'); },
+    t: function () { share('https://www.tiktok.com/messages', 'Válaszd a TikTokot, majd a barátodat'); }
   };
   function mount() {
     var img = document.getElementById('product-image');
