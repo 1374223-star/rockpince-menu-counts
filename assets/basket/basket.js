@@ -88,7 +88,8 @@
     send('rr_camp_click', g);
     var body = 'quantity=1&product_id=' + encodeURIComponent(id) + '&product_collaterals=&product_addons=&redirect=' + encodeURIComponent(location.href.split('#')[0]);
     fetch(ADD, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' }, body: body })
-      .then(function (r) { if (!r.ok) { throw new Error('add'); } location.reload(); })
+      .then(function (r) { if (!r.ok) { throw new Error('add'); } return r.text(); })   /* read it to the end: reloading earlier can lose the item */
+      .then(function () { location.reload(); })
       .catch(function () { location.href = '/' + D.p[id][4] + '-' + id; });
   }
   function render(g) {
