@@ -519,6 +519,7 @@
   var HEAD = PREVIEW || CAT_PAGE ? null : document.getElementById('filter_keyword');
   var M = null, W = null, root = null, side = null, dock = null, shade = null, styleEl = null, pill = null, $ = {}, secs = {}, seq = 0, shown = 0, total = 0, last = null;
   var restore = null, timer = 0, ready = false, busy = false, engaged = false, opener = null, wantSheet = false, started = false, guard = 0, ro = null, sideDirty = false, wired = false;
+  var ADVANCED = location.hash === '#reszletes';
   var lo = 0, hi = 0, topPx = 0, fitting = false, wantEng = false, swKept = {};
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -988,7 +989,7 @@
       dock = document.createElement('div'); dock.id = 'rrsx-dock'; dock.className = 'rrsx-ui';
       if (getComputedStyle(aside).position === 'static') { aside.style.position = 'relative'; }
     } else {
-      root.innerHTML = '<h1 class="rrsx-h1">Keresés</h1><div class="rrsx-box"><input class="rrsx-q" type="search" enterkeyhint="search" autocomplete="off" aria-label="Keresés" placeholder="Keress zenekarra, termékre, cikkszámra"><button type="button" class="rrsx-x" aria-label="Keresés törlése">&times;</button></div>' +
+      root.innerHTML = '<h1 class="rrsx-h1">' + (ADVANCED ? 'Részletes keresés' : 'Keresés') + '</h1><div class="rrsx-box"><input class="rrsx-q" type="search" enterkeyhint="search" autocomplete="off" aria-label="Keresés" placeholder="Keress zenekarra, termékre, cikkszámra"><button type="button" class="rrsx-x" aria-label="Keresés törlése">&times;</button></div>' +
         '<div class="rrsx-wrap"><section aria-label="Találatok">' + resHtml() + '</section></div>';
       var host = PREVIEW ? document.body : document.querySelector('.main-content');
       if (!host) { return false; }
@@ -1130,7 +1131,13 @@
     if (started) { return; }
     started = true;
     if (!build()) { giveUp('no mount'); return; }
+    if (ADVANCED && MOBILE.matches) { wantSheet = true; }
     if (wantSheet) { sheet(true, document.getElementById('js-open-filter-btn') || pill); }
+    window.RRSX_ADV = function () {     /* the Részletes keresés button, when this page is already open */
+      var h = root.querySelector('.rrsx-h1'); if (h) { h.textContent = 'Részletes keresés'; }
+      if (MOBILE.matches) { sheet(true); return; }
+      side.scrollTop = 0; scrollTo(0, Math.max(0, root.getBoundingClientRect().top + scrollY - topPx - 12));
+    };
     guard = setTimeout(function () { giveUp('timeout'); }, TIMEOUT);
     try { W = new Worker(URL.createObjectURL(new Blob(['(' + workerMain.toString() + ')()'], { type: 'text/javascript' }))); }
     catch (e) { giveUp('worker'); return; }
