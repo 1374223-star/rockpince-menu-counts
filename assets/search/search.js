@@ -36,11 +36,14 @@
     var D = null, N = 0, built = '', builtDay = 0, opts = null, split = false, base = '';
     var title, slug, img, hay = null, vocab = null, shardDone = {}, shardWait = {}, allText = null, active = 0, waiting = [];
     var scope = null, scopeN = 0, baseKey = null, baseList = null, baseLo = 0, baseHi = 0, lastFixed = null, lastTs = [];
-    var orders = {}, pass = null, latest = 0, cacheStore = null, plan = null, planNo = 0;
+    var orders = {}, pass = null, latest = 0, cacheStore = null, plan = null, planNo = 0, files = null, wordList = null, wordMask = null, wordWait = null, known = {}, hayParts = null, coreText = null;
+    /* owner 2026-11-19: these groups are never offered; their words still count in a text search */
+    var HIDE = { origin: 1, neckline: 1, print: 1, length: 1, series: 1, maker: 1, metal: 1, stone: 1, design: 1 };
+    var ALT_ONLY = { style: 1, pattern: 1, fit: 1, detail: 1 };     /* only where alternative clothes are a real part of the results */
     /* which filter groups suit which kind of product, best first */
     var PREF = { boot: ['heel', 'boot_height', 'boot_feature', 'toe', 'material', 'style', 'series'],
       band: ['album', 'genre', 'era', 'origin', 'character', 'motif', 'print', 'fit', 'design'],
-      alt: ['style', 'pattern', 'neckline', 'sleeve', 'length', 'material', 'fit', 'occasion', 'motif', 'print'],
+      alt: ['style', 'detail', 'pattern', 'fit', 'material', 'motif', 'sleeve', 'occasion'],
       jewel: ['metal', 'stone', 'symbol', 'material', 'style'], fig: ['series', 'character', 'maker', 'recipient', 'material'],
       gift: ['recipient', 'symbol', 'motif', 'material', 'series'], acc: ['symbol', 'material', 'metal', 'style', 'motif'] };
     var MANY_BANDS = { genre: 1, era: 1, origin: 1 };
@@ -148,6 +151,8 @@
         if (m.off) { postMessage({ failed: 'switched off', fatal: 1 }); return new Promise(function () {}); }   /* remote off switch: the shop page stays as it is */
         if (m.v !== FORMAT || !m.built) { throw new Error('format'); }
         if (tooOld(m.built)) { return stale(); }
+        files = m.gz || {}; built = m.built;
+        if (opts.text) { words().catch(function () {}); }      /* fetched next to the core, not after it */
         return cachedJson('search_core.json', m.built, function (j) { return j.v === FORMAT && j.built === m.built; }).then(function (c) {
           setBuilt(m.built); fromCore(c); prune(m.built);
         });
@@ -219,7 +224,8 @@
           active++;
           cachedJson(name, built, function (j) { return j.v === FORMAT && j.built === built; }).then(function (j) {
             var pos = undelta(j.p), r = j.r;
-            for (var i = 0; i < pos.length; i++) { var p = pos[i]; title[p] = r[i * 3]; slug[p] = r[i * 3 + 1] || slugOf(r[i * 3]); img[p] = r[i * 3 + 2]; }
+            for (var i = 0; i < pos.length; i++) { var p = pos[i]; title[p] = r[i * 3]; slug[p] = r[i * 3 + 1] || slugOf(r[i * 3]); img[p] = r[i * 3 + 2]; if (hay) { hay[p] = hayOf(p); } }
+            if (hay) { baseKey = null; vocab = null; }      /* new titles: text matches are worked out again */
             shardDone[s] = 1; active--; pump(); ok();
           }).catch(function (e) { active--; delete shardWait[s]; pump(); no(e); });
         });
@@ -237,18 +243,64 @@
     }
 
     /* ----- text search ----- */
+    function coreHay(i) {     /* everything but the title: type, band, who, filter values */
+      var h = hayParts, extra = '';
+      for (var k = D.vOff[i]; k < D.vOff[i + 1]; k++) { extra += h.v[D.vals[k]] + ' '; }
+      return ' ' + (D.type[i] >= 0 ? h.t[D.type[i]] : '') + ' ' + (D.band[i] >= 0 ? h.b[D.band[i]] : '') + ' ' + (D.gender[i] >= 0 ? h.g[D.gender[i]] : '') + ' ' + extra;
+    }
+    function hayOf(i) { return ' ' + norm(title[i]) + coreText[i]; }
     function buildHay() {
       if (hay) { return; }
-      var tw = D.types.map(function (t) { return norm(t[0] + ' ' + t[2]).replace(/,/g, ' '); });
-      var bw = D.bands.map(function (b) { var n = norm(b); return n + ' ' + n.replace(/[^a-z0-9]/g, ''); });
-      var gw = D.genders.map(function (g) { return norm(g).replace('/', ' '); });
-      var vw = D.values.map(function (v) { return norm(v[1]); });
-      hay = new Array(N);
-      for (var i = 0; i < N; i++) {
-        var extra = '';
-        for (var k = D.vOff[i]; k < D.vOff[i + 1]; k++) { extra += vw[D.vals[k]] + ' '; }
-        hay[i] = ' ' + norm(title[i]) + ' ' + (D.type[i] >= 0 ? tw[D.type[i]] : '') + ' ' + (D.band[i] >= 0 ? bw[D.band[i]] : '') + ' ' + (D.gender[i] >= 0 ? gw[D.gender[i]] : '') + ' ' + extra;
-      }
+      hayParts = { t: D.types.map(function (t) { return norm(t[0] + ' ' + t[2]).replace(/,/g, ' '); }),
+        b: D.bands.map(function (b) { var n = norm(b); return n + ' ' + n.replace(/[^a-z0-9]/g, ''); }),
+        g: D.genders.map(function (g) { return norm(g).replace('/', ' '); }), v: D.values.map(function (v) { return norm(v[1]); }) };
+      coreText = new Array(N); hay = new Array(N);
+      for (var i = 0; i < N; i++) { coreText[i] = coreHay(i); hay[i] = hayOf(i); }
+    }
+    /* ----- which text files a search needs: search_words.json lists, for each title word, the files that have it ----- */
+    function words() {
+      if (wordWait) { return wordWait; }
+      if (!files || !files['search_words.json']) { return Promise.reject(new Error('no words file')); }
+      wordWait = cachedJson('search_words.json', built, function (j) { return j.v === FORMAT && j.built === built; }).then(function (j) {
+        var list = [], mask = [];
+        j.g.forEach(function (g) { g[1].split(' ').forEach(function (w) { list.push(w); mask.push(g[0]); }); });
+        wordList = list; wordMask = Int32Array.from(mask);
+      });
+      wordWait.catch(function () { wordWait = null; });
+      return wordWait;
+    }
+    function pieceMask(t, all) {
+      if (/\d/.test(t) && t.length > 4) { return all; }      /* item codes are not in the word list */
+      var m = 0, short = t.length < 3;
+      for (var i = 0; i < wordList.length; i++) { var w = wordList[i]; if (short ? w.indexOf(t) === 0 : w.indexOf(t) >= 0) { m |= wordMask[i]; } }
+      return m;
+    }
+    function tokenMask(t, all) {     /* a token like ac/dc: every piece must be in the same file */
+      var parts = t.split(/[^a-z0-9]+/).filter(Boolean), m = all;
+      if (!parts.length) { return all; }
+      parts.forEach(function (p) { m &= pieceMask(p, all); });
+      return m;
+    }
+    function textShards(text) {      /* null: every file is needed (a word no title or tag has, so the typo fixer must see everything) */
+      return words().then(function () {
+        buildHay();
+        var ts = tokens(text), all = D.shards >= 31 ? -1 : (1 << D.shards) - 1;
+        if (ts.some(function (t) { return t.split(/[^a-z0-9]+/).some(function (p) { return /\d/.test(p) && p.length > 4; }); })) { return null; }    /* item codes: every file */
+        var masks = ts.map(function (t) { return tokenMask(t, all); });
+        var inCore = ts.map(function () { return false; }), need = {}, i, k;
+        for (i = 0; i < N; i++) {
+          if (scope && !scope[i]) { continue; }
+          var ch = coreText[i], bit = 1 << shardOf(i), sure = true, maybe = true;
+          for (k = 0; k < ts.length; k++) {
+            if (test(ch, ts[k])) { inCore[k] = true; continue; }
+            sure = false; if (!(masks[k] & bit)) { maybe = false; }
+          }
+          if (maybe && !sure) { need[shardOf(i)] = 1; }
+        }
+        for (k = 0; k < ts.length; k++) { if (!masks[k] && !inCore[k]) { return null; } }
+        known = {}; ts.forEach(function (t) { known[t] = 1; });
+        return Object.keys(need).map(Number);
+      });
     }
     function tokens(s) { return norm(s).split(/[\s,;]+/).map(function (t) { return t.replace(/^[^a-z0-9]+|[^a-z0-9+#]+$/g, ''); }).filter(Boolean); }
     function test(h, t) { return t.length < 3 ? h.indexOf(' ' + t) >= 0 : h.indexOf(t) >= 0; }
@@ -288,7 +340,7 @@
       var ts = tokens(text), fixed = null, out = new Int32Array(N), n = 0, i, k;
       if (ts.length) {
         buildHay();
-        var bad = ts.filter(function (t) { for (var j = 0; j < N; j++) { if (test(hay[j], t)) { return false; } } return true; });
+        var bad = ts.filter(function (t) { if (known[t]) { return false; } for (var j = 0; j < N; j++) { if (test(hay[j], t)) { return false; } } return true; });
         if (bad.length) { ts = ts.map(function (t) { if (bad.indexOf(t) < 0) { return t; } var f = fix(t); if (f) { fixed = fixed || {}; fixed[t] = f; return f; } return t; }); }
       }
       var lo = 1e9, hi = 0;
@@ -325,6 +377,7 @@
         var key = fc[0], sum = 0, top = 0, kinds = 0, sq = 0, v;
         for (v = 0; v < nV; v++) { if (D.fOf[v] === f && vc[v]) { sum += vc[v]; kinds++; if (vc[v] > top) { top = vc[v]; } sq += vc[v] * vc[v]; } }
         if (key === 'colour') { colour = kinds > 1 && cov[f] >= Math.max(3, n * 0.05); return; }      /* a lone colour on a few products helps nobody */
+        if (HIDE[key] || (ALT_ONLY[key] && fam.alt < Math.max(3, n * 0.25))) { return; }
         if (cov[f] < floor) { return; }
         if (kinds < 2 || top > cov[f] * 0.9 || top > n * 0.92) { return; }        /* one value covers nearly everything: nothing to choose */
         if (MANY_BANDS[key] && (bandsN < 3 || fam.band < n * 0.25)) { return; }    /* a fact about the band: useless inside one band or away from band merch */
@@ -454,9 +507,16 @@
     }
     function query(q) {
       latest = q.id;
-      var needAll = split && (q.text || q.sort === 'name');
-      if (!needAll) { run(q); return; }
-      everyShard().then(function () { if (q.id === latest) { run(q); } }).catch(function (e) { postMessage({ failed: String(e), id: q.id }); });
+      var text = split && !!q.text && Object.keys(shardDone).length < D.shards, needAll = split && (q.sort === 'name' || (q.text && q.sort === 'rel'));
+      function fail(e) { postMessage({ failed: String(e), id: q.id }); }
+      if (needAll) { everyShard().then(function () { if (q.id === latest) { run(q); } }).catch(fail); return; }
+      if (!text) { run(q); return; }
+      /* a text search downloads only the files whose titles can change its results; the cards shown fetch their own files after */
+      textShards(q.text).catch(function () { return null; }).then(function (list) {
+        if (q.id !== latest) { return; }
+        var wait = list ? Promise.all(list.map(shard)) : everyShard();
+        return wait.then(function () { if (q.id === latest) { run(q); } });
+      }).catch(fail);
     }
     onmessage = function (e) {
       var m = e.data;
@@ -473,7 +533,7 @@
   var CSS = [
     'html.rrsx-on .main-content>:not(#rrsx-root){display:none!important}html.rrsx-on #fb_header_box,html.rrsx-on #fb_content_box{display:none!important}',
     'html.rrsx-eng .column-right>.page-body{display:none!important}html.rrsx-eng .column-left>:not(#rrsx-dock){visibility:hidden!important}',
-    '.rrsx-covered{visibility:hidden!important}',
+    '.rrsx-covered{visibility:hidden!important}#rrsx-root.rrsx-pre{display:none!important}',
     '.rrsx-ui{--line:rgba(127,196,234,.28);--panel:#072338;--deep:#04192b;--ice:#9fd6f7;--txt:#e6f3fb;--mut:#a9c2d4;--red:#e52421;color:var(--txt);font-family:Poppins,Arial,sans-serif;font-size:14px;line-height:1.4}',
     '.rrsx-ui,.rrsx-ui *,.rrsx-ui *:before,.rrsx-ui *:after{box-sizing:border-box}',
     '.rrsx-ui button,.rrsx-ui input,.rrsx-ui select{font:inherit;color:inherit}',
@@ -567,7 +627,7 @@
   var HEAD = PREVIEW || CAT_PAGE ? null : document.getElementById('filter_keyword');
   var M = null, W = null, root = null, side = null, dock = null, shade = null, styleEl = null, pill = null, $ = {}, secs = {}, seq = 0, shown = 0, total = 0, last = null;
   var restore = null, timer = 0, ready = false, busy = false, engaged = false, opener = null, wantSheet = false, started = false, guard = 0, ro = null, sideDirty = false, wired = false;
-  var ADVANCED = location.hash === '#reszletes';
+  var ADVANCED = location.hash === '#reszletes', revealed = false, revealWait = null;
   var lo = 0, hi = 0, topPx = 0, fitting = false, wantEng = false, swKept = {}, P = null, planSig = '', byFacet = [];
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -679,7 +739,10 @@
       if (old[k]) { var r = old[k]; delete old[k]; return r; }
       fresh.push(c); return c;
     });
-    var ready = fresh.slice(0, 10).map(function (c) { var i = c.querySelector('img'); i.loading = 'eager'; return i.decode ? i.decode().catch(function () {}) : null; });
+    var ready = fresh.slice(0, 10).map(function (c) {     /* a picture inside the template never loads: a real Image fetches it */
+      var i = c.querySelector('img'), p = new Image(); i.loading = 'eager'; p.src = i.src;
+      return p.decode ? p.decode().catch(function () {}) : null;
+    });
     var finished = false;
     function swap() {
       if (finished || id !== seq) { return; }
@@ -689,7 +752,9 @@
       if (CAT_PAGE && wantEng) { setEngaged(true); }
       done();
     }
-    Promise.all(ready).then(swap); setTimeout(swap, fresh.length ? 200 : 0);
+    /* first showing on the search page: the shop's list stays until our first pictures are really here (at most 8 s) */
+    var first = !CAT_PAGE && !revealed, wait = first ? ready.slice(0, MOBILE.matches ? 4 : 8) : ready;
+    Promise.all(wait).then(swap); setTimeout(swap, !fresh.length ? 0 : first ? 8000 : 200);
   }
   function card(x) {
     var pct = x[3] ? Math.round((1 - x[3] / x[2]) * 100) : 0, t = esc(nice(x[1])), src = IMG + x[6].split('/').map(encodeURIComponent).join('/') + '.webp';
@@ -712,11 +777,10 @@
     var any = Object.keys(used).length > 0;
     KIND_LABELS.forEach(function (k, i) { if (used[k]) { groups.push({ key: 'k' + i, label: k, kind: k }); } });
     if (!any) { groups.push({ key: 'k9', label: 'Zenekar / márka', kind: null }); }
-    else if (M.bands.some(function (b, i) { return KIND_LABELS.indexOf(kinds[i]) < 0; })) { groups.push({ key: 'k9', label: 'Egyéb márkák', kind: null }); }
-    return groups;
+    return groups;     /* owner 2026-11-19: no "Egyéb márkák" group */
   }
   function facetOrder() {
-    var pref = ['colour', 'motif', 'style', 'fit', 'print', 'material', 'boot_height', 'boot_feature'];
+    var pref = ['colour', 'style', 'detail', 'motif', 'pattern', 'fit', 'material', 'boot_height', 'boot_feature'];
     return M.facets.map(function (f, i) { return i; }).sort(function (a, b) {
       var x = pref.indexOf(M.facets[a][0]), y = pref.indexOf(M.facets[b][0]);
       return (x < 0 ? 99 : x) - (y < 0 ? 99 : y);
@@ -728,10 +792,11 @@
     var h = '<div class="rrsx-tog" data-sec="tog">' +
       '<button type="button" class="rrsx-sw" data-tg="sale" aria-pressed="false"><span>Csak akciós</span><b></b><i aria-hidden="true"></i></button>' +
       '<button type="button" class="rrsx-sw" data-tg="fresh" aria-pressed="false" hidden><span>Új termékek</span><b></b><i aria-hidden="true"></i></button></div>';
+    var price = sec('price', 'Ár', '<div class="rrsx-hist" data-p="hist" aria-hidden="true">' + new Array(BUCKETS + 1).join('<u></u>') + '</div><div class="rrsx-range"><input data-p="r1" type="range" min="0" max="1000" value="0" aria-label="Legalacsonyabb ár"><input data-p="r2" type="range" min="0" max="1000" value="1000" aria-label="Legmagasabb ár"></div>' +
+      '<div class="rrsx-pr"><input data-p="p1" type="number" inputmode="numeric" min="0" aria-label="Ár ettől (Ft)"><span>és</span><input data-p="p2" type="number" inputmode="numeric" min="0" aria-label="Ár eddig (Ft)"><span>Ft</span></div>', true);
+    h = price + h;      /* owner 2026-11-19: price is the first group */
     colour.forEach(function (fi) { h += facetSec(fi); });
     h += sec('types', 'Termék típusa', findBox('types', 'Típus keresése') + '<div data-l></div>', true);
-    h += sec('price', 'Ár', '<div class="rrsx-hist" data-p="hist" aria-hidden="true">' + new Array(BUCKETS + 1).join('<u></u>') + '</div><div class="rrsx-range"><input data-p="r1" type="range" min="0" max="1000" value="0" aria-label="Legalacsonyabb ár"><input data-p="r2" type="range" min="0" max="1000" value="1000" aria-label="Legmagasabb ár"></div>' +
-      '<div class="rrsx-pr"><input data-p="p1" type="number" inputmode="numeric" min="0" aria-label="Ár ettől (Ft)"><span>és</span><input data-p="p2" type="number" inputmode="numeric" min="0" aria-label="Ár eddig (Ft)"><span>Ft</span></div>', true);
     h += sec('gen', 'Kinek', '<div class="rrsx-chips" data-l></div>', true);
     var rest = '';
     bandGroups().forEach(function (g) { rest += sec(g.key, g.label, findBox(g.key, g.label + ' keresése') + '<div data-l></div>', false); });
@@ -956,6 +1021,7 @@
   }
   function skeleton(count) { return new Array(Math.min(count, 12) + 1).join('<div class="rrsx-sk"></div>'); }
   function afterCards(m) {
+    if (!CAT_PAGE) { reveal(); if (!revealed) { return; } }      /* never scroll the shop's own list under the shopper */
     if (restore) { var r = restore; restore = null; requestAnimationFrame(function () { scrollTo(0, r.y); }); }
     else if (!m.add && !m.fill && !m.keep) {
       var head = topPx, y = $.top.getBoundingClientRect().top;
@@ -976,7 +1042,7 @@
       $.load.style.display = shown < total ? '' : 'none';
       $.none.style.display = total ? 'none' : '';
       if (!total) { drawNone(m); }
-      window.__rrsxDone = performance.now();
+      window.__rrsxDone = performance.now(); reveal();
     }
     if (m.items) {
       if (m.add) { append(m.items, m.id); afterCards(m); finish(); }
@@ -998,7 +1064,7 @@
   }
   function fill(m) {
     if (m.id !== seq) { return; }
-    function finish() { busy = false; $.load.style.display = shown < total ? '' : 'none'; $.none.style.display = total ? 'none' : ''; window.__rrsxDone = performance.now(); }
+    function finish() { busy = false; $.load.style.display = shown < total ? '' : 'none'; $.none.style.display = total ? 'none' : ''; window.__rrsxDone = performance.now(); reveal(); }
     if (m.add) { append(m.items, m.id); finish(); }
     else { showCards(m.items, m.id, function () { shown = m.items.length; afterCards(m); finish(); }); }
   }
@@ -1087,7 +1153,7 @@
       var host = PREVIEW ? document.body : document.querySelector('.main-content');
       if (!host) { return false; }
       host.insertBefore(root, host.firstChild);
-      document.documentElement.classList.add('rrsx-on');
+      if (PREVIEW) { reveal(); } else { root.classList.add('rrsx-pre'); }   /* the shop's own list stays on screen until ours is ready */
     }
     root.querySelectorAll('[data-p]').forEach(function (e) { $[e.getAttribute('data-p')] = e; });
     if (HEAD) { root.querySelector('.rrsx-box').remove(); HEAD.defaultValue = ''; }
@@ -1199,11 +1265,21 @@
     addEventListener('scroll', queueFit, { passive: true }); addEventListener('resize', queueFit, { passive: true });
     placeTop();
   }
+  function reveal() {     /* search page: swap the shop's list for ours, unless the shopper is already reading far down the shop's list */
+    if (revealed || CAT_PAGE || !root) { return; }
+    if (!restore && !PREVIEW && scrollY > innerHeight * 0.6) {
+      if (!revealWait) { revealWait = function () { if (scrollY < 200) { removeEventListener('scroll', revealWait); revealWait = null; reveal(); } }; addEventListener('scroll', revealWait, { passive: true }); }
+      return;
+    }
+    revealed = true; root.classList.remove('rrsx-pre'); document.documentElement.classList.add('rrsx-on'); window.__rrsxShown = performance.now();
+    fitSide(); requestAnimationFrame(fitSide);      /* the panel's height was measured while it was hidden */
+  }
   function giveUp(why) {
     clearTimeout(guard); clearTimeout(timer);
     var cls = document.documentElement.classList; cls.remove('rrsx-on', 'rrsx-sheet', 'rrsx-eng', 'rrsx-dockon');
     [root, side, dock, shade, pill].forEach(function (e) { if (e && e.parentNode) { e.parentNode.removeChild(e); } });
     if (ro) { ro.disconnect(); }
+    if (revealWait) { removeEventListener('scroll', revealWait); revealWait = null; }
     if (W) { W.terminate(); W = null; }
     window.RRSX_DEAD = why || 1;
     document.removeEventListener('click', tapFilter, true);
@@ -1213,6 +1289,8 @@
     clearTimeout(guard);
     if (CAT_PAGE && !m.scoped) { giveUp('no category data'); return; }
     if (CAT_PAGE && !m.scopeN) { giveUp('empty category'); return; }
+    var names = { boot_height: 'Lábbeli szárhossz', heel: 'Lábbeli sarok' };      /* owner 2026-11-19 */
+    m.facets = m.facets.map(function (f) { return names[f[0]] ? [f[0], names[f[0]]].concat(f.slice(2)) : f; });
     M = m; ready = true; lo = m.lo; hi = m.hi;
     buildSections(); readHash(); $.sort.value = S.sort; wire();
     try { var d = +localStorage.getItem('rrsx-dens'); if (d === 1) { density(1); } } catch (e) {}
@@ -1244,7 +1322,7 @@
       if (m.fill) { fill(m); return; }
       if (m.id === seq) { window.__rrsxMs = m.ms; result(m); }
     };
-    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', adv: ADVANCED, noSplit: !!window.RRSX_NO_SPLIT } });
+    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', adv: ADVANCED, noSplit: !!window.RRSX_NO_SPLIT, text: SEARCH_PAGE && !!S.text } });
   }
 
   /* ---------- on phones nothing heavy starts until the filter button is used ---------- */
