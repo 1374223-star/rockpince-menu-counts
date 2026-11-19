@@ -16,6 +16,7 @@ img[src*="/assets/shop/ugyfelszolgalat_2026"]{width:100%;aspect-ratio:1/1;height
 html[data-rr-early~=bandpage] .category-list-body .page-head:not(:has(>.rrba)){padding-bottom:56px}
 body:not(.home-body) a.header-logo img.header-logo-img{aspect-ratio:336/173}
 html body .module-category-wrapper li.module-list>a.nav-link>img{display:inline-block!important;vertical-align:middle;width:clamp(18px,1.6vw,28px)!important;height:clamp(18px,1.6vw,28px)!important;margin:0 6px 0 0!important;padding:0!important;object-fit:contain;flex:none}
+html body .module-category-wrapper li.module-list>a.nav-link>img[style*=none]{display:none!important}
 html body .module-category-wrapper #cat_20209>a.nav-link:not(:has(.rr-caticon)):before{content:"";display:inline-block!important;flex:none;width:clamp(18px,1.6vw,28px);height:clamp(18px,1.6vw,28px);margin-right:6px}
 .header-bottom ul.category-menu{flex-wrap:nowrap!important;justify-content:center!important}
 .header-bottom ul.category-menu>li>a.nav-link{margin:22px clamp(8px,1.05vw,22px)!important;font-size:clamp(12px,.95vw,14px)!important;white-space:nowrap!important}
