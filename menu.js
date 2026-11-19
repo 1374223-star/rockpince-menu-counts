@@ -2395,6 +2395,8 @@
   }
   function firstVisit() {
     if (!ls || ls.getItem('rr-first-visit')) { return; }
+    /* it covered Kosárba and swallowed the tap (night test 2026-11-19): on product pages it waits for the next page */
+    if (document.body.classList.contains('product-page-body')) { return; }
     ls.setItem('rr-first-visit', String(Date.now()));
     setTimeout(function () {
       toast('<b>Ingyenes személyes átvétel</b><div style="margin-top:6px;color:#9cc7e3">Budapesten, a boltunkban: 1146 Dózsa György út 19.<br>' +
@@ -6729,4 +6731,29 @@
     box.appendChild(a);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', add); } else { add(); }
+})();
+
+/* Night test fixes, 2026-11-19.
+   Supplier size tables up to 900 px wide stretched about 6 in 10 Fantasmagoria product pages on phones: the sticky buy bar
+   disappeared and the added-to-basket window was cut off. They now scroll inside their own box. Also: the gift finder in
+   the phone menu, and the dead picture at the end of the gift voucher text. */
+(function () {
+  if (window.__rrNightFix) { return; }
+  window.__rrNightFix = true;
+  var s = document.createElement('style');
+  s.textContent = '.product-desc .f-overflow-x{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}' +
+    '@media (max-width:767px){.product-desc>table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}' +
+    'img[src*="/fajltar/89664.png"]{display:none!important}';
+  document.head.appendChild(s);
+  function phoneGiftLink(tries) {
+    var nav = document.querySelector('#js-mobile-nav a.mm-listitem__text[href*="husegprogram"]'), item = nav && nav.closest('li');
+    if (!item) { if (tries > 0) { setTimeout(function () { phoneGiftLink(tries - 1); }, 700); } return; }
+    if (document.querySelector('#js-mobile-nav a[href$="/ajandekkereso"]')) { return; }
+    var c = item.cloneNode(false), a = nav.cloneNode(false);
+    c.removeAttribute('id'); a.removeAttribute('id'); a.removeAttribute('title');
+    a.setAttribute('href', '/ajandekkereso'); a.textContent = 'Ajándékkereső';
+    c.appendChild(a);
+    item.parentNode.insertBefore(c, item);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { phoneGiftLink(12); }); } else { phoneGiftLink(12); }
 })();
