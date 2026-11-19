@@ -1088,7 +1088,23 @@
     var full = SHOP + 'index.php?route=product/list&rrsx=0' + (S.text ? '&keyword=' + encodeURIComponent(S.text) : '');
     $.none.innerHTML = '<h2>Erre most nincs találat</h2>' +
       (sug.length ? '<p>Ezzel a változtatással lenne találat:</p><div class="rrsx-sug">' + sug.slice(0, 4).map(function (x) { return x[1]; }).join('') + '</div>' : '<p>Próbálj rövidebb szót, vagy törölj egy szűrőt.</p>') +
-      (CAT_PAGE ? '' : '<p><a href="' + esc(full) + '">Keresés a webshop teljes kínálatában</a></p>');
+      (CAT_PAGE ? '' : '<p><a href="' + esc(full) + '">Keresés a webshop teljes kínálatában</a></p>') +
+      (SEARCH_PAGE && S.text && !filterCount() ? '<div class="rrsx-sa"></div>' : '');
+    if (SEARCH_PAGE && S.text && !filterCount()) {
+      var term = S.text;
+      withAlert(function () { var h = $.none.querySelector('.rrsx-sa'); if (h && S.text === term) { window.RRSA.mount(h, term); } });
+    }
+  }
+  /* search alerts (2026-11-19): assets/alerts/search_alert.js, only when a search finds nothing */
+  function withAlert(fn) {
+    if (window.RRSA) { fn(); return; }
+    var s = document.getElementById('rrsa-js');
+    if (!s) {
+      s = document.createElement('script'); s.id = 'rrsa-js'; s.async = true;
+      s.src = window.RRSA_SRC || 'https://1374223-star.github.io/rockpince-menu-counts/assets/alerts/search_alert.js';
+      document.head.appendChild(s);
+    }
+    s.addEventListener('load', function () { if (window.RRSA) { fn(); } });
   }
   function skeleton(count) { return new Array(Math.min(count, 12) + 1).join('<div class="rrsx-sk"></div>'); }
   function afterCards(m) {
@@ -1356,6 +1372,7 @@
     window.RRSX_DEAD = why || 1;
     document.removeEventListener('click', tapFilter, true);
     if (wantSheet) { wantSheet = false; var shopBtn = document.getElementById('js-open-filter-btn'); if (shopBtn) { shopBtn.click(); } }
+    if (SEARCH_PAGE && !PREVIEW && S.text) { withAlert(function () { window.RRSA.shop(params.get('keyword') || S.text); }); }   /* the shop's own empty page */
   }
   function onReady(m) {
     clearTimeout(guard);
