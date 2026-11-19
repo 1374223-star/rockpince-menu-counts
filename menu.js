@@ -6631,6 +6631,25 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
 })();
 
+/* Same-style row (owner 2026-11-19): assets/looks/looks.js, on alternative clothes product pages only, when the browser
+   is idle. Up to 10 pieces of the same Stílus under the shop's "Hasonló termékek"; data from the nightly build_looks.py. */
+(function () {
+  if (window.__rrLooksLoad) { return; }
+  window.__rrLooksLoad = true;
+  function add() {
+    var s = document.createElement('script'); s.async = true;
+    s.src = window.RRLOOKS_SRC || 'https://1374223-star.github.io/rockpince-menu-counts/assets/looks/looks.js';
+    document.head.appendChild(s);
+  }
+  function go() {
+    if (!document.body || !/\bproduct-page-body\b/.test(document.body.className)) { return; }
+    var crumbs = document.querySelector('.breadcrumb');
+    if (!crumbs || !/ALTERNAT[IÍ]V/i.test(crumbs.textContent)) { return; }
+    if (window.requestIdleCallback) { requestIdleCallback(add, { timeout: 3000 }); } else { setTimeout(add, 1500); }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', go); } else { go(); }
+})();
+
 /* Gift finder (owner 2026-11-18): page /ajandekkereso (information page 105), code in assets/gifts/gifts.js.
    Also a plain link in the top menu row, next to Hűségprogram. */
 (function () {
