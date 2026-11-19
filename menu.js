@@ -3214,9 +3214,10 @@
     x.open('GET', BASE + 'bands.json', true);
     x.onload = function () {
       var all = [];
-      try { all = JSON.parse(x.responseText); } catch (e) { return; }
-      if (all.length) { build(all); }
+      try { all = JSON.parse(x.responseText); } catch (e) { window.__rrBandsFailed = true; return; }
+      if (all.length) { build(all); } else { window.__rrBandsFailed = true; }
     };
+    x.onerror = function () { window.__rrBandsFailed = true; };  /* the early header's gap is let go at once */
     x.send();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
@@ -6756,4 +6757,42 @@
     item.parentNode.insertBefore(c, item);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { phoneGiftLink(12); }); } else { phoneGiftLink(12); }
+})();
+
+/* Early header handover (2026-11-19). The shop's <head> carries style#rr-early-head (Shoprenter: Custom header
+   scripts; source early_head.html in this repo): this file's desktop header rules plus two gaps that hold the places
+   of the Christmas bar and the band strip, so the first paint already has the final header and the page does not jump
+   while it loads (desktop layout shift was 0.6 to 1.4). Once our own header pieces are in, the copy is removed, so
+   later edits here never fight it. Changing a header height, XMAS_UNTIL or the band strip rule? Change early_head.html too. */
+(function () {
+  'use strict';
+  if (window.__rrEarlyHandover) { return; }
+  window.__rrEarlyHandover = true;
+  var t0 = Date.now(), flags = document.documentElement.getAttribute('data-rr-early') || '';
+  function has(s) { return !!document.querySelector(s); }
+  function logoDone() {  /* the swapped logo (336x173) must have loaded, or the old picture's shape shows for a moment */
+    if (document.body.classList.contains('home-body')) { return true; }
+    var im = document.querySelector('a.header-logo img.header-logo-img');
+    return !im || (im.getAttribute('data-rr-logo') && im.complete);
+  }
+  function ready() {
+    if (window.innerWidth < 992) { return true; }
+    return has('#rr-headrows') && has('#rr-headtidy') && has('#rr-ui-fixes') && has('#rr-catlook') && logoDone() &&
+      has('#rr-spacing') && has('#rr-fb17') && (has('#rr-fluid') || /^\/checkout/.test(location.pathname)) &&
+      (!document.body.classList.contains('category-list-body') || has('#rr-category-count-style')) &&
+      (!/\bbandpage\b/.test(flags) || has('.page-head .rrba') || window.__rrBaDone) &&
+      (has('.rr-xmas') || /\bnoxmas\b/.test(flags)) &&
+      (has('.rr-bands') || /\bnobands\b/.test(flags) || window.__rrBandsFailed) &&
+      (window.innerWidth < 1200 || has('.rr-tl'));
+  }
+  (function wait() {
+    var early = document.getElementById('rr-early-head'), fluid = document.getElementById('rr-early-fluid');
+    if (!early && !fluid) { return; }
+    if (ready() || Date.now() - t0 > 8000) {
+      if (fluid) { fluid.parentNode.removeChild(fluid); }
+      if (early) { early.parentNode.removeChild(early); }
+      return;
+    }
+    setTimeout(wait, 100);
+  })();
 })();

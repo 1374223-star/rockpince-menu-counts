@@ -146,6 +146,7 @@
     return i === undefined ? '' : data.n[i];
   }
   function start(data) {
+    window.__rrBaDone = true;  /* menu.js early header handover: the line is placed now, or never */
     var band = data && data.n && bandOf(data);
     if (!band || document.querySelector('.rrba') || !target()) { return; }
     css();
@@ -159,5 +160,6 @@
   var x = new XMLHttpRequest();
   x.open('GET', BASE + 'bands.json');
   x.onload = function () { var d = null; try { d = JSON.parse(x.responseText); } catch (e) { /* none */ } start(d); };
+  x.onerror = function () { window.__rrBaDone = true; };
   x.send();
 })();
