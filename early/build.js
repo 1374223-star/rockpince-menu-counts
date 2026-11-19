@@ -37,8 +37,11 @@ const XMAS = (src.match(/var XMAS_UNTIL = '(\d{4}-\d\d-\d\d)';/) || [])[1];
 if (!XMAS) { throw new Error('XMAS_UNTIL not found'); }
 const header = fs.readFileSync(path.join(__dirname, 'header.css'), 'utf8').trim();
 const min = s => s.replace(/\s*\n\s*/g, '\n').trim();
-/* same order as the list pages load them; they come before header.css, which holds rules from later stylesheets */
-const THEME = ['module-pathway.css', 'product-card-quantity.css', 'component-subcategories.css', 'layout-2-column.css',
+/* same order as the list pages load them; they come before header.css, which holds rules from later stylesheets.
+   Not copied: module-pathway.css and product-card-quantity.css load before the parts they style (so they never
+   caused a jump), and the cart page does not load product-card-quantity.css at all: an early copy changed how its
+   upsell carousel measured itself (29 px taller, found in testing 2026-11-20). */
+const THEME = ['component-subcategories.css', 'layout-2-column.css',
   'component-pagination.css', 'component-filter-slider.css', 'module-paffilter.css'];
 const theme = THEME.map(f => fs.readFileSync(path.join(__dirname, 'theme', f), 'utf8').trim()).join('\n');
 /* the two files Google serves for Barlow Condensed 700 (latin, latin-ext) as of 2026-11-20; when Google moves to a new
