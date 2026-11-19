@@ -1,0 +1,5 @@
+@media (min-width:992px){
+html ol.breadcrumb{flex-wrap:nowrap}
+html ol.breadcrumb>li.breadcrumb-item{flex:none}
+html ol.breadcrumb>li.breadcrumb-item.active{flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+}
