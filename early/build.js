@@ -32,18 +32,27 @@ if (!XMAS) { throw new Error('XMAS_UNTIL not found'); }
 const header = fs.readFileSync(path.join(__dirname, 'header.css'), 'utf8').trim();
 const min = s => s.replace(/\s*\n\s*/g, '\n').trim();
 
+/* Shoprenter's HEAD field takes <script> elements only (a <style> or an HTML comment is refused on save), so the
+   styles are added by a script. It runs while the head is parsed, so they apply before the first paint, at the same
+   place in the head as an inline <style>. */
+const fluidCss = '@media (min-width:992px){\n' + min(spacing) + '\n' + min(fluid) + '\n}';
+const headCss = min(header);
+for (const c of [fluidCss, headCss]) { if (/<\/|<!--/.test(c)) { throw new Error('css must not contain </ or <!--'); } }
 const out =
-  '<!-- RagnaRock early header (2026-11-19). Shoprenter: Custom header scripts. Built by rockpince-menu-counts/early/build.js, do not edit by hand. ' +
-  'Gives desktop pages their final header and width before menu.js runs, so they do not jump while loading; menu.js removes it once its own header is in. -->\n' +
-  '<script>(function(){try{var f=[],p=location.pathname+location.search;if(/checkout|kosar|cart/i.test(p)){f.push(\'nobands\');}' +
+  '<script>/* RagnaRock early header (2026-11-19), built by rockpince-menu-counts/early/build.js, do not edit by hand. ' +
+  'Gives desktop pages their final header and width before menu.js runs, so they do not jump while loading; ' +
+  'menu.js removes it once its own header is in. */\n' +
+  '(function(){try{var f=[],p=location.pathname+location.search;if(/checkout|kosar|cart/i.test(p)){f.push(\'nobands\');}' +
   'if(/^\\/zenekarok\\/[^\\/]+\\/?$/.test(location.pathname)){f.push(\'bandpage\');}' +
   'if(new Date(Date.now()+36e5).toISOString().slice(0,10)>\'' + XMAS + '\'){f.push(\'noxmas\');}' +
-  'document.documentElement.setAttribute(\'data-rr-early\',f.join(\' \'));}catch(e){}})();</script>\n' +
-  /* same order as menu.js adds them (rr-spacing, then rr-fluid, then the header styles), so ties resolve the same way */
-  '<style id="rr-early-fluid">@media (min-width:992px){\n' + min(spacing) + '\n' + min(fluid) + '\n}</style>\n' +
-  '<script>if(/^\\/checkout/.test(location.pathname)){var rrEf=document.getElementById(\'rr-early-fluid\');if(rrEf){rrEf.parentNode.removeChild(rrEf);}}</script>\n' +
-  '<style id="rr-early-head">\n' + min(header) + '\n</style>\n' +
+  'document.documentElement.setAttribute(\'data-rr-early\',f.join(\' \'));}catch(e){}\n' +
+  /* same order as menu.js adds them (rr-spacing, then rr-fluid, then the header styles), so ties resolve the same way;
+     checkout pages do not get rr-fluid (menu.js leaves it out there too) */
+  'function add(id,css){var s=document.createElement(\'style\');s.id=id;s.textContent=css;(document.head||document.documentElement).appendChild(s);}\n' +
+  'if(!/^\\/checkout/.test(location.pathname)){add(\'rr-early-fluid\',' + JSON.stringify(fluidCss) + ');}\n' +
+  'add(\'rr-early-head\',' + JSON.stringify(headCss) + ');\n' +
   /* safety net: if menu.js never runs (GitHub down), the theme's own header comes back instead of empty gaps */
-  '<script>setTimeout(function(){[\'rr-early-fluid\',\'rr-early-head\'].forEach(function(i){var e=document.getElementById(i);if(e){e.parentNode.removeChild(e);}});},12000);</script>\n';
+  'setTimeout(function(){[\'rr-early-fluid\',\'rr-early-head\'].forEach(function(i){var e=document.getElementById(i);if(e){e.parentNode.removeChild(e);}});},12000);\n' +
+  '})();</script>\n';
 fs.writeFileSync(path.join(root, 'early_head.html'), out, { encoding: 'utf8' });
 console.log('early_head.html', out.length, 'chars (header', header.length, ', fluid', fluid.length, ', spacing', spacing.length + ')');
