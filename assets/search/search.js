@@ -1244,6 +1244,11 @@
     }
     root.querySelectorAll('[data-p]').forEach(function (e) { $[e.getAttribute('data-p')] = e; });
     if (HEAD) { root.querySelector('.rrsx-box').remove(); HEAD.defaultValue = ''; }
+    if (HEAD && SEARCH_PAGE) {   /* owner 2026-11-20: the shop's quick-search dropdown covered our live results while typing here */
+      var noDrop = document.createElement('style');
+      noDrop.textContent = '.search-module .dropdown-menu.search-results{display:none!important}';
+      document.head.appendChild(noDrop);
+    }
     if (SEARCH_PAGE) { $.q = HEAD || root.querySelector('.rrsx-q'); $.q.value = S.text; }
     placeSide();
     return true;
