@@ -34,7 +34,7 @@
     var FORMAT = 3, CACHE = 'rrsx-index-1', BUCKETS = 28, FRESH_DAYS = 30, EPOCH = Date.UTC(2020, 0, 1);
     var FACET_BASE = 7;     /* groups: 0 type, 1 band, 2 who, 3 price, 4 sale, 5 stock, 6 new, then one per facet */
     var D = null, N = 0, built = '', builtDay = 0, opts = null, split = false, base = '';
-    var title, slug, img, hay = null, vocab = null, shardDone = {}, shardWait = {}, allText = null, active = 0, waiting = [];
+    var title, slug, img, hay = null, squash = null, vocab = null, shardDone = {}, shardWait = {}, allText = null, active = 0, waiting = [];
     var scope = null, scopeN = 0, baseKey = null, baseList = null, baseLo = 0, baseHi = 0, lastFixed = null, lastTs = [];
     var orders = {}, pass = null, latest = 0, cacheStore = null, plan = null, planNo = 0, files = null, wordList = null, wordMask = null, wordWait = null, known = {}, hayParts = null, coreText = null;
     /* owner 2026-11-19: these groups are never offered; their words still count in a text search */
@@ -224,7 +224,7 @@
           active++;
           cachedJson(name, built, function (j) { return j.v === FORMAT && j.built === built; }).then(function (j) {
             var pos = undelta(j.p), r = j.r;
-            for (var i = 0; i < pos.length; i++) { var p = pos[i]; title[p] = r[i * 3]; slug[p] = r[i * 3 + 1] || slugOf(r[i * 3]); img[p] = r[i * 3 + 2]; if (hay) { hay[p] = hayOf(p); } }
+            for (var i = 0; i < pos.length; i++) { var p = pos[i]; title[p] = r[i * 3]; slug[p] = r[i * 3 + 1] || slugOf(r[i * 3]); img[p] = r[i * 3 + 2]; if (hay) { hay[p] = hayOf(p); squash[p] = squashOf(p); } }
             if (hay) { baseKey = null; vocab = null; }      /* new titles: text matches are worked out again */
             shardDone[s] = 1; active--; pump(); ok();
           }).catch(function (e) { active--; delete shardWait[s]; pump(); no(e); });
@@ -249,13 +249,17 @@
       return ' ' + (D.type[i] >= 0 ? h.t[D.type[i]] : '') + ' ' + (D.band[i] >= 0 ? h.b[D.band[i]] : '') + ' ' + (D.gender[i] >= 0 ? h.g[D.gender[i]] : '') + ' ' + extra;
     }
     function hayOf(i) { return ' ' + norm(title[i]) + coreText[i]; }
+    /* 2026-11-20: the title's words joined by | so a word typed without spaces ("fuckpop") finds "Fuck Pop". It must start at the
+       start of a word ("kpop" does not match "fucK POP"), and it is used only for a word that matches nothing the normal way. */
+    function squashOf(i) { return '|' + (norm(title[i]) + ' ' + coreText[i]).split(/[^a-z0-9]+/).filter(Boolean).join('|') + '|'; }
+    function joinedRe(bare) { return new RegExp('\\|' + bare.split('').join('\\|?')); }
     function buildHay() {
       if (hay) { return; }
       hayParts = { t: D.types.map(function (t) { return norm(t[0] + ' ' + t[2]).replace(/,/g, ' '); }),
         b: D.bands.map(function (b) { var n = norm(b); return n + ' ' + n.replace(/[^a-z0-9]/g, ''); }),
         g: D.genders.map(function (g) { return norm(g).replace('/', ' '); }), v: D.values.map(function (v) { return norm(v[1]); }) };
-      coreText = new Array(N); hay = new Array(N);
-      for (var i = 0; i < N; i++) { coreText[i] = coreHay(i); hay[i] = hayOf(i); }
+      coreText = new Array(N); hay = new Array(N); squash = new Array(N);
+      for (var i = 0; i < N; i++) { coreText[i] = coreHay(i); hay[i] = hayOf(i); squash[i] = squashOf(i); }
     }
     /* ----- which text files a search needs: search_words.json lists, for each title word, the files that have it ----- */
     function words() {
@@ -337,17 +341,25 @@
     }
     function getBase(text) {
       if (baseKey === text && baseList) { return baseList; }
-      var ts = tokens(text), fixed = null, out = new Int32Array(N), n = 0, i, k;
+      var ts = tokens(text), fixed = null, joined = {}, out = new Int32Array(N), n = 0, i, k;
       if (ts.length) {
         buildHay();
         var bad = ts.filter(function (t) { if (known[t]) { return false; } for (var j = 0; j < N; j++) { if (test(hay[j], t)) { return false; } } return true; });
+        if (bad.length) {     /* written together ("fuckpop"): matched against the squashed titles before any typo fixing */
+          bad = bad.filter(function (t) {
+            if (t.length < 4) { return true; }
+            var re = joinedRe(t.replace(/[^a-z0-9]/g, ''));
+            for (var j = 0; j < N; j++) { if (re.test(squash[j])) { joined[t] = re; return false; } }
+            return true;
+          });
+        }
         if (bad.length) { ts = ts.map(function (t) { if (bad.indexOf(t) < 0) { return t; } var f = fix(t); if (f) { fixed = fixed || {}; fixed[t] = f; return f; } return t; }); }
       }
       var lo = 1e9, hi = 0;
       for (i = 0; i < N; i++) {
         if (scope && !scope[i]) { continue; }
         var ok = 1;
-        if (ts.length) { var h = hay[i]; for (k = 0; k < ts.length; k++) { if (!test(h, ts[k])) { ok = 0; break; } } }
+        if (ts.length) { var h = hay[i]; for (k = 0; k < ts.length; k++) { var jt = joined[ts[k]]; if (jt ? !jt.test(squash[i]) : !test(h, ts[k])) { ok = 0; break; } } }
         if (ok) { out[n++] = i; var p = D.now[i]; if (p < lo) { lo = p; } if (p > hi) { hi = p; } }
       }
       baseKey = text; baseList = out.subarray(0, n); baseLo = n ? lo : 0; baseHi = hi; lastFixed = fixed; lastTs = ts; plan = null;
@@ -1115,7 +1127,15 @@
       if (y < head - 40) { scrollTo(0, scrollY + y - head - 8); }
     }
   }
+  function shopFound() {     /* the shop's own search result list, outside our panel */
+    var els = document.querySelectorAll('.main-content .product-snapshot, .main-content .product-card');
+    for (var i = 0; i < els.length; i++) { if (!els[i].closest('#rrsx-root')) { return true; } }
+    return false;
+  }
   function result(m) {
+    /* 2026-11-20: our copy of the catalogue can miss a product the shop finds (item codes, new products).
+       If the very first answer for a typed search is empty but the shop listed products, the shop's own list stays. */
+    if (SEARCH_PAGE && !PREVIEW && !revealed && !m.add && !m.wait && !m.total && S.text && !filterCount() && shopFound()) { giveUp('shop has results'); return; }
     last = m; total = m.total; busy = false;
     $.n.textContent = n(total) + ' találat'; $.see.textContent = n(total) + ' találat mutatása';
     if ($.sc) { $.sc.textContent = n(total) + ' termék'; }
@@ -1377,7 +1397,7 @@
     window.RRSX_DEAD = why || 1;
     document.removeEventListener('click', tapFilter, true);
     if (wantSheet) { wantSheet = false; var shopBtn = document.getElementById('js-open-filter-btn'); if (shopBtn) { shopBtn.click(); } }
-    if (SEARCH_PAGE && !PREVIEW && S.text) { withAlert(function () { window.RRSA.shop(params.get('keyword') || S.text); }); }   /* the shop's own empty page */
+    if (SEARCH_PAGE && !PREVIEW && S.text && why !== 'shop has results') { withAlert(function () { window.RRSA.shop(params.get('keyword') || S.text); }); }   /* the shop's own empty page */
   }
   function onReady(m) {
     clearTimeout(guard);
