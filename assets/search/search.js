@@ -1134,10 +1134,10 @@
   }
   function shopIds() {      /* product ids on the shop's own result page: every product link ends in -<id> */
     var ids = {}, out = [];
-    document.querySelectorAll('.main-content .product-snapshot, .main-content .product-card').forEach(function (c) {
+    document.querySelectorAll('.main-content .product-card').forEach(function (c) {     /* same id source as menu.js: the card's [data-product-id] */
       if (c.closest('#rrsx-root')) { return; }
-      var a = c.querySelector('a[href]'), m = a && /-(\d+)\/?(?:[?#]|$)/.exec(a.getAttribute('href'));
-      var id = m ? +m[1] : +(c.getAttribute('data-product-id') || 0);
+      var e = c.hasAttribute('data-product-id') ? c : c.querySelector('[data-product-id]'), id = e ? +e.getAttribute('data-product-id') : 0;
+      if (!id) { var a = c.querySelector('a[href]'), m = a && /-(\d+)\/?(?:[?#]|$)/.exec(a.getAttribute('href')); id = m ? +m[1] : 0; }
       if (id && !ids[id]) { ids[id] = 1; out.push(id); }
     });
     return out;
