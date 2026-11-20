@@ -896,6 +896,308 @@
   }, true);
 })();
 
+/* Size buttons on the product page (owner 2026-11-20: "changing the válassz méretet dropdown to buttons like theyre on
+   the product cards ... multiple selection allowed, then kosárba rakás hit, no mennyiség either, once you hit the kosárba
+   rakás it refreshes so you can add another L"). The dropdown stays in the form, hidden, and follows the last picked
+   button, so the shop's own add, the price update and the phone sticky bar keep working. Two or more sizes: the extra
+   ones go in first with the same request and events the theme sends, then the shop's own button adds the last one,
+   so its "Kosárba raktad!" popup opens as before; the popup gets a row for each size. Not for the gift voucher, for
+   two pickers on one product, or for long or very many choices (rings): those keep the dropdown. */
+(function () {
+  'use strict';
+  if (window.__rrPsz) { return; }
+  window.__rrPsz = true;
+  var VOUCHER = '246284', ADD = '/index.php?route=module/cart/callback';
+  var css =
+    /* an even grid that fills the row; the column width follows the longest label (set in --rr-psz-w) */
+    '.rr-psz{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--rr-psz-w,48px),1fr));gap:6px;width:100%}' +
+    '.rr-psz button{min-width:0;height:50px;padding:0 6px;margin:0;border:1px solid rgba(127,196,234,.5);border-radius:4px;white-space:nowrap;' +
+      'background:rgba(4,16,28,.6);color:#fff;font-family:inherit;font-weight:700;font-size:15px;line-height:1.1;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;' +
+      'display:inline-flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:none;transition:background .12s,border-color .12s}' +
+    '.rr-psz button small{display:block;margin-top:3px;font-size:10.5px;font-weight:600;letter-spacing:0;color:#9fb7cb;text-transform:none}' +
+    '.rr-psz button:hover{border-color:#cfe6f5}' +
+    '.rr-psz button[aria-pressed="true"]{background:#fff;border-color:#fff;color:#0b2a44}' +
+    '.rr-psz button[aria-pressed="true"] small{color:#5b7a92}' +
+    '.rr-psz button:disabled{opacity:.35;cursor:not-allowed;text-decoration:line-through}' +
+    /* own line under MÉRET / Mérettáblázat (the desktop buy box has no room for three things on one row) */
+    '.rr-psz-hint{order:3;flex:1 1 100%;margin:-4px 0 0!important;font-size:12px;line-height:1.3;color:#7f9bb3;letter-spacing:.02em}' +
+    'select.rr-psz-sel{display:none!important}' +
+    '.rr-psz-warn{grid-column:1/-1;margin-top:2px;color:#ff5a55;font-weight:700;font-size:14px}' +
+    '.rr-psz.shake{animation:rrpszshake .35s}@keyframes rrpszshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}' +
+    /* no Mennyiség box next to the sizes: one click is one piece, the same size again is another click */
+    'body.product-page-body .product-cart-box.rr-psz-on .product_table_quantity{display:none!important}' +
+    'body.product-page-body .product-cart-box.rr-psz-on .product_table_addtocartbtn{flex:1 1 100%!important}' +
+    '#add_to_cart.rr-psz-busy{opacity:.75;pointer-events:none}';
+
+  var ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'];
+  function sizeKey(label) {   /* a sortable number for a size label, or null when unknown */
+    var t = String(label).toUpperCase().replace(/\s+/g, '');
+    t = t.replace(/^2XL/, 'XXL').replace(/^XXXXL/, '4XL').replace(/^XXXL/, '3XL');
+    if (/^(\d?X{0,2}[SML]|\dXL)/.test(t)) {   /* letter sizes, 3XL included */
+      for (var i = ORDER.length - 1; i >= 0; i--) {   /* longest first, so XL is not read as L */
+        if (t.indexOf(ORDER[i]) === 0) { return 100000 + i; }
+      }
+    }
+    var m = t.match(/^(\d+(?:[.,]\d+)?)(?:\/(\d+))?/);
+    if (m) { return Number(m[1].replace(',', '.')) * 1000 + (m[2] ? Number(m[2]) : 0); }
+    return null;
+  }
+  function optionsOf(sel) {
+    var out = [];
+    for (var i = 0; i < sel.options.length; i++) {
+      var o = sel.options[i];
+      if (!o.value) { continue; }
+      var text = o.textContent.replace(/\s+/g, ' ').trim(), m = text.match(/^(.*?)\s*(\+\s*[\d.\s]+\s*Ft)$/);
+      var l = m ? m[1] : text, uk = l.match(/^(\d+(?:[.,]\d+)?)\s*\/\s*UK\s*([\d.,]+)$/i);   /* boots: "38 / UK4" shows 38 with UK 4 under it */
+      var x = [uk ? 'UK ' + uk[2] : '', m ? m[2].replace(/\s+/g, ' ') : ''].filter(Boolean).join(' ');
+      out.push({ v: o.value, l: l, main: uk ? uk[1] : l, x: x, off: o.disabled, i: out.length });
+    }
+    return out;
+  }
+
+  function build(box) {
+    var form = box.closest('form') || document.getElementById('product');
+    var add = box.querySelector('#add_to_cart');
+    if (!form || !add || box.getAttribute('data-rr-psz')) { return; }
+    var sels = box.querySelectorAll('select[name^="option["]');
+    var idIn = form.querySelector('input[name="product_id"]');
+    if (sels.length !== 1 || (idIn && idIn.value === VOUCHER)) { return; }
+    var sel = sels[0], opts = optionsOf(sel);
+    if (!opts.length || opts.length > 24 || opts.some(function (o) { return o.l.length > 10; })) { return; }
+    box.setAttribute('data-rr-psz', '1');
+    if (opts.every(function (o) { return sizeKey(o.l) !== null; })) {
+      opts.sort(function (a, b) { return (sizeKey(a.l) - sizeKey(b.l)) || (a.i - b.i); });
+    }
+
+    var group = document.createElement('div');
+    group.className = 'rr-psz';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'Méret');
+    var widest = Math.max.apply(null, opts.map(function (o) { return Math.max(o.main.length * 10.5 + 16, o.x ? o.x.length * 6 + 14 : 0); }));
+    group.style.setProperty('--rr-psz-w', Math.max(48, Math.round(widest)) + 'px');
+    var buttons = {};
+    opts.forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'excluded-extra';   /* the theme leaves .excluded-extra out of what it posts */
+      b.setAttribute('aria-pressed', 'false');
+      b.disabled = !!o.off;
+      b.textContent = o.main;
+      b.setAttribute('aria-label', o.l + (o.x && o.main === o.l ? ' ' + o.x : ''));
+      if (o.x) { var s = document.createElement('small'); s.textContent = o.x; b.appendChild(s); }
+      b.addEventListener('click', function () { toggle(o.v); });
+      buttons[o.v] = b;
+      group.appendChild(b);
+    });
+    sel.classList.add('rr-psz-sel');
+    sel.parentNode.insertBefore(group, sel.nextSibling);
+    var item = sel.closest('.product-option__item'), name = item && item.querySelector('.product-option__name');
+    if (name && opts.filter(function (o) { return !o.off; }).length > 1) {
+      var hint = document.createElement('span');
+      hint.className = 'rr-psz-hint';
+      hint.textContent = 'Több méret is választható';
+      name.parentNode.insertBefore(hint, name.nextSibling);
+    }
+    box.classList.add('rr-psz-on');
+
+    var label = null, labelText = '';
+    (function findLabel() {   /* the text of the Kosárba button, to show the count when more sizes are picked */
+      var w = document.createTreeWalker(add, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) { if (/\S/.test(n.nodeValue)) { label = n; labelText = n.nodeValue; return; } }
+    })();
+
+    var picked = [], quiet = false, waitTheme = false;
+    function labelOf(v) { for (var i = 0; i < opts.length; i++) { if (opts[i].v === v) { return opts[i].l; } } return ''; }
+    function setSelect(v) {
+      if (sel.value === v) { return; }
+      quiet = true;
+      sel.value = v;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));   /* jQuery handlers (price, sticky bar) hear native events */
+      quiet = false;
+    }
+    function paint() {
+      Object.keys(buttons).forEach(function (v) { buttons[v].setAttribute('aria-pressed', picked.indexOf(v) >= 0 ? 'true' : 'false'); });
+      if (label) { label.nodeValue = picked.length > 1 ? labelText.replace(/\S.*\S|\S/, function (t) { return t + ' (' + picked.length + ' db)'; }) : labelText; }
+      var stick = document.querySelector('.rr-sticky > a');   /* the phone sticky bar's button says the same */
+      if (stick) { stick.textContent = picked.length > 1 ? 'Kosárba (' + picked.length + ' db)' : 'Kosárba'; }
+      setSelect(picked.length ? picked[picked.length - 1] : '');
+      if (picked.length) { clearWarn(); }
+    }
+    function toggle(v) {
+      var at = picked.indexOf(v);
+      if (at >= 0) { picked.splice(at, 1); } else { picked.push(v); }
+      paint();
+    }
+    function reset() { picked = []; paint(); }
+    function clearWarn() { var w = group.querySelector('.rr-psz-warn'); if (w) { w.parentNode.removeChild(w); } }
+    function warn(text) {
+      if (!group.querySelector('.rr-psz-warn')) {
+        var w = document.createElement('div');
+        w.className = 'rr-psz-warn';
+        w.setAttribute('role', 'alert');
+        w.textContent = text;
+        group.appendChild(w);
+      }
+      group.classList.remove('shake'); void group.offsetWidth; group.classList.add('shake');
+      try { group.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* old browser */ }
+    }
+    /* someone used the hidden dropdown (the phone sticky bar mirrors it): follow it */
+    sel.addEventListener('change', function () {
+      if (quiet) { return; }
+      picked = sel.value ? [sel.value] : [];
+      paint();
+    });
+    /* The shop's own add finished: clear the picks so the same size can be added again. After a multi-size add, check
+       the basket really holds every piece (a basket read running at the same moment as an add can undo the add on the
+       shop's side), and put back what is missing. */
+    var expect = null;   /* multi-size add: { count, sizes: { label: pieces } } */
+    document.addEventListener('cartChanged', function (ev) {
+      if (!waitTheme) { return; }
+      waitTheme = false;
+      setTimeout(reset, 50);
+      var want = expect; expect = null;
+      if (!want) { return; }
+      var j = ev.detail && ev.detail.data;
+      if (j && count(j) >= want.count) { return; }
+      wait(2500).then(readCart).then(function (k) {   /* after the basket reads the shop's add sets off */
+        if (count(k) >= want.count) { return; }
+        var missing = [];
+        Object.keys(want.sizes).forEach(function (l) { for (var n = pieces(k, l); n < want.sizes[l]; n++) { missing.push(l); } });
+        /* re-add only when the sizes explain the gap exactly; otherwise ask the buyer to look rather than guess */
+        if (!missing.length || missing.length !== want.count - count(k)) { warn('Kérjük, nézd meg a kosarad: lehet, hogy nem került bele minden méret.'); return; }
+        var base = count(k);
+        return missing.reduce(function (p, l) {
+          return p.then(function () { return addOne(valueOf(l), base).then(function (m) { base = count(m); }); });
+        }, Promise.resolve()).then(function () { return readCart(); }).then(function (m) {
+          document.dispatchEvent(new CustomEvent('cartChanged', { detail: { data: m, cartToken: m.cartToken || '', products: m.products } }));
+        });
+      }).catch(function () { warn('Kérjük, nézd meg a kosarad: lehet, hogy nem került bele minden méret.'); });
+    });
+
+    function quantityOne() {
+      Array.prototype.forEach.call(form.querySelectorAll('input[name="quantity"]'), function (q) { q.value = '1'; });
+    }
+    function wait(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+    function norm(s) { return String(s || '').toUpperCase().replace(/\s+/g, ''); }
+    function valueOf(l) { for (var i = 0; i < opts.length; i++) { if (opts[i].l === l) { return opts[i].v; } } return ''; }
+    function count(j) { return Number(j && j.countProducts) || 0; }
+    function pieces(j, l) {   /* how many of this product in this size the basket holds */
+      var id = String(add.getAttribute('data-product-id')), n = 0;
+      (j.products || []).forEach(function (p) {
+        if (String(p.productId) !== id) { return; }
+        if ((p.option || []).some(function (o) { return norm(o.value) === norm(l); })) { n += Number(p.quantity) || 0; }
+      });
+      return n;
+    }
+    function call(body) {   /* the theme's basket endpoint; read to the end: leaving earlier can lose the item */
+      return fetch(ADD, { method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' }, body: body })
+        .then(function (r) { if (!r.ok) { throw new Error('basket'); } return r.json(); });
+    }
+    function readCart() { return call(''); }
+    function bodyFor(v) {
+      var data = new FormData(form), body = new URLSearchParams();
+      data.set(sel.name, v);
+      data.set('quantity', '1');
+      data.forEach(function (val, key) { if (typeof val === 'string') { body.append(key, val); } });
+      return body.toString();
+    }
+    /* one piece of size v; base = basket piece count before it. No cartChanged here: its listeners read the basket,
+       and a read running during the next add can undo that add. The shop's own add at the end sends it once. */
+    function addOne(v, base) {
+      return call(bodyFor(v)).then(function (j) {
+        if (count(j) > base) { return j; }
+        return wait(700).then(readCart).then(function (k) {
+          if (count(k) > base) { return k; }
+          return call(bodyFor(v)).then(function (m) { if (count(m) > base) { return m; } throw new Error('not added'); });
+        });
+      }).then(function (j) {
+        var id = add.getAttribute('data-product-id');
+        var item = { id: '[' + id + ']', sku: add.getAttribute('data-product-sku') || '', price: add.getAttribute('data-price-without-currency'),
+          quantityName: add.getAttribute('data-quantity-name') || 'db', currency: add.getAttribute('data-currency') || 'HUF', quantity: 1,
+          name: add.getAttribute('data-name') || '', brand: add.getAttribute('data-brand') || '' };
+        try { localStorage.setItem('cartModified', '1'); } catch (e) { /* private mode */ }
+        document.dispatchEvent(new CustomEvent('AddToCart', { detail: { cartToken: j.cartToken || '', product: item, addedItems: [item] } }));
+        return j;
+      });
+    }
+    /* the shop's popup names the last size only: add a row for each size that went in before it */
+    function popupRows(earlier) {
+      var tries = 0;
+      (function look() {
+        var list = document.querySelector('.cart-popup .cart-popup__products'), row = list && list.querySelector('.cart-popup__product-item');
+        if (!row) { if (tries++ < 40) { setTimeout(look, 150); } return; }
+        if (list.getAttribute('data-rr-psz')) { return; }
+        list.setAttribute('data-rr-psz', '1');
+        earlier.forEach(function (l) {   /* each goes before the shop's own row, so the rows keep the picking order */
+          var copy = row.cloneNode(true), o = copy.querySelector('.cart-popup__product-option');
+          if (o) { o.textContent = o.textContent.replace(/:\s*[^:]*$/, ': ' + l); }
+          list.insertBefore(copy, row);
+        });
+      })();
+    }
+    function theme() {   /* the last (or only) size goes through the shop's own button */
+      quantityOne();
+      waitTheme = true;
+      add.setAttribute('data-rr-psz-pass', '1');
+      try { add.click(); } finally { add.removeAttribute('data-rr-psz-pass'); }
+    }
+
+    window.addEventListener('click', function (ev) {
+      var hit = ev.target && ev.target.closest ? ev.target.closest('#add_to_cart') : null;
+      if (hit !== add || add.getAttribute('data-rr-psz-pass') === '1') { return; }
+      if (add.classList.contains('rr-psz-busy')) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }   /* the phone bar's button while sizes go in */
+      if (!picked.length) {
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        warn('Kérjük, válassz méretet!');
+        return;
+      }
+      setSelect(picked[picked.length - 1]);
+      quantityOne();
+      if (picked.length === 1) { waitTheme = true; return; }   /* one size: the shop's own add, untouched */
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      var list = picked.slice(), first = list.slice(0, -1), done = [], base = 0, sizes = {};
+      add.classList.add('rr-psz-busy');
+      if (label) { label.nodeValue = 'Egy pillanat...'; }
+      readCart().then(function (j) {
+        base = count(j);
+        list.forEach(function (v) { var l = labelOf(v); sizes[l] = (sizes[l] === undefined ? pieces(j, l) : sizes[l]) + 1; });
+        return first.reduce(function (p, v) {
+          return p.then(function () { return addOne(v, base).then(function (k) { base = count(k); done.push(v); }); });
+        }, Promise.resolve());
+      })
+        .then(function () { return wait(250); })   /* let the shop finish saving the basket before its own add */
+        .then(function () {
+          add.classList.remove('rr-psz-busy');
+          picked = [list[list.length - 1]];
+          paint();
+          popupRows(done.map(labelOf));
+          expect = { count: base + 1, sizes: sizes };
+          theme();
+          try { if (window.gtag) { window.gtag('event', 'rr_multi_size', { rr_n: list.length }); } } catch (e) { /* */ }
+        })
+        .catch(function () {
+          add.classList.remove('rr-psz-busy');
+          picked = list.filter(function (v) { return done.indexOf(v) < 0; });   /* what went in stays in; the rest can be tried again */
+          paint();
+          warn(done.length ? 'A ' + done.map(labelOf).join(', ') + ' méret a kosárba került, a többi nem. Kérjük, próbáld újra!' : 'Nem sikerült, kérjük, próbáld újra!');
+        });
+    }, true);
+  }
+
+  function start() {
+    if (!document.body || !/\bproduct-page-body\b/.test(document.body.className)) { return; }
+    var box = document.querySelector('.product-cart-box');
+    if (!box || !box.querySelector('select[name^="option["]')) { return; }
+    var st = document.createElement('style');
+    st.id = 'rr-psz-css';
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+    build(box);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
+
 /* Search "new rock" (2026-11-04): a plain brand search opens the NEW ROCK™ folder, where the boots
    (FÉRFI / UNISEX, NŐI) come first, instead of a result list that starts with small accessories.
    More specific searches ("new rock wall", a product code) stay normal searches. */
