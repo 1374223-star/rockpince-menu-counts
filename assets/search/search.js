@@ -203,10 +203,15 @@
     function load() {
       return (opts.noSplit ? Promise.reject(new Error('off')) : loadSplit()).catch(loadFull).then(loadTree).then(function () {
         setScope();
+        var missing = 0;      /* 2026-11-20: products on the shop's own result page that our copy of the catalogue does not have */
+        if (opts.shopIds && opts.shopIds.length) {
+          var have = new Set(); for (var q = 0; q < N; q++) { have.add(D.id[q]); }
+          opts.shopIds.forEach(function (x) { if (!have.has(x)) { missing++; } });
+        }
         var lo = 1e9, hi = 0;
         for (var i = 0; i < N; i++) { if (!scope || scope[i]) { var p = D.now[i]; if (p < lo) { lo = p; } if (p > hi) { hi = p; } } }
         postMessage({ ready: 1, types: D.types, genders: D.genders, bands: D.bands, kinds: D.kinds, facets: D.facets, values: D.values, hasDays: D.hasDays,
-          lo: lo, hi: hi, total: N, built: built, split: split, scoped: !!scope, scopeN: scopeN });
+          lo: lo, hi: hi, total: N, built: built, split: split, scoped: !!scope, scopeN: scopeN, missing: missing });
       });
     }
 
@@ -1127,6 +1132,16 @@
       if (y < head - 40) { scrollTo(0, scrollY + y - head - 8); }
     }
   }
+  function shopIds() {      /* product ids on the shop's own result page: every product link ends in -<id> */
+    var ids = {}, out = [];
+    document.querySelectorAll('.main-content .product-snapshot, .main-content .product-card').forEach(function (c) {
+      if (c.closest('#rrsx-root')) { return; }
+      var a = c.querySelector('a[href]'), m = a && /-(\d+)\/?(?:[?#]|$)/.exec(a.getAttribute('href'));
+      var id = m ? +m[1] : +(c.getAttribute('data-product-id') || 0);
+      if (id && !ids[id]) { ids[id] = 1; out.push(id); }
+    });
+    return out;
+  }
   function shopFound() {     /* the shop's own search result list, outside our panel */
     var els = document.querySelectorAll('.main-content .product-snapshot, .main-content .product-card');
     for (var i = 0; i < els.length; i++) { if (!els[i].closest('#rrsx-root')) { return true; } }
@@ -1397,10 +1412,13 @@
     window.RRSX_DEAD = why || 1;
     document.removeEventListener('click', tapFilter, true);
     if (wantSheet) { wantSheet = false; var shopBtn = document.getElementById('js-open-filter-btn'); if (shopBtn) { shopBtn.click(); } }
-    if (SEARCH_PAGE && !PREVIEW && S.text && why !== 'shop has results') { withAlert(function () { window.RRSA.shop(params.get('keyword') || S.text); }); }   /* the shop's own empty page */
+    if (SEARCH_PAGE && !PREVIEW && S.text && why !== 'shop has results' && why !== 'shop has newer products') { withAlert(function () { window.RRSA.shop(params.get('keyword') || S.text); }); }   /* the shop's own empty page */
   }
   function onReady(m) {
     clearTimeout(guard);
+    /* 2026-11-20: the shop listed a product our catalogue copy has never seen (a new product, data older than the shop):
+       our list would hide it, so the shop's own search result stays */
+    if (SEARCH_PAGE && !PREVIEW && m.missing && !filterCount()) { giveUp('shop has newer products'); return; }
     if (CAT_PAGE && !m.scoped) { giveUp('no category data'); return; }
     if (CAT_PAGE && !m.scopeN) { giveUp('empty category'); return; }
     var names = { boot_height: 'Lábbeli szárhossz', heel: 'Lábbeli sarok' };      /* owner 2026-11-19 */
@@ -1436,7 +1454,7 @@
       if (m.fill) { fill(m); return; }
       if (m.id === seq) { window.__rrsxMs = m.ms; result(m); }
     };
-    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', adv: ADVANCED, noSplit: !!window.RRSX_NO_SPLIT, text: SEARCH_PAGE && !!S.text } });
+    W.postMessage({ load: { url: INDEX_URL, counts: COUNTS_URL, cat: CAT_PAGE ? catId() : null, path: CAT_PAGE ? location.pathname : '', adv: ADVANCED, noSplit: !!window.RRSX_NO_SPLIT, text: SEARCH_PAGE && !!S.text, shopIds: SEARCH_PAGE && !PREVIEW ? shopIds() : [] } });
   }
 
   /* ---------- on phones nothing heavy starts until the filter button is used ---------- */
