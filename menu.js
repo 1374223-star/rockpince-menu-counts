@@ -3320,6 +3320,7 @@
         })
         .then(function () {
           st.done = Date.now(); set(KEY, JSON.stringify(st));
+          try { window.dispatchEvent(new Event('rr-nl-signup')); } catch (e) { /* the -10% tab test counts it (assets/campaigns) */ }
           bg.querySelector('.body').innerHTML = '<div class="ok"><div class="big">-10%</div><h3>Köszönjük, feliratkoztál!</h3>' +
             '<p>Néhány percen belül megérkezik a kuponkódod erre a címre: <b></b>. Ha nem látod, nézd meg a Promóciók vagy a Spam mappát is.</p>' +
             '<button type="button" class="go">Vásárlás folytatása</button></div>';

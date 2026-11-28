@@ -9,7 +9,9 @@
    at most 2 messages in 7 days.
    Every message has a small, quiet "Ne mutass több ilyet" link (owner 2026-11-18): it ends these messages and the automatic
    newsletter pop-up for good in that browser.
-   GA4 events: rr_camp_show, rr_camp_click, rr_camp_close, rr_camp_off, rr_camp_holdout, rr_camp_purchase (rr_camp, rr_group). */
+   GA4 events: rr_camp_show, rr_camp_click, rr_camp_close, rr_camp_off, rr_camp_holdout, rr_camp_purchase (rr_camp, rr_group).
+   rr_camp_signup (owner 2026-11-28): a newsletter sign-up by a visitor who is in the -10% tab test (nl_teaser), once per browser,
+   so the tab can be judged by sign-ups, show group against holdout. Counts the pop-up form and the home page form. */
 (function () {
   'use strict';
   if (window.__rrCamp) { return; }
@@ -61,6 +63,13 @@
   }
   purchase();
   addEventListener('hashchange', purchase);
+  function signup() {   /* the pop-up in menu.js fires rr-nl-signup; the home form lands on the thank-you page */
+    var g = S.g.nl_teaser;
+    if (!g || S.su) { return; }
+    S.su = Date.now(); save(); send('rr_camp_signup', 'nl_teaser', g);
+  }
+  addEventListener('rr-nl-signup', signup);
+  if (/newsletter_subscribe\/thankyou_page/.test(location.search)) { signup(); }
   if (isProduct) { remember(); }
   save();
   if (isCheckout || /route=account|success/i.test(path)) { return; }
